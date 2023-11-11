@@ -7,3 +7,10 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.75"
+dotenvy_macro = "0.15.7"
+log = "0.4.20"
+pretty_env_logger = "0.5.0"
+reqwest = "0.11.22"
+teloxide = { version = "0.12.2", default-features = false, features = ["macros", "ctrlc_handler", "rustls", "sqlite-storage-rustls"] }
+tokio = { version = "1.34.0", features = ["full"] }

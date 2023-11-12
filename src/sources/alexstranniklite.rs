@@ -38,7 +38,7 @@ impl UpdateSource for Source {
     fn with_timeout(timeout: Duration) -> Self {
         Self {
             timeout,
-            timer: RwLock::new(Instant::now() + timeout),
+            timer: RwLock::new(Instant::now() - timeout),
         }
     }
 

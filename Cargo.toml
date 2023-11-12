@@ -17,3 +17,4 @@ serde = { version = "1.0.192", features = ["derive"] }
 surrealdb = { version = "1.0.0", features = ["kv-rocksdb"] }
 teloxide = { version = "0.12.2", default-features = false, features = ["macros", "ctrlc_handler", "rustls", "sqlite-storage-rustls"] }
 tokio = { version = "1.34.0", features = ["full"] }
+tokio-util = "0.7.10"

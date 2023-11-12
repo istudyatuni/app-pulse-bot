@@ -4,10 +4,15 @@ use anyhow::Result;
 use dotenvy_macro::dotenv;
 use reqwest::Client;
 use teloxide::{prelude::*, utils::command::BotCommands};
+use tokio::{
+    signal,
+    sync::mpsc::{self, Receiver},
+    task::JoinSet,
+};
+use tokio_util::sync::CancellationToken;
 
 use db::DB;
-use sources::{start_update_loop, UpdateSource, Update};
-use tokio::sync::mpsc::{self, Receiver};
+use sources::{start_update_loop, Update, UpdateSource};
 
 mod db;
 mod sources;
@@ -19,6 +24,7 @@ const REQUEST_TIMEOUT_SEC: u64 = 30;
 async fn main() -> Result<()> {
     pretty_env_logger::init();
     log::info!("starting bot");
+
     let bot = Bot::with_client(
         TG_BOT_TOKEN,
         Client::builder()
@@ -29,16 +35,33 @@ async fn main() -> Result<()> {
 
     bot.set_my_commands(Command::bot_commands()).await?;
 
-    let (tx, rx) = mpsc::channel(1);
+    let (tx, rx) = mpsc::channel(100);
+    let cancel_token = CancellationToken::new();
 
-    let source_check_job = tokio::spawn(start_update_loop(
+    let mut jobs = JoinSet::new();
+    jobs.spawn(start_update_loop(
+        cancel_token.clone(),
         sources::alexstranniklite::Source::new(),
         tx,
     ));
-    let user_reply_job = tokio::spawn(start_user_reply_job(bot.clone(), db.clone()));
-    let updates_notify_job = tokio::spawn(start_updates_notify_job(bot.clone(), db.clone(), rx));
+    jobs.spawn(start_user_reply_job(bot.clone(), db.clone()));
+    jobs.spawn(start_updates_notify_job(
+        cancel_token.clone(),
+        bot.clone(),
+        db.clone(),
+        rx,
+    ));
+    jobs.spawn(async move {
+        match signal::ctrl_c().await {
+            Ok(()) => {}
+            Err(e) => {
+                log::error!("failed to listen for SIGINT: {e}");
+            }
+        }
+        cancel_token.cancel();
+    });
 
-    tokio::try_join!(source_check_job, user_reply_job, updates_notify_job)?;
+    while let Some(_) = jobs.join_next().await {}
 
     Ok(())
 }
@@ -76,12 +99,23 @@ async fn start_user_reply_job(bot: Bot, db: DB) {
     Command::repl(bot, move |b, msg, cmd| answer(b, msg, cmd, db.clone())).await
 }
 
-async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Update>>) {
-    while let Some(updates) = rx.recv().await {
-        for update in updates {
-            log::debug!("got update: {:?}", update);
-            send_update(bot.clone(), &db).await;
-        }
+async fn start_updates_notify_job(
+    token: CancellationToken,
+    bot: Bot,
+    db: DB,
+    mut rx: Receiver<Vec<Update>>,
+) {
+    // todo: handle remaining updates after cancel
+    tokio::select! {
+        _ = token.cancelled() => {}
+        _ = async {
+            while let Some(updates) = rx.recv().await {
+                for update in updates {
+                    log::debug!("got update: {:?}", update);
+                    send_update(bot.clone(), &db).await;
+                }
+            }
+        } => {}
     }
 }
 

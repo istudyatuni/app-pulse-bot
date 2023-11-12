@@ -5,6 +5,7 @@ use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use tokio::sync::mpsc::Sender;
+use tokio_util::sync::CancellationToken;
 
 pub(crate) mod alexstranniklite;
 
@@ -62,15 +63,23 @@ impl Update {
     }
 }
 
-pub(crate) async fn start_update_loop<S>(source: S, tx: Sender<Vec<Update>>)
-where
+pub(crate) async fn start_update_loop<S>(
+    token: CancellationToken,
+    source: S,
+    tx: Sender<Vec<Update>>,
+) where
     S: UpdateSource + Send + Sync,
 {
-    let source = Arc::new(source);
-    loop {
-        let updates = source.get_updates_or_sleep().await;
-        tx.send(updates)
-            .await
-            .expect("failed to send updates to mspc");
+    tokio::select! {
+        _ = token.cancelled() => {}
+        _ = async {
+            let source = Arc::new(source);
+            loop {
+                let updates = source.get_updates_or_sleep().await;
+                tx.send(updates)
+                    .await
+                    .expect("failed to send updates to mspc");
+            }
+        } => {}
     }
 }

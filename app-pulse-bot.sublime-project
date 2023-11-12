@@ -2,7 +2,8 @@
 	"folders":
 	[
 		{
-			"path": "."
+			"path": ".",
+			"index_exclude_patterns": [".git/**/*", "target/**/*"]
 		}
 	]
 }

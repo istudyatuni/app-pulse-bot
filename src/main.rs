@@ -3,7 +3,11 @@ use std::time::Duration;
 use anyhow::Result;
 use dotenvy_macro::dotenv;
 use reqwest::Client;
-use teloxide::{prelude::*, utils::command::BotCommands};
+use teloxide::{
+    prelude::*,
+    types::{InlineKeyboardButton, InlineKeyboardButtonKind, InlineKeyboardMarkup, ReplyMarkup},
+    utils::command::BotCommands,
+};
 use tokio::{
     signal,
     sync::mpsc::{self, Receiver},
@@ -11,28 +15,27 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
-use db::DB;
+use db::{models::ShouldNotify, DB};
 use sources::{start_update_loop, Update, UpdateSource};
 
 mod db;
 mod sources;
 
+const DB_FILE: &str = "data.db";
 const TG_BOT_TOKEN: &str = dotenv!("BOT_TOKEN");
-const REQUEST_TIMEOUT_SEC: u64 = 30;
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[tokio::main]
 async fn main() -> Result<()> {
     pretty_env_logger::init();
     log::info!("starting bot");
 
+    let db = DB::init(DB_FILE).await?;
+
     let bot = Bot::with_client(
         TG_BOT_TOKEN,
-        Client::builder()
-            .timeout(Duration::from_secs(REQUEST_TIMEOUT_SEC))
-            .build()?,
+        Client::builder().timeout(REQUEST_TIMEOUT).build()?,
     );
-    let db = DB::new();
-
     bot.set_my_commands(Command::bot_commands()).await?;
 
     let (tx, rx) = mpsc::channel(100);
@@ -79,9 +82,13 @@ enum Command {
 
 async fn answer(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
     match cmd {
-        Command::Start => {
-            db.save_user(msg.chat.id.0);
-        }
+        Command::Start => match db.save_user(msg.chat.id.0).await {
+            Ok(_) => {
+                bot.send_message(msg.chat.id, "Welcome").await?;
+                log::debug!("saved user: {:?}", db.select_user(msg.chat.id.0).await);
+            }
+            Err(e) => log::error!("failed to save user {}: {e}", msg.chat.id.0),
+        },
         Command::Help => {
             bot.send_message(msg.chat.id, Command::descriptions().to_string())
                 .await?;
@@ -112,13 +119,68 @@ async fn start_updates_notify_job(
             while let Some(updates) = rx.recv().await {
                 for update in updates {
                     log::debug!("got update: {:?}", update);
-                    send_update(bot.clone(), &db).await;
+                    let users = match db.select_users().await {
+                        Ok(v) => v,
+                        Err(e) => {
+                            log::error!("failed to select users: {e}");
+                            continue;
+                        },
+                    };
+                    for user in users {
+                        let user_id = user.user_id();
+                        let chat_id = ChatId(user_id);
+                        match db.should_notify_user(user_id, update.app_id()).await {
+                            ShouldNotify::Unspecified => {
+                                match send_suggest_update(bot.clone(), chat_id, &update).await {
+                                    Ok(_) => (),
+                                    Err(e) => {
+                                        log::error!("failed to send suggest update: {e}");
+                                    },
+                                }
+                            },
+                            ShouldNotify::Notify => {
+                                send_update(bot.clone(), chat_id).await;
+                            },
+                            ShouldNotify::Ignore => (),
+                        };
+                    }
                 }
             }
         } => {}
     }
 }
 
-async fn send_update(_bot: Bot, _db: &DB) {
-    todo!()
+async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
+    let mut text = vec!["New app to track updates\n".to_string()];
+    if let Some(url) = update.description_link() {
+        text.push(url.to_string());
+    } else if let Some(url) = update.update_link() {
+        text.push(url.to_string());
+    }
+    let keys = &[[
+        InlineKeyboardButton::new(
+            "Notify",
+            InlineKeyboardButtonKind::CallbackData(format!(
+                "{chat_id}:{app}:notify",
+                app = update.app_id()
+            )),
+        ),
+        InlineKeyboardButton::new(
+            "Ignore",
+            InlineKeyboardButtonKind::CallbackData(format!(
+                "{chat_id}:{app}:ignore",
+                app = update.app_id()
+            )),
+        ),
+    ]];
+    bot.send_message(chat_id, text.join(" "))
+        .reply_markup(ReplyMarkup::InlineKeyboard(InlineKeyboardMarkup::new(
+            keys.to_owned(),
+        )))
+        .await?;
+    Ok(())
+}
+
+async fn send_update(_bot: Bot, _chat_id: ChatId) {
+    log::error!("send_update not implemented")
 }

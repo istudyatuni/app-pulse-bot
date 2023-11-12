@@ -55,7 +55,10 @@ impl UpdateSource for Source {
             return vec![];
         }
 
-        vec![Update::link("test link")]
+        vec![Update::link(
+            "https://t.me/alexstranniklite/18210",
+            "daylio",
+        )]
     }
 
     fn reset_timer(&self) {

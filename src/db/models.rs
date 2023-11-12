@@ -1,0 +1,60 @@
+use serde::{Deserialize, Serialize};
+use surrealdb::sql::Thing;
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub(crate) struct User {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    id: Option<Thing>,
+    user_id: i64,
+}
+
+impl User {
+    pub(crate) fn new(user_id: i64) -> Self {
+        Self {
+            user_id,
+            ..Default::default()
+        }
+    }
+    pub(crate) fn user_id(&self) -> i64 {
+        self.user_id
+    }
+}
+
+/*#[derive(Debug, Serialize, Deserialize)]
+struct App {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    id: Option<Thing>,
+    app_id: String,
+}*/
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct UserUpdate {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    id: Option<Thing>,
+    user_id: i64,
+    app_id: String,
+    should_notify: ShouldNotify,
+}
+
+impl UserUpdate {
+    pub(crate) fn new(user_id: i64, app_id: &str, should_notify: ShouldNotify) -> Self {
+        Self {
+            user_id,
+            app_id: app_id.to_string(),
+            should_notify,
+            ..Default::default()
+        }
+    }
+    pub(crate) fn app_id(&self) -> &str {
+        &self.app_id
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum ShouldNotify {
+    #[default]
+    Unspecified,
+    Notify,
+    Ignore,
+}

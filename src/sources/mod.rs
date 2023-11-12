@@ -45,21 +45,34 @@ pub(crate) trait UpdateSource {
 
 #[derive(Debug)]
 pub(crate) struct Update {
-    link: Option<String>,
+    description_link: Option<String>,
+    update_link: Option<String>,
+    app_id: String,
 }
 
 impl Update {
-    pub(crate) fn link(link: &str) -> Self {
+    pub(crate) fn link(link: &str, app_id: &str) -> Self {
         Self {
-            link: Some(link.to_string()),
+            description_link: Some(link.to_string()),
+            update_link: None,
+            app_id: app_id.to_string(),
         }
     }
     pub(crate) fn format_message(&self) -> String {
         let mut msg = vec![];
-        if let Some(ref link) = self.link {
+        if let Some(ref link) = self.update_link {
             msg.push(link.as_str());
         }
         msg.join(" ")
+    }
+    pub(crate) fn app_id(&self) -> &str {
+        &self.app_id
+    }
+    pub(crate) fn description_link(&self) -> &Option<String> {
+        &self.description_link
+    }
+    pub(crate) fn update_link(&self) -> &Option<String> {
+        &self.update_link
     }
 }
 

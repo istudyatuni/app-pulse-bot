@@ -58,6 +58,17 @@ impl Update {
             app_id: app_id.to_string(),
         }
     }
+    pub(crate) fn link_with_update(
+        description_link: &str,
+        update_link: &str,
+        app_id: &str,
+    ) -> Self {
+        Self {
+            description_link: Some(description_link.to_string()),
+            update_link: Some(update_link.to_string()),
+            app_id: app_id.to_string(),
+        }
+    }
     pub(crate) fn format_message(&self) -> String {
         let mut msg = vec![];
         if let Some(ref link) = self.update_link {
@@ -89,9 +100,10 @@ pub(crate) async fn start_update_loop<S>(
             let source = Arc::new(source);
             loop {
                 let updates = source.get_updates_or_sleep().await;
-                tx.send(updates)
-                    .await
-                    .expect("failed to send updates to mspc");
+                match tx.send(updates).await {
+                    Ok(_) => (),
+                    Err(_) => log::error!("failed to send update to mpsc, dropping"),
+                }
             }
         } => {}
     }

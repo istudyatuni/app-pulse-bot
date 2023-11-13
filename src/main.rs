@@ -5,7 +5,7 @@ use dotenvy_macro::dotenv;
 use reqwest::Client;
 use teloxide::{
     prelude::*,
-    types::{InlineKeyboardButton, InlineKeyboardButtonKind, InlineKeyboardMarkup, ReplyMarkup},
+    types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup, Update as TgUpdate},
     utils::command::BotCommands,
 };
 use tokio::{
@@ -24,6 +24,9 @@ mod sources;
 const DB_FILE: &str = "data.db";
 const TG_BOT_TOKEN: &str = dotenv!("BOT_TOKEN");
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+const NOTIFY_TOKEN: &str = "notify";
+const IGNORE_TOKEN: &str = "ignore";
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -80,12 +83,12 @@ enum Command {
     Help,
 }
 
-async fn answer(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
+async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
     match cmd {
-        Command::Start => match db.save_user(msg.chat.id.0).await {
+        Command::Start => match db.save_user(msg.chat.id.into()).await {
             Ok(_) => {
                 bot.send_message(msg.chat.id, "Welcome").await?;
-                log::debug!("saved user: {:?}", db.select_user(msg.chat.id.0).await);
+                log::debug!("saved user: {:?}", db.select_user(msg.chat.id.into()).await);
             }
             Err(e) => log::error!("failed to save user {}: {e}", msg.chat.id.0),
         },
@@ -102,8 +105,52 @@ async fn answer(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<
     Ok(())
 }
 
+async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseResult<()> {
+    bot.answer_callback_query(&q.id).await?;
+    let chat_id = q.from.id;
+    let Some(data) = q.data else {
+        log::error!("got empty callback {} from user {}", q.id, chat_id);
+        // todo: answer with alert https://stackoverflow.com/a/57390206
+        bot.send_message(chat_id, "Something went wrong").await?;
+        return Ok(());
+    };
+    log::debug!("got callback: {:?}", data);
+    let data: Vec<_> = data.split(":").collect();
+    if data.len() != 2 {
+        log::error!("wrong callback: {data:?}");
+        return Ok(());
+    }
+    let (app_id, should_notify) = (data[0], data[1]);
+    let should_notify = match should_notify {
+        NOTIFY_TOKEN => ShouldNotify::Notify,
+        IGNORE_TOKEN => ShouldNotify::Ignore,
+        _ => {
+            log::error!("wrong callback: {data:?}");
+            return Ok(());
+        }
+    };
+    match db
+        .save_should_notify_user(chat_id.into(), app_id, should_notify)
+        .await
+    {
+        Ok(_) => (),
+        Err(e) => log::error!("failed to save user should_notify: {e}"),
+    }
+    Ok(())
+}
+
 async fn start_user_reply_job(bot: Bot, db: DB) {
-    Command::repl(bot, move |b, msg, cmd| answer(b, msg, cmd, db.clone())).await
+    let handler = dptree::entry()
+        .branch(TgUpdate::filter_message().endpoint(message_handler))
+        .branch(TgUpdate::filter_callback_query().endpoint(callback_handler));
+    Dispatcher::builder(bot.clone(), handler)
+        .dependencies(dptree::deps![db])
+        .default_handler(|_update| async move { log::error!("unhandled update") })
+        .error_handler(LoggingErrorHandler::with_custom_text("error in dispatcher"))
+        .enable_ctrlc_handler()
+        .build()
+        .dispatch()
+        .await;
 }
 
 async fn start_updates_notify_job(
@@ -112,41 +159,48 @@ async fn start_updates_notify_job(
     db: DB,
     mut rx: Receiver<Vec<Update>>,
 ) {
-    // todo: handle remaining updates after cancel
-    tokio::select! {
-        _ = token.cancelled() => {}
-        _ = async {
-            while let Some(updates) = rx.recv().await {
-                for update in updates {
-                    log::debug!("got update: {:?}", update);
-                    let users = match db.select_users().await {
-                        Ok(v) => v,
-                        Err(e) => {
-                            log::error!("failed to select users: {e}");
-                            continue;
-                        },
-                    };
-                    for user in users {
-                        let user_id = user.user_id();
-                        let chat_id = ChatId(user_id);
-                        match db.should_notify_user(user_id, update.app_id()).await {
-                            ShouldNotify::Unspecified => {
-                                match send_suggest_update(bot.clone(), chat_id, &update).await {
-                                    Ok(_) => (),
-                                    Err(e) => {
-                                        log::error!("failed to send suggest update: {e}");
-                                    },
-                                }
-                            },
-                            ShouldNotify::Notify => {
-                                send_update(bot.clone(), chat_id).await;
-                            },
-                            ShouldNotify::Ignore => (),
-                        };
-                    }
-                }
+    while let Some(updates) = rx.recv().await {
+        for update in updates {
+            // probably this is unnecessary
+            if token.is_cancelled() {
+                rx.close();
+                log::info!("aborting updates, waiting for handling remaining updates")
             }
-        } => {}
+
+            log::debug!("got update: {:?}", update);
+            let users = match db.select_users().await {
+                Ok(v) => v,
+                Err(e) => {
+                    log::error!("failed to select users: {e}");
+                    continue;
+                }
+            };
+            for user in users {
+                let user_id = user.user_id();
+                let chat_id = user_id.into();
+                let app_id = update.app_id();
+                match db.should_notify_user(user_id, app_id).await {
+                    Ok(s) => match s {
+                        ShouldNotify::Unspecified => {
+                            send_suggest_update(bot.clone(), chat_id, &update)
+                                .await
+                                .log_on_error()
+                                .await
+                        }
+                        ShouldNotify::Notify => {
+                            send_update(bot.clone(), chat_id, &update)
+                                .await
+                                .log_on_error()
+                                .await;
+                        }
+                        ShouldNotify::Ignore => {
+                            log::debug!("ignoring update {app_id} for user {user_id}")
+                        }
+                    },
+                    Err(e) => log::error!("failed to check, if should notify user {user_id}: {e}"),
+                };
+            }
+        }
     }
 }
 
@@ -158,22 +212,16 @@ async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update) -> Resu
         text.push(url.to_string());
     }
     let keys = &[[
-        InlineKeyboardButton::new(
+        InlineKeyboardButton::callback(
             "Notify",
-            InlineKeyboardButtonKind::CallbackData(format!(
-                "{chat_id}:{app}:notify",
-                app = update.app_id()
-            )),
+            format!("{app}:{NOTIFY_TOKEN}", app = update.app_id()),
         ),
-        InlineKeyboardButton::new(
+        InlineKeyboardButton::callback(
             "Ignore",
-            InlineKeyboardButtonKind::CallbackData(format!(
-                "{chat_id}:{app}:ignore",
-                app = update.app_id()
-            )),
+            format!("{app}:{IGNORE_TOKEN}", app = update.app_id()),
         ),
     ]];
-    bot.send_message(chat_id, text.join(" "))
+    bot.send_message(chat_id, text.join(""))
         .reply_markup(ReplyMarkup::InlineKeyboard(InlineKeyboardMarkup::new(
             keys.to_owned(),
         )))
@@ -181,6 +229,21 @@ async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update) -> Resu
     Ok(())
 }
 
-async fn send_update(_bot: Bot, _chat_id: ChatId) {
-    log::error!("send_update not implemented")
+async fn send_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
+    let mut text = vec!["New update\n".to_string()];
+    if let Some(url) = update.update_link() {
+        text.push(url.to_string());
+    } else if let Some(url) = update.description_link() {
+        text.push(url.to_string());
+    }
+    let keys = &[[InlineKeyboardButton::callback(
+        "Ignore",
+        format!("{app}:{IGNORE_TOKEN}", app = update.app_id()),
+    )]];
+    bot.send_message(chat_id, text.join(""))
+        .reply_markup(ReplyMarkup::InlineKeyboard(InlineKeyboardMarkup::new(
+            keys.to_owned(),
+        )))
+        .await?;
+    Ok(())
 }

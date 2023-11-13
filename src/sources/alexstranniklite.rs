@@ -55,8 +55,9 @@ impl UpdateSource for Source {
             return vec![];
         }
 
-        vec![Update::link(
+        vec![Update::link_with_update(
             "https://t.me/alexstranniklite/18210",
+            "https://t.me/alexstranniklite/18211",
             "daylio",
         )]
     }

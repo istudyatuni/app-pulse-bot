@@ -1,14 +1,14 @@
-#![allow(unused)]
-
-use std::path::PathBuf;
-
 use anyhow::Result;
 use camino::Utf8PathBuf;
 use surrealdb::engine::local::{Db, RocksDb};
-use surrealdb::sql::Id;
+use surrealdb::opt::PatchOp;
+use surrealdb::sql::Value;
 use surrealdb::Surreal;
 
 pub(crate) mod models;
+mod types;
+
+use types::UserId;
 
 const USER_TABLE: &str = "user";
 const USER_UPDATE_TABLE: &str = "user_update";
@@ -24,11 +24,10 @@ DEFINE INDEX user_id_index ON TABLE user COLUMNS user_id UNIQUE;
 DEFINE TABLE user_update SCHEMAFULL;
 
 DEFINE FIELD user_id ON TABLE user_update TYPE int;
-DEFINE INDEX user_id_index ON TABLE user_update COLUMNS user_id UNIQUE;
-
 DEFINE FIELD app_id ON TABLE user_update TYPE string;
-DEFINE INDEX app_id_index ON TABLE user_update COLUMNS app_id UNIQUE;
 DEFINE FIELD should_notify ON TABLE user_update TYPE string;
+
+DEFINE INDEX user_app_id_index ON TABLE user_update COLUMNS user_id, app_id UNIQUE;
 "#;
 
 #[derive(Debug, Clone)]
@@ -49,7 +48,7 @@ impl DB {
 
         Ok(Self { conn: db })
     }
-    pub(crate) async fn save_user(&self, user_id: i64) -> Result<()> {
+    pub(crate) async fn save_user(&self, user_id: UserId) -> Result<()> {
         log::debug!("saving user {user_id}");
         let _: Option<models::User> = self
             .conn
@@ -58,7 +57,7 @@ impl DB {
             .await?;
         Ok(())
     }
-    pub(crate) async fn select_user(&self, user_id: i64) -> Result<Option<models::User>> {
+    pub(crate) async fn select_user(&self, user_id: UserId) -> Result<Option<models::User>> {
         log::debug!("select user {user_id}");
         Ok(self.conn.select((USER_TABLE, user_id)).await?)
     }
@@ -66,15 +65,61 @@ impl DB {
         log::info!("select users");
         Ok(self.conn.select(USER_TABLE).await?)
     }
+    pub(crate) async fn save_should_notify_user(
+        &self,
+        user_id: UserId,
+        app_id: &str,
+        should_notify: models::ShouldNotify,
+    ) -> Result<()> {
+        let _: Option<models::User> = match self
+            .conn
+            .create((USER_UPDATE_TABLE, make_user_update_id(user_id, app_id)))
+            .content(models::UserUpdate::new(user_id, app_id, should_notify))
+            .await
+        {
+            Ok(res) => res,
+            Err(surrealdb::Error::Db(surrealdb::error::Db::RecordExists { .. })) => {
+                self.update_should_notify_user(user_id, app_id, should_notify)
+                    .await?;
+                return Ok(());
+            }
+            e => e?,
+        };
+        log::debug!("user preference saved");
+        Ok(())
+    }
+    async fn update_should_notify_user(
+        &self,
+        user_id: UserId,
+        app_id: &str,
+        should_notify: models::ShouldNotify,
+    ) -> Result<()> {
+        let _: Option<models::User> = self
+            .conn
+            .update((USER_UPDATE_TABLE, make_user_update_id(user_id, app_id)))
+            .patch(PatchOp::replace("/should_notify", should_notify))
+            .await?;
+        log::debug!("user preference updated");
+        Ok(())
+    }
     pub(crate) async fn should_notify_user(
         &self,
-        user_id: i64,
+        user_id: UserId,
         app_id: &str,
-    ) -> models::ShouldNotify {
+    ) -> Result<models::ShouldNotify> {
         log::debug!("getting user preference");
-        models::ShouldNotify::Unspecified
+        let user_update: Option<models::UserUpdate> = self
+            .conn
+            .select((USER_UPDATE_TABLE, make_user_update_id(user_id, app_id)))
+            .await?;
+        Ok(user_update.map(|u| u.should_notify()).unwrap_or_default())
     }
+    #[allow(unused)]
     pub(crate) fn add_app(&self, name: &str, source_id: &str) {
         log::debug!("saving app {name}");
     }
+}
+
+fn make_user_update_id(user_id: UserId, app_id: &str) -> Vec<Value> {
+    vec![user_id.into(), app_id.into()]
 }

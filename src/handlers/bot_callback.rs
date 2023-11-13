@@ -15,7 +15,7 @@ pub(crate) async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> Resp
         return Ok(());
     };
     log::debug!("got callback: {:?}", data);
-    let data: Vec<_> = data.split(":").collect();
+    let data: Vec<_> = data.split(':').collect();
     if data.len() != 2 {
         log::error!("wrong callback: {data:?}");
         return Ok(());

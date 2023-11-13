@@ -82,7 +82,7 @@ impl UpdateSource for Source {
                 if is_description(&msg) {
                     updates.push(
                         Update::builder()
-                            .app_id(get_app_id(&upd))
+                            .app_id(get_app_id(upd))
                             .description_link(&format!("{channel_link}{}", msg.id))
                             .update_link(&format!("{channel_link}{}", upd.id))
                             .build(),
@@ -136,7 +136,7 @@ fn is_update(msg: &Message) -> bool {
 ///
 /// `"<strong>app</strong> 1.2.3 <strong>arm7</strong>"` -> `"app"`
 fn get_app_id(msg: &Message) -> String {
-    let s = msg.message.split(" ").take(1).collect::<String>();
+    let s = msg.message.split(' ').take(1).collect::<String>();
     let s = s.strip_prefix("<strong>").unwrap_or(&s);
-    s.strip_suffix("</strong>").unwrap_or(&s).to_string()
+    s.strip_suffix("</strong>").unwrap_or(s).to_string()
 }

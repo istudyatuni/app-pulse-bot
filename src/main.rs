@@ -71,7 +71,7 @@ async fn main() -> Result<()> {
         cancel_token.cancel();
     });
 
-    while let Some(_) = jobs.join_next().await {}
+    while (jobs.join_next().await).is_some() {}
 
     Ok(())
 }

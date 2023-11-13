@@ -1,4 +1,4 @@
-use std::{any::Any, future::Future, time::Duration};
+use std::{future::Future, time::Duration};
 
 use anyhow::Result;
 use dotenvy_macro::dotenv;
@@ -49,7 +49,10 @@ async fn main() -> Result<()> {
         cancel_token.clone(),
         start_update_loop(sources::alexstranniklite::Source::new(), tx),
     ));
-    jobs.spawn(start_bot(bot.clone(), db.clone()));
+    jobs.spawn(spawn_with_token(
+        cancel_token.clone(),
+        start_bot(bot.clone(), db.clone()),
+    ));
     jobs.spawn(spawn_with_token(
         cancel_token.clone(),
         start_updates_notify_job(bot, db, rx),
@@ -69,7 +72,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn spawn_with_token(token: CancellationToken, f: impl Future<Output = impl Any>) {
+async fn spawn_with_token<R>(token: CancellationToken, f: impl Future<Output = R>) {
     tokio::select! {
         _ = token.cancelled() => {},
         _ = f => {},
@@ -158,7 +161,7 @@ async fn start_bot(bot: Bot, db: DB) {
         .dependencies(dptree::deps![db])
         .default_handler(|_update| async move { log::error!("unhandled update") })
         .error_handler(LoggingErrorHandler::with_custom_text("error in dispatcher"))
-        .enable_ctrlc_handler()
+        // .enable_ctrlc_handler()
         .build()
         .dispatch()
         .await;

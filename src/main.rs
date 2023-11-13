@@ -4,18 +4,24 @@ use anyhow::Result;
 use dotenvy_macro::dotenv;
 use reqwest::Client;
 use teloxide::{prelude::*, types::Update as TgUpdate, utils::command::BotCommands};
-use tg::KeyboardBuilder;
+
 use tokio::{
     signal,
-    sync::mpsc::{self, Receiver},
+    sync::mpsc::{self},
     task::JoinSet,
 };
 use tokio_util::sync::CancellationToken;
 
-use db::{models::ShouldNotify, DB};
-use sources::{start_update_loop, Update, UpdateSource};
+use db::DB;
+use handlers::{
+    bot_callback::callback_handler,
+    bot_messages::{message_handler, Command},
+    updates_notify::start_updates_notify_job,
+};
+use sources::{start_update_loop, UpdateSource};
 
 mod db;
+mod handlers;
 mod sources;
 mod tg;
 
@@ -77,73 +83,6 @@ async fn spawn_with_token<R>(token: CancellationToken, f: impl Future<Output = R
     }
 }
 
-#[derive(BotCommands, Clone)]
-#[command(rename_rule = "lowercase", description = "Supported commands")]
-enum Command {
-    #[command(description = "off")]
-    Start,
-    #[command(description = "Subscribe")]
-    Subscribe,
-    #[command(description = "Display this text")]
-    Help,
-}
-
-async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
-    match cmd {
-        Command::Start => match db.save_user(msg.chat.id.into()).await {
-            Ok(_) => {
-                bot.send_message(msg.chat.id, "Welcome").await?;
-                log::debug!("saved user: {:?}", db.select_user(msg.chat.id.into()).await);
-            }
-            Err(e) => log::error!("failed to save user {}: {e}", msg.chat.id.0),
-        },
-        Command::Help => {
-            bot.send_message(msg.chat.id, Command::descriptions().to_string())
-                .await?;
-        }
-        Command::Subscribe => {
-            bot.send_message(msg.chat.id, "Subscribed to @alexstranniklite")
-                .await?;
-        }
-    };
-
-    Ok(())
-}
-
-async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseResult<()> {
-    bot.answer_callback_query(&q.id).await?;
-    let chat_id = q.from.id;
-    let Some(data) = q.data else {
-        log::error!("got empty callback {} from user {}", q.id, chat_id);
-        // todo: answer with alert https://stackoverflow.com/a/57390206
-        bot.send_message(chat_id, "Something went wrong").await?;
-        return Ok(());
-    };
-    log::debug!("got callback: {:?}", data);
-    let data: Vec<_> = data.split(":").collect();
-    if data.len() != 2 {
-        log::error!("wrong callback: {data:?}");
-        return Ok(());
-    }
-    let (app_id, should_notify) = (data[0], data[1]);
-    let should_notify = match should_notify {
-        NOTIFY_TOKEN => ShouldNotify::Notify,
-        IGNORE_TOKEN => ShouldNotify::Ignore,
-        _ => {
-            log::error!("wrong callback: {data:?}");
-            return Ok(());
-        }
-    };
-    match db
-        .save_should_notify_user(chat_id.into(), app_id, should_notify)
-        .await
-    {
-        Ok(_) => (),
-        Err(e) => log::error!("failed to save user should_notify: {e}"),
-    }
-    Ok(())
-}
-
 async fn start_bot(bot: Bot, db: DB) {
     log::debug!("starting bot");
     let handler = dptree::entry()
@@ -163,91 +102,4 @@ async fn start_bot(bot: Bot, db: DB) {
         .build()
         .dispatch()
         .await;
-}
-
-async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Update>>) {
-    log::debug!("starting listen for updates");
-    // todo: graceful shutdown for updates
-    while let Some(updates) = rx.recv().await {
-        for update in updates {
-            log::debug!("got update for {}", update.app_id());
-            let users = match db.select_users().await {
-                Ok(v) => v,
-                Err(e) => {
-                    log::error!("failed to select users: {e}");
-                    continue;
-                }
-            };
-            for user in users {
-                let user_id = user.user_id();
-                let chat_id = user_id.into();
-                let app_id = update.app_id();
-                match db.should_notify_user(user_id, app_id).await {
-                    Ok(s) => match s {
-                        ShouldNotify::Unspecified => {
-                            send_suggest_update(bot.clone(), chat_id, &update)
-                                .await
-                                .log_on_error()
-                                .await
-                        }
-                        ShouldNotify::Notify => {
-                            send_update(bot.clone(), chat_id, &update)
-                                .await
-                                .log_on_error()
-                                .await;
-                        }
-                        ShouldNotify::Ignore => {
-                            log::debug!("ignoring update {app_id} for user {user_id}")
-                        }
-                    },
-                    Err(e) => log::error!("failed to check, if should notify user {user_id}: {e}"),
-                };
-            }
-        }
-    }
-}
-
-async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
-    let mut text = vec!["New app to track updates\n".to_string()];
-    if let Some(description) = update.description() {
-        text.push(format!("\n{description}\n"));
-    }
-    if let Some(url) = update.description_link() {
-        text.push(url.to_string());
-    } else if let Some(url) = update.update_link() {
-        text.push(url.to_string());
-    }
-
-    let app_id = update.app_id();
-    let mut keyboard = KeyboardBuilder::new()
-        .row()
-        .callback("Notify", format!("{app_id}:{NOTIFY_TOKEN}"))
-        .callback("Ignore", format!("{app_id}:{IGNORE_TOKEN}"));
-
-    if let Some(url) = update.update_link() {
-        keyboard = keyboard.row().url("See update", url.clone());
-    }
-
-    bot.send_message(chat_id, text.join(""))
-        .reply_markup(keyboard.build_reply_inline_keyboard())
-        .await?;
-    Ok(())
-}
-
-async fn send_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
-    let app_id = update.app_id();
-    let mut text = vec![format!("New update for {app_id}\n")];
-    if let Some(url) = update.update_link() {
-        text.push(url.to_string());
-    } else if let Some(url) = update.description_link() {
-        text.push(url.to_string());
-    }
-
-    let keyboard = KeyboardBuilder::new()
-        .row()
-        .callback("Ignore", format!("{app_id}:{IGNORE_TOKEN}"));
-    bot.send_message(chat_id, text.join(""))
-        .reply_markup(keyboard.build_reply_inline_keyboard())
-        .await?;
-    Ok(())
 }

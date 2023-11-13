@@ -55,11 +55,13 @@ impl UpdateSource for Source {
             return vec![];
         }
 
-        vec![Update::link_with_update(
-            "https://t.me/alexstranniklite/18210",
-            "https://t.me/alexstranniklite/18211",
-            "daylio",
-        )]
+        vec![
+            Update::builder()
+                .app_id("daylio")
+                .description_link("https://t.me/alexstranniklite/18210")
+                .update_link("https://t.me/alexstranniklite/18211")
+                .build(),
+        ]
     }
 
     fn reset_timer(&self) {

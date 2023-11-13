@@ -43,47 +43,58 @@ pub(crate) trait UpdateSource {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct Update {
+    description: Option<String>,
     description_link: Option<String>,
     update_link: Option<String>,
     app_id: String,
 }
 
 impl Update {
-    pub(crate) fn link(link: &str, app_id: &str) -> Self {
-        Self {
-            description_link: Some(link.to_string()),
-            update_link: None,
-            app_id: app_id.to_string(),
+    pub(crate) fn builder() -> UpdateBuilder {
+        UpdateBuilder {
+            update: Update::default(),
         }
-    }
-    pub(crate) fn link_with_update(
-        description_link: &str,
-        update_link: &str,
-        app_id: &str,
-    ) -> Self {
-        Self {
-            description_link: Some(description_link.to_string()),
-            update_link: Some(update_link.to_string()),
-            app_id: app_id.to_string(),
-        }
-    }
-    pub(crate) fn format_message(&self) -> String {
-        let mut msg = vec![];
-        if let Some(ref link) = self.update_link {
-            msg.push(link.as_str());
-        }
-        msg.join(" ")
     }
     pub(crate) fn app_id(&self) -> &str {
         &self.app_id
+    }
+    pub(crate) fn description(&self) -> &Option<String> {
+        &self.description
     }
     pub(crate) fn description_link(&self) -> &Option<String> {
         &self.description_link
     }
     pub(crate) fn update_link(&self) -> &Option<String> {
         &self.update_link
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct UpdateBuilder {
+    update: Update,
+}
+
+impl UpdateBuilder {
+    pub(crate) fn description<S: Into<String>>(mut self, description: S) -> Self {
+        self.update.description = Some(description.into());
+        self
+    }
+    pub(crate) fn description_link<S: Into<String>>(mut self, description_link: S) -> Self {
+        self.update.description_link = Some(description_link.into());
+        self
+    }
+    pub(crate) fn update_link<S: Into<String>>(mut self, update_link: S) -> Self {
+        self.update.update_link = Some(update_link.into());
+        self
+    }
+    pub(crate) fn app_id<S: Into<String>>(mut self, app_id: S) -> Self {
+        self.update.app_id = app_id.into();
+        self
+    }
+    pub(crate) fn build(self) -> Update {
+        self.update
     }
 }
 

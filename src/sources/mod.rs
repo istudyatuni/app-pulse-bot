@@ -4,7 +4,6 @@ use std::{sync::Arc, time::Duration};
 use async_trait::async_trait;
 use reqwest::Url;
 use tokio::sync::mpsc::Sender;
-use tokio_util::sync::CancellationToken;
 
 pub(crate) mod alexstranniklite;
 
@@ -86,7 +85,7 @@ impl UpdateBuilder {
     /// `description_link` should be valid URL, otherwise it will be ignored
     pub(crate) fn description_link(mut self, description_link: &str) -> Self {
         let Ok(url) = Url::parse(description_link) else {
-            return self
+            return self;
         };
         self.update.description_link = Some(url);
         self
@@ -94,7 +93,7 @@ impl UpdateBuilder {
     /// `update_link` should be valid URL, otherwise it will be ignored
     pub(crate) fn update_link(mut self, update_link: &str) -> Self {
         let Ok(url) = Url::parse(update_link) else {
-            return self
+            return self;
         };
         self.update.update_link = Some(url);
         self
@@ -108,24 +107,16 @@ impl UpdateBuilder {
     }
 }
 
-pub(crate) async fn start_update_loop<S>(
-    token: CancellationToken,
-    source: S,
-    tx: Sender<Vec<Update>>,
-) where
+pub(crate) async fn start_update_loop<S>(source: S, tx: Sender<Vec<Update>>)
+where
     S: UpdateSource + Send + Sync,
 {
-    tokio::select! {
-        _ = token.cancelled() => {}
-        _ = async {
-            let source = Arc::new(source);
-            loop {
-                let updates = source.get_updates_or_sleep().await;
-                match tx.send(updates).await {
-                    Ok(_) => log::debug!("sending updates"),
-                    Err(_) => log::error!("failed to send update to mpsc, dropping"),
-                }
-            }
-        } => {}
+    let source = Arc::new(source);
+    loop {
+        let updates = source.get_updates_or_sleep().await;
+        match tx.send(updates).await {
+            Ok(_) => log::debug!("sending updates"),
+            Err(_) => log::error!("failed to send update to mpsc, dropping"),
+        }
     }
 }

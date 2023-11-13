@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{any::Any, future::Future, time::Duration};
 
 use anyhow::Result;
 use dotenvy_macro::dotenv;
@@ -45,17 +45,14 @@ async fn main() -> Result<()> {
     let cancel_token = CancellationToken::new();
 
     let mut jobs = JoinSet::new();
-    jobs.spawn(start_update_loop(
+    jobs.spawn(spawn_with_token(
         cancel_token.clone(),
-        sources::alexstranniklite::Source::new(),
-        tx,
+        start_update_loop(sources::alexstranniklite::Source::new(), tx),
     ));
-    jobs.spawn(start_user_reply_job(bot.clone(), db.clone()));
-    jobs.spawn(start_updates_notify_job(
+    jobs.spawn(start_bot(bot.clone(), db.clone()));
+    jobs.spawn(spawn_with_token(
         cancel_token.clone(),
-        bot.clone(),
-        db.clone(),
-        rx,
+        start_updates_notify_job(bot, db, rx),
     ));
     jobs.spawn(async move {
         match signal::ctrl_c().await {
@@ -70,6 +67,13 @@ async fn main() -> Result<()> {
     while let Some(_) = jobs.join_next().await {}
 
     Ok(())
+}
+
+async fn spawn_with_token(token: CancellationToken, f: impl Future<Output = impl Any>) {
+    tokio::select! {
+        _ = token.cancelled() => {},
+        _ = f => {},
+    }
 }
 
 #[derive(BotCommands, Clone)]
@@ -139,9 +143,16 @@ async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseResult<
     Ok(())
 }
 
-async fn start_user_reply_job(bot: Bot, db: DB) {
+async fn start_bot(bot: Bot, db: DB) {
+    log::debug!("starting bot");
     let handler = dptree::entry()
-        .branch(TgUpdate::filter_message().endpoint(message_handler))
+        .branch(
+            TgUpdate::filter_message().branch(
+                dptree::entry()
+                    .filter_command::<Command>()
+                    .endpoint(message_handler),
+            ),
+        )
         .branch(TgUpdate::filter_callback_query().endpoint(callback_handler));
     Dispatcher::builder(bot.clone(), handler)
         .dependencies(dptree::deps![db])
@@ -153,21 +164,12 @@ async fn start_user_reply_job(bot: Bot, db: DB) {
         .await;
 }
 
-async fn start_updates_notify_job(
-    token: CancellationToken,
-    bot: Bot,
-    db: DB,
-    mut rx: Receiver<Vec<Update>>,
-) {
+async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Update>>) {
+    log::debug!("starting listen for updates");
+    // todo: graceful shutdown for updates
     while let Some(updates) = rx.recv().await {
         for update in updates {
-            // probably this is unnecessary
-            if token.is_cancelled() {
-                rx.close();
-                log::info!("aborting updates, waiting for handling remaining updates")
-            }
-
-            log::debug!("got update: {:?}", update);
+            log::debug!("got update for {}", update.app_id());
             let users = match db.select_users().await {
                 Ok(v) => v,
                 Err(e) => {

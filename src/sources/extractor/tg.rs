@@ -30,7 +30,9 @@ pub(crate) struct Message {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "_")]
 pub(crate) enum ReplyMarkup {
-    replyInlineMarkup { rows: Vec<ReplyInlineMarkupRow> },
+    replyInlineMarkup {
+        rows: Vec<ReplyInlineMarkupRow>,
+    },
     #[serde(other)]
     Unknown,
 }
@@ -38,7 +40,9 @@ pub(crate) enum ReplyMarkup {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "_")]
 pub(crate) enum ReplyInlineMarkupRow {
-    keyboardButtonRow { buttons: Vec<KeyboardButton> },
+    keyboardButtonRow {
+        buttons: Vec<KeyboardButton>,
+    },
     #[serde(other)]
     Unknown,
 }

@@ -1,6 +1,4 @@
 //! Updates sources
-#![allow(unused)]
-
 use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
@@ -9,6 +7,8 @@ use tokio::sync::mpsc::Sender;
 use tokio_util::sync::CancellationToken;
 
 pub(crate) mod alexstranniklite;
+
+mod extractor;
 
 pub(crate) const TG_SOURCE_TIMEOUT: Duration = Duration::from_secs(60 * 60);
 
@@ -78,6 +78,7 @@ pub(crate) struct UpdateBuilder {
 }
 
 impl UpdateBuilder {
+    #[allow(unused)]
     pub(crate) fn description<S: Into<String>>(mut self, description: S) -> Self {
         self.update.description = Some(description.into());
         self
@@ -121,7 +122,7 @@ pub(crate) async fn start_update_loop<S>(
             loop {
                 let updates = source.get_updates_or_sleep().await;
                 match tx.send(updates).await {
-                    Ok(_) => (),
+                    Ok(_) => log::debug!("sending updates"),
                     Err(_) => log::error!("failed to send update to mpsc, dropping"),
                 }
             }

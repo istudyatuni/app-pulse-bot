@@ -1,5 +1,5 @@
 //! Updates sources
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use async_trait::async_trait;
 use reqwest::Url;
@@ -111,7 +111,6 @@ pub(crate) async fn start_update_loop<S>(source: S, tx: Sender<Vec<Update>>)
 where
     S: UpdateSource + Send + Sync,
 {
-    let source = Arc::new(source);
     loop {
         let updates = source.get_updates_or_sleep().await;
         match tx.send(updates).await {

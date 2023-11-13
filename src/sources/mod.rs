@@ -4,6 +4,7 @@
 use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
+use reqwest::Url;
 use tokio::sync::mpsc::Sender;
 use tokio_util::sync::CancellationToken;
 
@@ -46,8 +47,8 @@ pub(crate) trait UpdateSource {
 #[derive(Debug, Default)]
 pub(crate) struct Update {
     description: Option<String>,
-    description_link: Option<String>,
-    update_link: Option<String>,
+    description_link: Option<Url>,
+    update_link: Option<Url>,
     app_id: String,
 }
 
@@ -60,13 +61,13 @@ impl Update {
     pub(crate) fn app_id(&self) -> &str {
         &self.app_id
     }
-    pub(crate) fn description(&self) -> &Option<String> {
-        &self.description
+    pub(crate) fn description(&self) -> Option<&str> {
+        self.description.as_deref()
     }
-    pub(crate) fn description_link(&self) -> &Option<String> {
+    pub(crate) fn description_link(&self) -> &Option<Url> {
         &self.description_link
     }
-    pub(crate) fn update_link(&self) -> &Option<String> {
+    pub(crate) fn update_link(&self) -> &Option<Url> {
         &self.update_link
     }
 }
@@ -81,12 +82,20 @@ impl UpdateBuilder {
         self.update.description = Some(description.into());
         self
     }
-    pub(crate) fn description_link<S: Into<String>>(mut self, description_link: S) -> Self {
-        self.update.description_link = Some(description_link.into());
+    /// `description_link` should be valid URL, otherwise it will be ignored
+    pub(crate) fn description_link(mut self, description_link: &str) -> Self {
+        let Ok(url) = Url::parse(description_link) else {
+            return self
+        };
+        self.update.description_link = Some(url);
         self
     }
-    pub(crate) fn update_link<S: Into<String>>(mut self, update_link: S) -> Self {
-        self.update.update_link = Some(update_link.into());
+    /// `update_link` should be valid URL, otherwise it will be ignored
+    pub(crate) fn update_link(mut self, update_link: &str) -> Self {
+        let Ok(url) = Url::parse(update_link) else {
+            return self
+        };
+        self.update.update_link = Some(url);
         self
     }
     pub(crate) fn app_id<S: Into<String>>(mut self, app_id: S) -> Self {

@@ -206,12 +206,16 @@ async fn start_updates_notify_job(
 
 async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
     let mut text = vec!["New app to track updates\n".to_string()];
+    if let Some(description) = update.description() {
+        text.push(format!("\n{description}\n"));
+    }
     if let Some(url) = update.description_link() {
         text.push(url.to_string());
     } else if let Some(url) = update.update_link() {
         text.push(url.to_string());
     }
-    let keys = &[[
+
+    let mut keys = vec![vec![
         InlineKeyboardButton::callback(
             "Notify",
             format!("{app}:{NOTIFY_TOKEN}", app = update.app_id()),
@@ -221,24 +225,28 @@ async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update) -> Resu
             format!("{app}:{IGNORE_TOKEN}", app = update.app_id()),
         ),
     ]];
+    if let Some(url) = update.update_link() {
+        keys.push(vec![InlineKeyboardButton::url("See update", url.clone())]);
+    }
+
     bot.send_message(chat_id, text.join(""))
-        .reply_markup(ReplyMarkup::InlineKeyboard(InlineKeyboardMarkup::new(
-            keys.to_owned(),
-        )))
+        .reply_markup(ReplyMarkup::InlineKeyboard(InlineKeyboardMarkup::new(keys)))
         .await?;
     Ok(())
 }
 
 async fn send_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
-    let mut text = vec!["New update\n".to_string()];
+    let app_id = update.app_id();
+    let mut text = vec![format!("New update for {app_id}\n")];
     if let Some(url) = update.update_link() {
         text.push(url.to_string());
     } else if let Some(url) = update.description_link() {
         text.push(url.to_string());
     }
+
     let keys = &[[InlineKeyboardButton::callback(
         "Ignore",
-        format!("{app}:{IGNORE_TOKEN}", app = update.app_id()),
+        format!("{app_id}:{IGNORE_TOKEN}"),
     )]];
     bot.send_message(chat_id, text.join(""))
         .reply_markup(ReplyMarkup::InlineKeyboard(InlineKeyboardMarkup::new(

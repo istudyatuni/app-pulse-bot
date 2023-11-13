@@ -27,7 +27,7 @@ DEFINE FIELD user_id ON TABLE user_update TYPE int;
 DEFINE FIELD app_id ON TABLE user_update TYPE string;
 DEFINE FIELD should_notify ON TABLE user_update TYPE string;
 
-DEFINE INDEX user_app_id_index ON TABLE user_update COLUMNS user_id, app_id UNIQUE;
+-- DEFINE INDEX user_app_id_index ON TABLE user_update COLUMNS user_id, app_id UNIQUE;
 "#;
 
 #[derive(Debug, Clone)]

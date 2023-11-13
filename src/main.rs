@@ -3,11 +3,8 @@ use std::{future::Future, time::Duration};
 use anyhow::Result;
 use dotenvy_macro::dotenv;
 use reqwest::Client;
-use teloxide::{
-    prelude::*,
-    types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup, Update as TgUpdate},
-    utils::command::BotCommands,
-};
+use teloxide::{prelude::*, types::Update as TgUpdate, utils::command::BotCommands};
+use tg::KeyboardBuilder;
 use tokio::{
     signal,
     sync::mpsc::{self, Receiver},
@@ -20,6 +17,7 @@ use sources::{start_update_loop, Update, UpdateSource};
 
 mod db;
 mod sources;
+mod tg;
 
 const DB_FILE: &str = "data.db";
 const TG_BOT_TOKEN: &str = dotenv!("BOT_TOKEN");
@@ -220,22 +218,18 @@ async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update) -> Resu
         text.push(url.to_string());
     }
 
-    let mut keys = vec![vec![
-        InlineKeyboardButton::callback(
-            "Notify",
-            format!("{app}:{NOTIFY_TOKEN}", app = update.app_id()),
-        ),
-        InlineKeyboardButton::callback(
-            "Ignore",
-            format!("{app}:{IGNORE_TOKEN}", app = update.app_id()),
-        ),
-    ]];
+    let app_id = update.app_id();
+    let mut keyboard = KeyboardBuilder::new()
+        .row()
+        .callback("Notify", format!("{app_id}:{NOTIFY_TOKEN}"))
+        .callback("Ignore", format!("{app_id}:{IGNORE_TOKEN}"));
+
     if let Some(url) = update.update_link() {
-        keys.push(vec![InlineKeyboardButton::url("See update", url.clone())]);
+        keyboard = keyboard.row().url("See update", url.clone());
     }
 
     bot.send_message(chat_id, text.join(""))
-        .reply_markup(ReplyMarkup::InlineKeyboard(InlineKeyboardMarkup::new(keys)))
+        .reply_markup(keyboard.build_reply_inline_keyboard())
         .await?;
     Ok(())
 }
@@ -249,14 +243,11 @@ async fn send_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
         text.push(url.to_string());
     }
 
-    let keys = &[[InlineKeyboardButton::callback(
-        "Ignore",
-        format!("{app_id}:{IGNORE_TOKEN}"),
-    )]];
+    let keyboard = KeyboardBuilder::new()
+        .row()
+        .callback("Ignore", format!("{app_id}:{IGNORE_TOKEN}"));
     bot.send_message(chat_id, text.join(""))
-        .reply_markup(ReplyMarkup::InlineKeyboard(InlineKeyboardMarkup::new(
-            keys.to_owned(),
-        )))
+        .reply_markup(keyboard.build_reply_inline_keyboard())
         .await?;
     Ok(())
 }

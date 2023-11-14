@@ -7,6 +7,8 @@ use simplelog::{Config, SharedLogger};
 use teloxide::{requests::Requester, types::ChatId, Bot};
 use tokio::sync::mpsc::Sender;
 
+use crate::TG_LOG_ENABLED;
+
 #[derive(Debug)]
 pub(crate) struct TgLogger {
     sender: Sender<String>,
@@ -21,7 +23,7 @@ impl TgLogger {
 
 impl log::Log for TgLogger {
     fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= Level::Error
+        TG_LOG_ENABLED && metadata.level() <= Level::Error
     }
 
     fn log(&self, record: &Record) {

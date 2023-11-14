@@ -44,6 +44,11 @@ const SET_BOT_COMMANDS: bool = false;
 #[cfg(not(debug_assertions))]
 const SET_BOT_COMMANDS: bool = true;
 
+#[cfg(debug_assertions)]
+const TG_LOG_ENABLED: bool = false;
+#[cfg(not(debug_assertions))]
+const TG_LOG_ENABLED: bool = true;
+
 const NOTIFY_TOKEN: &str = "notify";
 const IGNORE_TOKEN: &str = "ignore";
 

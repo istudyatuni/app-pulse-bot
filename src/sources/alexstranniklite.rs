@@ -6,7 +6,8 @@ use std::{
 use async_trait::async_trait;
 
 use super::extractor::tg::{
-    fetch_public_channel, KeyboardButton, Message, ReplyInlineMarkupRow, ReplyMarkup,
+    fetch_public_channel, Document, KeyboardButton, Media, Message, ReplyInlineMarkupRow,
+    ReplyMarkup,
 };
 use super::*;
 
@@ -100,36 +101,48 @@ impl UpdateSource for Source {
 }
 
 fn is_description(msg: &Message) -> bool {
-    let Some(ref r) = msg.reply_markup else {
-        return false;
-    };
-    match r {
-        ReplyMarkup::replyInlineMarkup { ref rows } => match rows.as_slice() {
-            [_, _, ReplyInlineMarkupRow::keyboardButtonRow { buttons }] => match buttons.as_slice()
-            {
-                [KeyboardButton::keyboardButtonUrl { text, .. }] => text == "DOWNLOAD 🛡",
-                _ => false,
-            },
-            _ => false,
-        },
-        _ => false,
-    }
+    has_button(msg, "DOWNLOAD 🛡")
 }
 
 fn is_update(msg: &Message) -> bool {
+    has_discuss_button(msg) || has_apk_attachment(msg)
+}
+
+fn has_discuss_button(msg: &Message) -> bool {
+    has_button(msg, "DISCUSS ✅")
+}
+
+fn has_apk_attachment(msg: &Message) -> bool {
+    if let Some(ref media) = msg.media {
+        if let Media::messageMediaDocument { document } = media {
+            if let Document::document { mime_type } = document {
+                if mime_type == "application/vnd.android.package-archive" {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+fn has_button(msg: &Message, text: &str) -> bool {
     let Some(ref r) = msg.reply_markup else {
         return false;
     };
-    match r {
-        ReplyMarkup::replyInlineMarkup { ref rows } => match rows.as_slice() {
-            [ReplyInlineMarkupRow::keyboardButtonRow { buttons }] => match buttons.as_slice() {
-                [KeyboardButton::keyboardButtonUrl { text, .. }] => text == "DISCUSS ✅",
-                _ => false,
-            },
-            _ => false,
-        },
-        _ => false,
+    if let ReplyMarkup::replyInlineMarkup { ref rows } = r {
+        for row in rows {
+            if let ReplyInlineMarkupRow::keyboardButtonRow { buttons } = row {
+                for button in buttons {
+                    if let KeyboardButton::keyboardButtonUrl { text: t, .. } = button {
+                        if t == text {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
     }
+    false
 }
 
 /// Only works for update message type

@@ -26,7 +26,10 @@ pub(crate) struct Message {
     pub(crate) id: i32,
     pub(crate) message: String,
     pub(crate) reply_markup: Option<ReplyMarkup>,
+    pub(crate) media: Option<Media>,
 }
+
+// reply_markup
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "_")]
@@ -54,6 +57,28 @@ pub(crate) enum KeyboardButton {
     keyboardButtonUrl {
         text: String,
         // url: Url,
+    },
+    #[serde(other)]
+    Unknown,
+}
+
+// media
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "_")]
+pub(crate) enum Media {
+    messageMediaDocument {
+        document: Document,
+    },
+    #[serde(other)]
+    Unknown,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "_")]
+pub(crate) enum Document {
+    document {
+        mime_type: String,
     },
     #[serde(other)]
     Unknown,

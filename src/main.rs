@@ -34,15 +34,14 @@ const TG_BOT_TOKEN: &str = dotenv!("BOT_TOKEN");
 const LOG_CHAT_ID: &str = dotenv!("LOG_CHAT_ID");
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
-const IS_DEBUG: bool = cfg!(debug_assertions);
-const IS_RELEASE: bool = !IS_DEBUG;
-const LOG_LEVEL: LevelFilter = if IS_DEBUG {
-    LevelFilter::Debug
-} else {
+const IS_PROD: bool = cfg!(feature = "prod");
+const LOG_LEVEL: LevelFilter = if IS_PROD {
     LevelFilter::Error
+} else {
+    LevelFilter::Debug
 };
-const SET_BOT_COMMANDS: bool = IS_RELEASE;
-const TG_LOG_ENABLED: bool = IS_RELEASE;
+const SET_BOT_COMMANDS: bool = IS_PROD;
+const TG_LOG_ENABLED: bool = IS_PROD;
 
 const NOTIFY_TOKEN: &str = "notify";
 const IGNORE_TOKEN: &str = "ignore";

@@ -1,7 +1,8 @@
 use teloxide::{
+    payloads::SendMessageSetters,
     requests::Requester,
     types::{ChatId, ParseMode},
-    Bot, payloads::SendMessageSetters,
+    Bot,
 };
 use tokio::sync::mpsc::Receiver;
 

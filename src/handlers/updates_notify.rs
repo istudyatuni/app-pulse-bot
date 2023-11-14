@@ -5,8 +5,7 @@ use tokio::sync::mpsc::Receiver;
 use crate::{
     db::{models::ShouldNotify, DB},
     sources::Update,
-    tg::KeyboardBuilder,
-    IGNORE_TOKEN, NOTIFY_TOKEN,
+    tg::{Keyboards, NewAppKeyboardKind},
 };
 
 pub(crate) async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Update>>) {
@@ -27,26 +26,23 @@ pub(crate) async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<
                 let user_id = user.user_id();
                 let chat_id = user_id.into();
                 let app_id = update.app_id();
-                match db.should_notify_user(user_id, app_id).await {
+                let f = match db.should_notify_user(user_id, app_id).await {
                     Ok(s) => match s {
                         ShouldNotify::Unspecified => {
-                            send_suggest_update(bot.clone(), chat_id, &update)
-                                .await
-                                .log_on_error()
-                                .await
+                            send_suggest_update(bot.clone(), chat_id, &update).await
                         }
-                        ShouldNotify::Notify => {
-                            send_update(bot.clone(), chat_id, &update)
-                                .await
-                                .log_on_error()
-                                .await;
-                        }
+                        ShouldNotify::Notify => send_update(bot.clone(), chat_id, &update).await,
                         ShouldNotify::Ignore => {
-                            log::debug!("ignoring update {app_id} for user {user_id}")
+                            log::debug!("ignoring update {app_id} for user {user_id}");
+                            continue;
                         }
                     },
-                    Err(e) => log::error!("failed to check, if should notify user {user_id}: {e}"),
+                    Err(e) => {
+                        log::error!("failed to check, if should notify user {user_id}: {e}");
+                        continue;
+                    }
                 };
+                f.log_on_error().await;
             }
         }
     }
@@ -63,18 +59,12 @@ async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update) -> Resu
         text.push(url.to_string());
     }
 
-    let app_id = update.app_id();
-    let mut keyboard = KeyboardBuilder::with_rows_capacity(2)
-        .row()
-        .callback("Notify", format!("{app_id}:{NOTIFY_TOKEN}"))
-        .callback("Ignore", format!("{app_id}:{IGNORE_TOKEN}"));
-
-    if let Some(url) = update.update_link() {
-        keyboard = keyboard.row().url("See update", url.clone());
-    }
-
     bot.send_message(chat_id, text.join(""))
-        .reply_markup(keyboard.build_reply_inline_keyboard())
+        .reply_markup(Keyboards::update(
+            update.app_id(),
+            update.update_link().clone(),
+            NewAppKeyboardKind::Both,
+        ))
         .await?;
     Ok(())
 }
@@ -88,11 +78,12 @@ async fn send_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
         text.push(url.to_string());
     }
 
-    let keyboard = KeyboardBuilder::with_rows_capacity(1)
-        .row()
-        .callback("Ignore", format!("{app_id}:{IGNORE_TOKEN}"));
     bot.send_message(chat_id, text.join(""))
-        .reply_markup(keyboard.build_reply_inline_keyboard())
+        .reply_markup(Keyboards::update(
+            app_id,
+            update.update_link().clone(),
+            NewAppKeyboardKind::NotifyEnabled,
+        ))
         .await?;
     Ok(())
 }

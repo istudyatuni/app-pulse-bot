@@ -13,6 +13,7 @@ pub(crate) async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<
     log::debug!("starting listen for updates");
     // todo: graceful shutdown for updates
     while let Some(updates) = rx.recv().await {
+        log::debug!("got {} updates", updates.len());
         for update in updates {
             log::debug!("got update for {}", update.app_id());
             let users = match db.select_users().await {
@@ -63,7 +64,7 @@ async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update) -> Resu
     }
 
     let app_id = update.app_id();
-    let mut keyboard = KeyboardBuilder::new()
+    let mut keyboard = KeyboardBuilder::with_rows_capacity(2)
         .row()
         .callback("Notify", format!("{app_id}:{NOTIFY_TOKEN}"))
         .callback("Ignore", format!("{app_id}:{IGNORE_TOKEN}"));
@@ -87,7 +88,7 @@ async fn send_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
         text.push(url.to_string());
     }
 
-    let keyboard = KeyboardBuilder::new()
+    let keyboard = KeyboardBuilder::with_rows_capacity(1)
         .row()
         .callback("Ignore", format!("{app_id}:{IGNORE_TOKEN}"));
     bot.send_message(chat_id, text.join(""))

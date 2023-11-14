@@ -21,6 +21,7 @@ struct Response {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Default))]
 pub(crate) struct Message {
     pub(crate) id: i32,
     pub(crate) message: String,

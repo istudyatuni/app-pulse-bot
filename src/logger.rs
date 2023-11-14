@@ -26,7 +26,13 @@ impl log::Log for TgLogger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            let msg = format!("{} :: {}", record.target(), record.args());
+            let mut msg = format!("[ERROR] {}\n        at {}", record.args(), record.target());
+            if let Some(file) = record.file() {
+                msg += &format!(": {file}");
+                if let Some(line) = record.line() {
+                    msg += &format!(":{line}");
+                }
+            }
             thread::scope(|s| {
                 s.spawn(|| {
                     self.sender.blocking_send(msg);

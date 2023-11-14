@@ -5,6 +5,12 @@ use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup};
 
 use crate::{IGNORE_TOKEN, NOTIFY_TOKEN};
 
+const NOTIFY_MSG: &str = "Notify";
+const IGNORE_MSG: &str = "Ignore";
+const BELL_MSG: &str = "🔔";
+const NO_BELL_MSG: &str = "🔕";
+const SEE_UPDATE_MSG: &str = "See update";
+
 #[derive(Debug, Default)]
 pub(crate) struct KeyboardBuilder {
     keys: Vec<Vec<InlineKeyboardButton>>,
@@ -90,19 +96,19 @@ impl Keyboards {
         let mut keyboard = match kind {
             NewAppKeyboardKind::Both => KeyboardBuilder::with_rows_capacity(2)
                 .row()
-                .callback("Notify", format!("{app_id}:{NOTIFY_TOKEN}"))
-                .callback("Ignore", format!("{app_id}:{IGNORE_TOKEN}"))
+                .callback(NOTIFY_MSG, format!("{app_id}:{NOTIFY_TOKEN}"))
+                .callback(IGNORE_MSG, format!("{app_id}:{IGNORE_TOKEN}"))
                 .row(),
             NewAppKeyboardKind::NotifyEnabled => KeyboardBuilder::with_rows_capacity(1)
                 .row()
-                .callback("🔔", format!("{app_id}:{IGNORE_TOKEN}")),
+                .callback(BELL_MSG, format!("{app_id}:{IGNORE_TOKEN}")),
             NewAppKeyboardKind::NotifyDisabled => KeyboardBuilder::with_rows_capacity(1)
                 .row()
-                .callback("🔕", format!("{app_id}:{NOTIFY_TOKEN}")),
+                .callback(NO_BELL_MSG, format!("{app_id}:{NOTIFY_TOKEN}")),
         };
 
         if let Some(url) = url {
-            keyboard = keyboard.url("See update", url.clone());
+            keyboard = keyboard.url(SEE_UPDATE_MSG, url.clone());
         }
         keyboard
     }
@@ -137,11 +143,6 @@ mod tests {
     use super::NewAppKeyboardKind as Kind;
     use super::*;
 
-    const NOTIFY_MSG: &str = "Notify";
-    const IGNORE_MSG: &str = "Ignore";
-    const BELL_MSG: &str = "🔔";
-    const NO_BELL_MSG: &str = "🔕";
-    const SEE_UPDATE_MSG: &str = "See update";
     const APP_ID: &str = "test";
 
     #[test]

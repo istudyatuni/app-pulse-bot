@@ -134,9 +134,46 @@ fn is_update(msg: &Message) -> bool {
 
 /// Only works for update message type
 ///
-/// `"<strong>app</strong> 1.2.3 <strong>arm7</strong>"` -> `"app"`
+/// - `"<strong>app</strong> 1.2.3 <strong>arm7</strong>"` -> `"app"`
+/// - `"<a ...><strong>app</strong></a> 1.2.3 <strong>arm7</strong>"` -> `"app"`
 fn get_app_id(msg: &Message) -> String {
-    let s = msg.message.split(' ').take(1).collect::<String>();
-    let s = s.strip_prefix("<strong>").unwrap_or(&s);
-    s.strip_suffix("</strong>").unwrap_or(s).to_string()
+    let msg: &str = &msg.message;
+    if msg.starts_with("<a") {
+        msg.split("<strong>")
+            .skip(1)
+            .take(1)
+            .collect::<String>()
+            .split("</strong>")
+            .take(1)
+            .collect()
+    } else {
+        if !msg.starts_with("<strong>") {
+            log::error!("got unknown message when parsing app_id: {msg}");
+        }
+        let s = msg.split(' ').take(1).collect::<String>();
+        let s = s.strip_prefix("<strong>").unwrap_or(&s);
+        s.strip_suffix("</strong>").unwrap_or(s).to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_app_id() {
+        let table = &[
+            ("<strong>app</strong> 1.2.3 <strong>arm7</strong>", "app"),
+            ("<a href=\"mts.music\" target=\"_blank\" rel=\"nofollow\"><strong>app.text</strong></a> 9.19.0", "app.text"),
+        ];
+        for (msg, expected) in table {
+            assert_eq!(
+                get_app_id(&Message {
+                    message: msg.to_string(),
+                    ..Default::default()
+                }),
+                expected.to_string()
+            );
+        }
+    }
 }

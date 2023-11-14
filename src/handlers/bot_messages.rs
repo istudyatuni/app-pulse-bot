@@ -13,7 +13,12 @@ pub(crate) enum Command {
     Help,
 }
 
-pub(crate) async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
+pub(crate) async fn message_handler(
+    bot: Bot,
+    msg: Message,
+    cmd: Command,
+    db: DB,
+) -> ResponseResult<()> {
     match cmd {
         Command::Start => match db.save_user(msg.chat.id.into()).await {
             Ok(_) => {

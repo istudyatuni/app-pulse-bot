@@ -6,7 +6,7 @@ use teloxide::types::{ChatId as TgChatId, UserId as TgUserId};
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, Copy)]
 #[serde(transparent)]
-pub(crate) struct UserId(pub(crate) u64);
+pub struct UserId(pub u64);
 
 impl Display for UserId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -52,7 +52,7 @@ impl From<UserId> for Value {
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, Copy)]
 #[serde(transparent)]
-pub(crate) struct ChatId(pub(crate) i64);
+pub struct ChatId(pub i64);
 
 impl Display for ChatId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

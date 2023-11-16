@@ -5,7 +5,7 @@ use surrealdb::opt::PatchOp;
 use surrealdb::sql::Value;
 use surrealdb::Surreal;
 
-pub(crate) mod models;
+pub mod models;
 mod types;
 
 use types::UserId;
@@ -31,12 +31,12 @@ DEFINE FIELD should_notify ON TABLE user_update TYPE string;
 "#;
 
 #[derive(Debug, Clone)]
-pub(crate) struct DB {
+pub struct DB {
     conn: Surreal<Db>,
 }
 
 impl DB {
-    pub(crate) async fn init(path: &str) -> Result<Self> {
+    pub async fn init(path: &str) -> Result<Self> {
         let path = Utf8PathBuf::from(".")
             .canonicalize_utf8()
             .expect("failed to find absolute path of db")
@@ -48,7 +48,7 @@ impl DB {
 
         Ok(Self { conn: db })
     }
-    pub(crate) async fn save_user(&self, user_id: UserId) -> Result<()> {
+    pub async fn save_user(&self, user_id: UserId) -> Result<()> {
         log::debug!("saving user {user_id}");
         let _: Option<models::User> = self
             .conn
@@ -57,15 +57,15 @@ impl DB {
             .await?;
         Ok(())
     }
-    pub(crate) async fn select_user(&self, user_id: UserId) -> Result<Option<models::User>> {
+    pub async fn select_user(&self, user_id: UserId) -> Result<Option<models::User>> {
         log::debug!("select user {user_id}");
         Ok(self.conn.select((USER_TABLE, user_id)).await?)
     }
-    pub(crate) async fn select_users(&self) -> Result<Vec<models::User>> {
+    pub async fn select_users(&self) -> Result<Vec<models::User>> {
         log::info!("select users");
         Ok(self.conn.select(USER_TABLE).await?)
     }
-    pub(crate) async fn save_should_notify_user(
+    pub async fn save_should_notify_user(
         &self,
         user_id: UserId,
         app_id: &str,
@@ -102,7 +102,7 @@ impl DB {
         log::debug!("user preference updated");
         Ok(())
     }
-    pub(crate) async fn should_notify_user(
+    pub async fn should_notify_user(
         &self,
         user_id: UserId,
         app_id: &str,
@@ -115,7 +115,7 @@ impl DB {
         Ok(user_update.map(|u| u.should_notify()).unwrap_or_default())
     }
     #[allow(unused)]
-    pub(crate) fn add_app(&self, name: &str, source_id: &str) {
+    pub fn add_app(&self, name: &str, source_id: &str) {
         log::debug!("saving app {name}");
     }
 }

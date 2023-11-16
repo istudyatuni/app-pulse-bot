@@ -97,14 +97,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "camino",
+ "db",
  "dotenvy_macro",
  "log",
  "reqwest",
  "serde",
- "serde_json",
  "simplelog",
- "surrealdb",
  "teloxide",
  "tokio",
  "tokio-util",
@@ -786,6 +784,18 @@ dependencies = [
  "darling_core 0.20.3",
  "quote",
  "syn 2.0.39",
+]
+
+[[package]]
+name = "db"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "camino",
+ "log",
+ "serde",
+ "surrealdb",
+ "teloxide",
 ]
 
 [[package]]

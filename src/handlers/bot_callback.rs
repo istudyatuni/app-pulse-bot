@@ -7,8 +7,9 @@ use teloxide::{
     },
 };
 
+use db::{models::ShouldNotify, DB};
+
 use crate::{
-    db::{models::ShouldNotify, DB},
     tg::{Keyboards, NewAppKeyboardKind},
     IGNORE_TOKEN, NOTIFY_TOKEN,
 };

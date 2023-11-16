@@ -1,6 +1,6 @@
 use teloxide::{prelude::*, utils::command::BotCommands};
 
-use crate::db::DB;
+use db::DB;
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase", description = "Supported commands")]

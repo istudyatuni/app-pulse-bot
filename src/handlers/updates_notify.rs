@@ -2,8 +2,9 @@ use anyhow::Result;
 use teloxide::prelude::*;
 use tokio::sync::mpsc::Receiver;
 
+use db::{models::ShouldNotify, DB};
+
 use crate::{
-    db::{models::ShouldNotify, DB},
     sources::Update,
     tg::{Keyboards, NewAppKeyboardKind},
 };

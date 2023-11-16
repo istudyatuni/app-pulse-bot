@@ -14,16 +14,16 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use db::DB;
-use handlers::{
+
+use crate::handlers::{
     bot_callback::callback_handler,
     bot_messages::{message_handler, Command},
     tg_logs::start_tg_logs_job,
     updates_notify::start_updates_notify_job,
 };
-use logger::TgLogger;
-use sources::{start_update_loop, UpdateSource};
+use crate::logger::TgLogger;
+use crate::sources::{start_update_loop, UpdateSource};
 
-mod db;
 mod handlers;
 mod logger;
 mod sources;

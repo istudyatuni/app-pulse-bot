@@ -1,0 +1,15 @@
+[package]
+name = "bot-handlers"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+log.workspace = true
+reqwest.workspace = true
+teloxide.workspace = true
+tokio.workspace = true
+
+db.workspace = true
+sources.workspace = true

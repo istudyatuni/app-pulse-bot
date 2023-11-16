@@ -4,7 +4,7 @@ use db::DB;
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase", description = "Supported commands")]
-pub(crate) enum Command {
+pub enum Command {
     #[command(description = "off")]
     Start,
     #[command(description = "Subscribe")]
@@ -13,12 +13,7 @@ pub(crate) enum Command {
     Help,
 }
 
-pub(crate) async fn message_handler(
-    bot: Bot,
-    msg: Message,
-    cmd: Command,
-    db: DB,
-) -> ResponseResult<()> {
+pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
     match cmd {
         Command::Start => match db.save_user(msg.chat.id.into()).await {
             Ok(_) => {

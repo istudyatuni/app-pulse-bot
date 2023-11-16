@@ -3,13 +3,11 @@ use teloxide::prelude::*;
 use tokio::sync::mpsc::Receiver;
 
 use db::{models::ShouldNotify, DB};
+use sources::Update;
 
-use crate::{
-    sources::Update,
-    tg::{Keyboards, NewAppKeyboardKind},
-};
+use crate::keyboards::{Keyboards, NewAppKeyboardKind};
 
-pub(crate) async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Update>>) {
+pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Update>>) {
     log::debug!("starting listen for updates");
     // todo: graceful shutdown for updates
     while let Some(updates) = rx.recv().await {

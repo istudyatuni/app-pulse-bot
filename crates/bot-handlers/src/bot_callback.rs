@@ -10,11 +10,11 @@ use teloxide::{
 use db::{models::ShouldNotify, DB};
 
 use crate::{
-    tg::{Keyboards, NewAppKeyboardKind},
+    keyboards::{Keyboards, NewAppKeyboardKind},
     IGNORE_TOKEN, NOTIFY_TOKEN,
 };
 
-pub(crate) async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseResult<()> {
+pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseResult<()> {
     let answer_err = bot.answer_callback_query(&q.id).show_alert(true);
     let chat_id = q.from.id;
     let Some(data) = q.data else {

@@ -13,21 +13,15 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
+use bot_handlers::{callback_handler, message_handler, start_updates_notify_job, Command};
 use db::DB;
+use sources::{start_update_loop, UpdateSource};
 
-use crate::handlers::{
-    bot_callback::callback_handler,
-    bot_messages::{message_handler, Command},
-    tg_logs::start_tg_logs_job,
-    updates_notify::start_updates_notify_job,
-};
+use crate::handlers::tg_logs::start_tg_logs_job;
 use crate::logger::TgLogger;
-use crate::sources::{start_update_loop, UpdateSource};
 
 mod handlers;
 mod logger;
-mod sources;
-mod tg;
 
 const DB_FILE: &str = "data.db";
 const TG_BOT_TOKEN: &str = dotenv!("BOT_TOKEN");
@@ -42,9 +36,6 @@ const LOG_LEVEL: LevelFilter = if IS_PROD {
 };
 const SET_BOT_COMMANDS: bool = IS_PROD;
 const TG_LOG_ENABLED: bool = IS_PROD;
-
-const NOTIFY_TOKEN: &str = "notify";
-const IGNORE_TOKEN: &str = "ignore";
 
 #[tokio::main]
 async fn main() -> Result<()> {

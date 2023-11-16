@@ -1,5 +1,9 @@
 [workspace]
-members = ["crates/db"]
+members = [
+	"crates/bot-handlers",
+	"crates/db",
+	"crates/sources",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -29,7 +33,9 @@ teloxide = { version = "0.12.2", default-features = false, features = ["macros",
 tokio = { version = "1.34.0", features = ["full"] }
 tokio-util = "0.7.10"
 
+bot-handlers = { path = "crates/bot-handlers" }
 db = { path = "crates/db" }
+sources = { path = "crates/sources" }
 
 [dependencies]
 anyhow.workspace = true
@@ -42,7 +48,10 @@ simplelog.workspace = true
 teloxide.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true
+
+bot-handlers.workspace = true
 db.workspace = true
+sources.workspace = true
 
 [profile.release]
 strip = true

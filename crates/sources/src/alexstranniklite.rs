@@ -5,15 +5,15 @@ use std::{
 
 use async_trait::async_trait;
 
-use super::extractor::tg::{
+use crate::extractor::tg::{
     fetch_public_channel, Document, KeyboardButton, Media, Message, ReplyInlineMarkupRow,
     ReplyMarkup,
 };
-use super::*;
+use crate::*;
 
 const CHANNEL_NAME: &str = "alexstranniklite";
 
-pub(crate) struct Source {
+pub struct Source {
     timeout: Duration,
     // probably RwLock is wrong
     timer: RwLock<Instant>,

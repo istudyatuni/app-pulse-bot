@@ -97,12 +97,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "bot-handlers",
  "db",
  "dotenvy_macro",
  "log",
  "reqwest",
  "serde",
  "simplelog",
+ "sources",
  "teloxide",
  "tokio",
  "tokio-util",
@@ -446,6 +448,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "bot-handlers"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "db",
+ "log",
+ "reqwest",
+ "sources",
+ "teloxide",
+ "tokio",
 ]
 
 [[package]]
@@ -3207,6 +3222,18 @@ checksum = "7b5fac59a5cb5dd637972e5fca70daf0523c9067fcdc4842f053dae04a18f8e9"
 dependencies = [
  "libc",
  "windows-sys",
+]
+
+[[package]]
+name = "sources"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "log",
+ "reqwest",
+ "serde",
+ "tokio",
 ]
 
 [[package]]

@@ -5,14 +5,14 @@ use async_trait::async_trait;
 use reqwest::Url;
 use tokio::sync::mpsc::Sender;
 
-pub(crate) mod alexstranniklite;
+pub mod alexstranniklite;
 
 mod extractor;
 
 pub(crate) const TG_SOURCE_TIMEOUT: Duration = Duration::from_secs(60 * 60);
 
 #[async_trait]
-pub(crate) trait UpdateSource {
+pub trait UpdateSource {
     /// Create source with default timeout
     fn new() -> Self;
 
@@ -44,7 +44,7 @@ pub(crate) trait UpdateSource {
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct Update {
+pub struct Update {
     description: Option<String>,
     description_link: Option<Url>,
     update_link: Option<Url>,
@@ -57,16 +57,16 @@ impl Update {
             update: Update::default(),
         }
     }
-    pub(crate) fn app_id(&self) -> &str {
+    pub fn app_id(&self) -> &str {
         &self.app_id
     }
-    pub(crate) fn description(&self) -> Option<&str> {
+    pub fn description(&self) -> Option<&str> {
         self.description.as_deref()
     }
-    pub(crate) fn description_link(&self) -> &Option<Url> {
+    pub fn description_link(&self) -> &Option<Url> {
         &self.description_link
     }
-    pub(crate) fn update_link(&self) -> &Option<Url> {
+    pub fn update_link(&self) -> &Option<Url> {
         &self.update_link
     }
 }
@@ -107,7 +107,7 @@ impl UpdateBuilder {
     }
 }
 
-pub(crate) async fn start_update_loop<S>(source: S, tx: Sender<Vec<Update>>)
+pub async fn start_update_loop<S>(source: S, tx: Sender<Vec<Update>>)
 where
     S: UpdateSource + Send + Sync,
 {

@@ -4,7 +4,7 @@ use anyhow::Result;
 use dotenvy_macro::dotenv;
 use reqwest::Client;
 use simplelog::*;
-use teloxide::{prelude::*, types::Update as TgUpdate, utils::command::BotCommands};
+use teloxide::{prelude::*, utils::command::BotCommands};
 
 use tokio::{
     signal,
@@ -110,13 +110,13 @@ async fn start_bot(bot: Bot, db: DB) {
     log::debug!("starting bot");
     let handler = dptree::entry()
         .branch(
-            TgUpdate::filter_message().branch(
+            Update::filter_message().branch(
                 dptree::entry()
                     .filter_command::<Command>()
                     .endpoint(message_handler),
             ),
         )
-        .branch(TgUpdate::filter_callback_query().endpoint(callback_handler));
+        .branch(Update::filter_callback_query().endpoint(callback_handler));
     Dispatcher::builder(bot.clone(), handler)
         .dependencies(dptree::deps![db])
         .default_handler(|_update| async move { log::error!("unhandled update") })

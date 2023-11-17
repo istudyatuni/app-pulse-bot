@@ -113,13 +113,12 @@ fn has_discuss_button(msg: &Message) -> bool {
 }
 
 fn has_apk_attachment(msg: &Message) -> bool {
-    if let Some(ref media) = msg.media {
-        if let Media::messageMediaDocument { document } = media {
-            if let Document::document { mime_type } = document {
-                if mime_type == "application/vnd.android.package-archive" {
-                    return true;
-                }
-            }
+    if let Some(Media::messageMediaDocument {
+        document: Document::document { ref mime_type },
+    }) = msg.media
+    {
+        if mime_type == "application/vnd.android.package-archive" {
+            return true;
         }
     }
     false

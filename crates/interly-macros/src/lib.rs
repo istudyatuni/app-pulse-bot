@@ -147,7 +147,7 @@ fn localize_base(
 
             #vis static LOCALIZE: Lazy<#ident> = Lazy::new(|| { #ident::init() });
 
-            #[derive(Debug, PartialEq, Eq, Hash)]
+            #[derive(PartialEq, Eq, Hash)]
             #vis enum LANG {
                 #(#languages_enum_variants)*
             }

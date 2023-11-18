@@ -3,7 +3,7 @@
 use reqwest::Url;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup};
 
-use crate::{IGNORE_TOKEN, NOTIFY_TOKEN};
+use crate::{IGNORE_TOKEN, NOTIFY_TOKEN, tr, USER_LANG};
 
 const NOTIFY_MSG: &str = "Notify";
 const IGNORE_MSG: &str = "Ignore";
@@ -92,12 +92,13 @@ impl Keyboards {
         app_id: &str,
         url: Option<Url>,
         kind: NewAppKeyboardKind,
+        lang: &str,
     ) -> KeyboardBuilder {
         let mut keyboard = match kind {
             NewAppKeyboardKind::Both => KeyboardBuilder::with_rows_capacity(2)
                 .row()
-                .callback(NOTIFY_MSG, format!("{app_id}:{NOTIFY_TOKEN}"))
-                .callback(IGNORE_MSG, format!("{app_id}:{IGNORE_TOKEN}"))
+                .callback(tr!(notify_button, USER_LANG), format!("{app_id}:{NOTIFY_TOKEN}"))
+                .callback(tr!(ignore_button, USER_LANG), format!("{app_id}:{IGNORE_TOKEN}"))
                 .row(),
             NewAppKeyboardKind::NotifyEnabled => KeyboardBuilder::with_rows_capacity(1)
                 .row()
@@ -108,19 +109,20 @@ impl Keyboards {
         };
 
         if let Some(url) = url {
-            keyboard = keyboard.url(SEE_UPDATE_MSG, url.clone());
+            keyboard = keyboard.url(tr!(see_update_button, USER_LANG), url.clone());
         }
         keyboard
     }
-    pub(crate) fn update(app_id: &str, url: Option<Url>, kind: NewAppKeyboardKind) -> ReplyMarkup {
-        Self::update_keyboard(app_id, url, kind).build_reply_markup()
+    pub(crate) fn update(app_id: &str, url: Option<Url>, kind: NewAppKeyboardKind, lang: &str) -> ReplyMarkup {
+        Self::update_keyboard(app_id, url, kind, lang).build_reply_markup()
     }
     pub(crate) fn update_as_inline_keyboard(
         app_id: &str,
         url: Option<Url>,
         kind: NewAppKeyboardKind,
+        lang: &str,
     ) -> InlineKeyboardMarkup {
-        Self::update_keyboard(app_id, url, kind).build_inline_keyboard_markup()
+        Self::update_keyboard(app_id, url, kind, lang).build_inline_keyboard_markup()
     }
 }
 
@@ -144,6 +146,7 @@ mod tests {
     use super::*;
 
     const APP_ID: &str = "test";
+    const USER_LANG: &str = "en";
 
     #[test]
     fn test_new_app_keyboard() {
@@ -151,7 +154,7 @@ mod tests {
         let update_btn = Btn::url(SEE_UPDATE_MSG, url.clone());
         let table = vec![
             (
-                Keyboards::update(APP_ID, Some(url.clone()), Kind::Both),
+                Keyboards::update(APP_ID, Some(url.clone()), Kind::Both, USER_LANG),
                 vec![
                     vec![
                         Btn::callback(NOTIFY_MSG, "test:notify"),
@@ -161,14 +164,14 @@ mod tests {
                 ],
             ),
             (
-                Keyboards::update(APP_ID, Some(url.clone()), Kind::NotifyEnabled),
+                Keyboards::update(APP_ID, Some(url.clone()), Kind::NotifyEnabled, USER_LANG),
                 vec![vec![
                     Btn::callback(BELL_MSG, "test:ignore"),
                     update_btn.clone(),
                 ]],
             ),
             (
-                Keyboards::update(APP_ID, Some(url.clone()), Kind::NotifyDisabled),
+                Keyboards::update(APP_ID, Some(url.clone()), Kind::NotifyDisabled, USER_LANG),
                 vec![vec![
                     Btn::callback(NO_BELL_MSG, "test:notify"),
                     update_btn.clone(),

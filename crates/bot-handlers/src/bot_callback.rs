@@ -11,7 +11,7 @@ use db::{models::ShouldNotify, DB};
 
 use crate::{
     keyboards::{Keyboards, NewAppKeyboardKind},
-    IGNORE_TOKEN, NOTIFY_TOKEN,
+    tr, IGNORE_TOKEN, NOTIFY_TOKEN, USER_LANG,
 };
 
 pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseResult<()> {
@@ -20,7 +20,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
     let Some(data) = q.data else {
         log::error!("got empty callback {} from user {}", q.id, chat_id);
         answer_err
-            .text("Something went wrong (empty callback)")
+            .text(tr!(something_wrong_empty_callback, USER_LANG))
             .await?;
         return Ok(());
     };
@@ -28,9 +28,9 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
 
     let data: Vec<_> = data.split(':').collect();
     if data.len() != 2 {
-        log::error!("wrong callback: {data:?}");
+        log::error!("invalid callback: {data:?}");
         answer_err
-            .text("Something went wrong (wrong callback)")
+            .text(tr!(something_wrong_invalid_callback, USER_LANG))
             .await?;
         return Ok(());
     }
@@ -40,9 +40,9 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
         NOTIFY_TOKEN => ShouldNotify::Notify,
         IGNORE_TOKEN => ShouldNotify::Ignore,
         _ => {
-            log::error!("wrong callback: {data:?}");
+            log::error!("invalid callback: {data:?}");
             answer_err
-                .text("Something went wrong (unknown callback type)")
+                .text(tr!(something_wrong_unknown_callback_type, USER_LANG))
                 .await?;
             return Ok(());
         }
@@ -56,15 +56,21 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
         Err(e) => {
             log::error!("failed to save user should_notify: {e}");
             answer_err
-                .text("Something went wrong, please try again")
+                .text(tr!(something_wrong_try_again, USER_LANG))
                 .await?;
             return Ok(());
         }
     }
 
     let (popup_msg, keyboard_kind) = match should_notify {
-        ShouldNotify::Notify => ("Notifications enabled", NewAppKeyboardKind::NotifyEnabled),
-        ShouldNotify::Ignore => ("Notifications disabled", NewAppKeyboardKind::NotifyDisabled),
+        ShouldNotify::Notify => (
+            tr!(notifications_enabled, USER_LANG),
+            NewAppKeyboardKind::NotifyEnabled,
+        ),
+        ShouldNotify::Ignore => (
+            tr!(notifications_disabled, USER_LANG),
+            NewAppKeyboardKind::NotifyDisabled,
+        ),
         _ => {
             log::error!("unreachable should_notify, data: {data:?}");
             return Ok(());
@@ -88,6 +94,7 @@ async fn edit_callback_msg(
                 app_id,
                 get_url_from_callback_msg(kind),
                 keyboard_kind,
+                USER_LANG,
             ))
             .await?;
     }

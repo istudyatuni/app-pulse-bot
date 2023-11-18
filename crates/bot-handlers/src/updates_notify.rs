@@ -5,7 +5,7 @@ use tokio::sync::mpsc::Receiver;
 use db::{models::ShouldNotify, DB};
 use sources::Update;
 
-use crate::keyboards::{Keyboards, NewAppKeyboardKind};
+use crate::{keyboards::{Keyboards, NewAppKeyboardKind}, USER_LANG};
 
 pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Update>>) {
     log::debug!("starting listen for updates");
@@ -63,6 +63,7 @@ async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update) -> Resu
             update.app_id(),
             update.update_link().clone(),
             NewAppKeyboardKind::Both,
+            USER_LANG,
         ))
         .await?;
     Ok(())
@@ -82,6 +83,7 @@ async fn send_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
             app_id,
             update.update_link().clone(),
             NewAppKeyboardKind::NotifyEnabled,
+            USER_LANG,
         ))
         .await?;
     Ok(())

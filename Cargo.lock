@@ -100,7 +100,6 @@ dependencies = [
  "bot-handlers",
  "db",
  "dotenvy_macro",
- "interly",
  "log",
  "reqwest",
  "serde",
@@ -457,6 +456,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "db",
+ "interly",
  "log",
  "reqwest",
  "sources",

@@ -60,7 +60,11 @@ pub fn localize(_args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
-    let languages_names: Vec<_> = messages.iter().map(|(lang, _)| lang.to_string()).collect();
+    let languages_names: Vec<_> = messages
+        .iter()
+        .map(|(lang, _)| lang.to_string())
+        .map(|l| l.to_snake_case())
+        .collect();
 
     let ident = input.ident;
     let vis = input.vis;
@@ -89,17 +93,11 @@ fn localize_base(
     let mut languages_enum_from = vec![];
     for (lang_enum, lang_str) in languages_names
         .iter()
-        .map(|l| (l.to_shouty_snake_case(), l.to_snake_case()))
+        .map(|l| (l.to_shouty_snake_case(), l))
     {
         let lang_enum = syn::Ident::new(&lang_enum, Span::call_site());
-        let languages_enum_variant = quote! {
-            #lang_enum,
-        };
-        languages_enum_variants.push(languages_enum_variant);
-        let language_enum_from = quote! {
-            #lang_str => Self::#lang_enum,
-        };
-        languages_enum_from.push(language_enum_from);
+        languages_enum_variants.push(quote! { #lang_enum });
+        languages_enum_from.push(quote! { #lang_str => Self::#lang_enum });
     }
 
     let fallback_lang_enum = syn::Ident::new(
@@ -116,7 +114,7 @@ fn localize_base(
             bundles: __interly::Bundles,
         }
 
-        mod __interly {
+        #vis mod __interly {
             use ::std::collections::HashMap;
             use ::std::sync::Arc;
             use ::interly::{
@@ -142,6 +140,10 @@ fn localize_base(
                     #init_fun
                 }
 
+                #vis fn languages() -> ::std::vec::Vec<&'static str> {
+                    ::std::vec![#(#languages_names),*]
+                }
+
                 #message_methods
             }
 
@@ -149,19 +151,25 @@ fn localize_base(
 
             #[derive(PartialEq, Eq, Hash)]
             #vis enum LANG {
-                #(#languages_enum_variants)*
+                #(#languages_enum_variants),*
             }
 
             impl From<&str> for LANG {
                 fn from(lang: &str) -> Self {
                     match lang.to_lowercase().as_str() {
-                        #(#languages_enum_from)*
+                        #(#languages_enum_from),*
                     }
+                }
+            }
+            impl From<&::std::string::String> for LANG {
+                fn from(lang: &::std::string::String) -> Self {
+                    lang.as_str().into()
                 }
             }
         }
 
         #[allow(unused)]
+        #[macro_export] // probably should be disabled if #vis != pub
         macro_rules! tr {
             ($e:ident, $lang:expr) => {
                 tr!($e, $lang,)
@@ -171,6 +179,6 @@ fn localize_base(
             };
         }
 
-        #vis use tr;
+        // #vis use tr; // probably should be enabled if #vis != pub
     }
 }

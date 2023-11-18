@@ -12,5 +12,6 @@ teloxide.workspace = true
 tokio.workspace = true
 
 db.workspace = true
+i18n.workspace = true
 interly.workspace = true
 sources.workspace = true

@@ -7,6 +7,7 @@ publish.workspace = true
 [dependencies]
 anyhow.workspace = true
 camino.workspace = true
+i18n.workspace = true
 log.workspace = true
 serde.workspace = true
 surrealdb.workspace = true

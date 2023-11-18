@@ -3,13 +3,10 @@
 use reqwest::Url;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup};
 
-use crate::{IGNORE_TOKEN, NOTIFY_TOKEN, tr, USER_LANG};
+use crate::{tr, IGNORE_TOKEN, NOTIFY_TOKEN};
 
-const NOTIFY_MSG: &str = "Notify";
-const IGNORE_MSG: &str = "Ignore";
 const BELL_MSG: &str = "🔔";
 const NO_BELL_MSG: &str = "🔕";
-const SEE_UPDATE_MSG: &str = "See update";
 
 #[derive(Debug, Default)]
 pub(crate) struct KeyboardBuilder {
@@ -88,7 +85,7 @@ enum KeyboardBuilderState {
 pub(crate) struct Keyboards;
 
 impl Keyboards {
-    pub(crate) fn update_keyboard(
+    fn update_keyboard(
         app_id: &str,
         url: Option<Url>,
         kind: NewAppKeyboardKind,
@@ -97,8 +94,8 @@ impl Keyboards {
         let mut keyboard = match kind {
             NewAppKeyboardKind::Both => KeyboardBuilder::with_rows_capacity(2)
                 .row()
-                .callback(tr!(notify_button, USER_LANG), format!("{app_id}:{NOTIFY_TOKEN}"))
-                .callback(tr!(ignore_button, USER_LANG), format!("{app_id}:{IGNORE_TOKEN}"))
+                .callback(tr!(notify_button, lang), format!("{app_id}:{NOTIFY_TOKEN}"))
+                .callback(tr!(ignore_button, lang), format!("{app_id}:{IGNORE_TOKEN}"))
                 .row(),
             NewAppKeyboardKind::NotifyEnabled => KeyboardBuilder::with_rows_capacity(1)
                 .row()
@@ -109,11 +106,16 @@ impl Keyboards {
         };
 
         if let Some(url) = url {
-            keyboard = keyboard.url(tr!(see_update_button, USER_LANG), url.clone());
+            keyboard = keyboard.url(tr!(see_update_button, lang), url.clone());
         }
         keyboard
     }
-    pub(crate) fn update(app_id: &str, url: Option<Url>, kind: NewAppKeyboardKind, lang: &str) -> ReplyMarkup {
+    pub(crate) fn update(
+        app_id: &str,
+        url: Option<Url>,
+        kind: NewAppKeyboardKind,
+        lang: &str,
+    ) -> ReplyMarkup {
         Self::update_keyboard(app_id, url, kind, lang).build_reply_markup()
     }
     pub(crate) fn update_as_inline_keyboard(
@@ -144,6 +146,10 @@ mod tests {
 
     use super::NewAppKeyboardKind as Kind;
     use super::*;
+
+    const NOTIFY_MSG: &str = "Notify";
+    const IGNORE_MSG: &str = "Ignore";
+    const SEE_UPDATE_MSG: &str = "See update";
 
     const APP_ID: &str = "test";
     const USER_LANG: &str = "en";

@@ -22,9 +22,7 @@ pub(crate) fn make_messages_methods(
     for msg in msgs_map.values() {
         msgs.push(make_msg_fn(vis.clone(), msg));
     }
-    quote! {
-        #(#msgs)*
-    }
+    quote! { #(#msgs)* }
 }
 
 fn make_msg_fn(vis: Visibility, msg: &MessageInfo) -> TokenStream {
@@ -38,10 +36,11 @@ fn make_msg_fn(vis: Visibility, msg: &MessageInfo) -> TokenStream {
     }
     let msg_id = &msg.id;
     let pat_args = if args.len() > 0 {
-        quote! { Some(&FluentArgs::from_iter(vec![#(#pat_args),*])) }
+        quote! { Some(&FluentArgs::from_iter(::std::vec![#(#pat_args),*])) }
     } else {
         quote! { None }
     };
+    // todo: move most logic to one function like __format_msg(&self, lang, id, args) -> String
     quote! {
         #vis fn #fn_name(&self, lang: impl Into<LANG>, #(#args),*) -> String {
             let lang = lang.into();
@@ -54,7 +53,7 @@ fn make_msg_fn(vis: Visibility, msg: &MessageInfo) -> TokenStream {
                 .expect("no message")
                 .value()
                 .expect("no value in message");
-            let mut errs = vec![];
+            let mut errs = ::std::vec![];
             bundle
                 .format_pattern(msg, #pat_args, &mut errs)
                 .to_string()
@@ -86,13 +85,13 @@ pub(crate) fn make_init(messages: &Vec<(LanguageIdentifier, LangInfo)>) -> Token
 
         // all imports are available from __interly
         let mut resources: HashMap<LanguageIdentifier, Arc<FluentResource>> = HashMap::new();
-        let mut locales = vec![];
+        let mut locales = ::std::vec![];
 
         #(#resources_fill)*
 
         let mut bundles = HashMap::new();
         for lang in locales {
-            let mut bundle = FluentBundle::new_concurrent(vec![lang.0.clone()/*, fallback.clone()*/]);
+            let mut bundle = FluentBundle::new_concurrent(::std::vec![lang.0.clone()]);
             let _ = bundle.add_resource(resources.get(&lang.0).unwrap().clone());
             bundles.insert(lang.1.into(), bundle);
         }

@@ -40,6 +40,7 @@ unic-langid = { version = "0.9.1", features = ["macros"] }
 
 bot-handlers = { path = "crates/bot-handlers" }
 db = { path = "crates/db" }
+i18n = { path = "crates/i18n" }
 interly = { path = "crates/interly" }
 interly-macros = { path = "crates/interly-macros" }
 sources = { path = "crates/sources" }

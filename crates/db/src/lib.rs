@@ -17,6 +17,7 @@ const SCHEMA: &str = r#"
 DEFINE TABLE user SCHEMAFULL;
 
 DEFINE FIELD user_id ON TABLE user TYPE int;
+DEFINE FIELD lang ON TABLE user TYPE string;
 DEFINE INDEX user_id_index ON TABLE user COLUMNS user_id UNIQUE;
 
 --
@@ -86,6 +87,15 @@ impl DB {
             e => e?,
         };
         log::debug!("user preference saved");
+        Ok(())
+    }
+    pub async fn save_user_lang(&self, user_id: UserId, lang: &str) -> Result<()> {
+        let _: Option<models::User> = self
+            .conn
+            .update((USER_UPDATE_TABLE, user_id))
+            .patch(PatchOp::replace("/lang", lang))
+            .await?;
+        log::debug!("user lang updated");
         Ok(())
     }
     async fn update_should_notify_user(

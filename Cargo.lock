@@ -456,6 +456,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "db",
+ "i18n",
  "interly",
  "log",
  "reqwest",
@@ -808,6 +809,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "camino",
+ "i18n",
  "log",
  "serde",
  "surrealdb",
@@ -1549,6 +1551,13 @@ dependencies = [
  "native-tls",
  "tokio",
  "tokio-native-tls",
+]
+
+[[package]]
+name = "i18n"
+version = "0.1.0"
+dependencies = [
+ "interly",
 ]
 
 [[package]]

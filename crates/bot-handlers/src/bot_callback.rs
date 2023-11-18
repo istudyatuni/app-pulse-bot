@@ -11,16 +11,25 @@ use db::{models::ShouldNotify, DB};
 
 use crate::{
     keyboards::{Keyboards, NewAppKeyboardKind},
-    tr, IGNORE_TOKEN, NOTIFY_TOKEN, USER_LANG,
+    tr, IGNORE_TOKEN, NOTIFY_TOKEN, DEFAULT_USER_LANG,
 };
 
 pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseResult<()> {
     let answer_err = bot.answer_callback_query(&q.id).show_alert(true);
     let chat_id = q.from.id;
+
+    let lang = db
+        .select_user(chat_id.into())
+        .await
+        .ok()
+        .flatten()
+        .map(|u| u.lang().to_string())
+        .unwrap_or(DEFAULT_USER_LANG.to_string());
+
     let Some(data) = q.data else {
         log::error!("got empty callback {} from user {}", q.id, chat_id);
         answer_err
-            .text(tr!(something_wrong_empty_callback, USER_LANG))
+            .text(tr!(something_wrong_empty_callback, &lang))
             .await?;
         return Ok(());
     };
@@ -30,7 +39,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
     if data.len() != 2 {
         log::error!("invalid callback: {data:?}");
         answer_err
-            .text(tr!(something_wrong_invalid_callback, USER_LANG))
+            .text(tr!(something_wrong_invalid_callback, &lang))
             .await?;
         return Ok(());
     }
@@ -42,7 +51,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
         _ => {
             log::error!("invalid callback: {data:?}");
             answer_err
-                .text(tr!(something_wrong_unknown_callback_type, USER_LANG))
+                .text(tr!(something_wrong_unknown_callback_type, &lang))
                 .await?;
             return Ok(());
         }
@@ -56,7 +65,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
         Err(e) => {
             log::error!("failed to save user should_notify: {e}");
             answer_err
-                .text(tr!(something_wrong_try_again, USER_LANG))
+                .text(tr!(something_wrong_try_again, &lang))
                 .await?;
             return Ok(());
         }
@@ -64,11 +73,11 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
 
     let (popup_msg, keyboard_kind) = match should_notify {
         ShouldNotify::Notify => (
-            tr!(notifications_enabled, USER_LANG),
+            tr!(notifications_enabled, &lang),
             NewAppKeyboardKind::NotifyEnabled,
         ),
         ShouldNotify::Ignore => (
-            tr!(notifications_disabled, USER_LANG),
+            tr!(notifications_disabled, &lang),
             NewAppKeyboardKind::NotifyDisabled,
         ),
         _ => {
@@ -77,7 +86,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
         }
     };
     bot.answer_callback_query(&q.id).text(popup_msg).await?;
-    edit_callback_msg(q.message, bot, chat_id, app_id, keyboard_kind).await?;
+    edit_callback_msg(q.message, bot, chat_id, app_id, keyboard_kind, &lang).await?;
     Ok(())
 }
 
@@ -87,6 +96,7 @@ async fn edit_callback_msg(
     chat_id: UserId,
     app_id: &str,
     keyboard_kind: NewAppKeyboardKind,
+    lang: &str,
 ) -> ResponseResult<()> {
     if let Some(Message { id, kind, .. }) = msg {
         bot.edit_message_reply_markup(chat_id, id)
@@ -94,7 +104,7 @@ async fn edit_callback_msg(
                 app_id,
                 get_url_from_callback_msg(kind),
                 keyboard_kind,
-                USER_LANG,
+                lang,
             ))
             .await?;
     }

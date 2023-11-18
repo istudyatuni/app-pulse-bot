@@ -5,7 +5,8 @@ use tokio::sync::mpsc::Receiver;
 use db::{models::ShouldNotify, DB};
 use sources::Update;
 
-use crate::{keyboards::{Keyboards, NewAppKeyboardKind}, USER_LANG};
+use crate::tr;
+use crate::keyboards::{Keyboards, NewAppKeyboardKind};
 
 pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Update>>) {
     log::debug!("starting listen for updates");
@@ -25,12 +26,13 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Upd
                 let user_id = user.user_id();
                 let chat_id = user_id.into();
                 let app_id = update.app_id();
+                let lang = user.lang();
                 let f = match db.should_notify_user(user_id, app_id).await {
                     Ok(s) => match s {
                         ShouldNotify::Unspecified => {
-                            send_suggest_update(bot.clone(), chat_id, &update).await
+                            send_suggest_update(bot.clone(), chat_id, &update, lang).await
                         }
-                        ShouldNotify::Notify => send_update(bot.clone(), chat_id, &update).await,
+                        ShouldNotify::Notify => send_update(bot.clone(), chat_id, &update, lang).await,
                         ShouldNotify::Ignore => {
                             log::debug!("ignoring update {app_id} for user {user_id}");
                             continue;
@@ -47,8 +49,8 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Upd
     }
 }
 
-async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
-    let mut text = vec!["New app to track updates\n".to_string()];
+async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update, lang: &str) -> Result<()> {
+    let mut text = vec![tr!(new_app_msg, lang) + "\n"];
     if let Some(description) = update.description() {
         text.push(format!("\n{description}\n"));
     }
@@ -63,15 +65,15 @@ async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update) -> Resu
             update.app_id(),
             update.update_link().clone(),
             NewAppKeyboardKind::Both,
-            USER_LANG,
+            lang,
         ))
         .await?;
     Ok(())
 }
 
-async fn send_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
+async fn send_update(bot: Bot, chat_id: ChatId, update: &Update, lang: &str) -> Result<()> {
     let app_id = update.app_id();
-    let mut text = vec![format!("New update for {app_id}\n")];
+    let mut text = vec![tr!(new_update_msg, lang, app_id)];
     if let Some(url) = update.update_link() {
         text.push(url.to_string());
     } else if let Some(url) = update.description_link() {
@@ -83,7 +85,7 @@ async fn send_update(bot: Bot, chat_id: ChatId, update: &Update) -> Result<()> {
             app_id,
             update.update_link().clone(),
             NewAppKeyboardKind::NotifyEnabled,
-            USER_LANG,
+            lang,
         ))
         .await?;
     Ok(())

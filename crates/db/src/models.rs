@@ -8,17 +8,22 @@ pub struct User {
     #[serde(skip_serializing_if = "Option::is_none")]
     id: Option<Thing>,
     user_id: UserId,
+    lang: String,
 }
 
 impl User {
     pub fn new(user_id: UserId) -> Self {
         Self {
             user_id,
+            lang: i18n::DEFAULT_USER_LANG.to_string(),
             ..Default::default()
         }
     }
     pub fn user_id(&self) -> UserId {
         self.user_id
+    }
+    pub fn lang(&self) -> &str {
+        self.lang.as_str()
     }
 }
 

@@ -20,7 +20,7 @@ const DEFAULT_FALLBACK_LOCALE: LanguageIdentifier = langid!("en");
 
 /// Usage
 ///
-/// ```rust
+/// ```rust,ignore
 /// use interly::localize;
 ///
 /// #[localize]

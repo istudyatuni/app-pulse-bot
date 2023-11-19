@@ -40,23 +40,9 @@ fn make_msg_fn(vis: Visibility, msg: &MessageInfo) -> TokenStream {
     } else {
         quote! { None }
     };
-    // todo: move most logic to one function like __format_msg(&self, lang, id, args) -> String
     quote! {
         #vis fn #fn_name(&self, lang: impl Into<LANG>, #(#args),*) -> String {
-            let lang = lang.into();
-            let mut bundle = self.bundles.get(&lang).expect("no bundle");
-            if !bundle.has_message(#msg_id) {
-                bundle = self.bundles.get(&Self::FALLBACK_LANG).expect("no fallback bundle");
-            }
-            let msg = bundle
-                .get_message(#msg_id)
-                .expect("no message")
-                .value()
-                .expect("no value in message");
-            let mut errs = ::std::vec![];
-            bundle
-                .format_pattern(msg, #pat_args, &mut errs)
-                .to_string()
+            self.__format_msg(#msg_id, lang.into(), #pat_args)
         }
     }
 }
@@ -66,6 +52,7 @@ pub(crate) fn make_init(messages: &Vec<(LanguageIdentifier, LangInfo)>) -> Token
     for (lang, info) in messages {
         let lang = lang.to_string();
         let source = info.source.clone();
+        // todo: probably requires refactor to reduce output duplication
         let resource_fill = quote! {
             let lang = langid!(#lang);
             locales.push((lang.clone(), #lang));

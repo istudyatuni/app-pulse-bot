@@ -144,6 +144,28 @@ fn localize_base(
                     ::std::vec![#(#languages_names),*]
                 }
 
+                #vis fn __format_msg(
+                    &self,
+                    msg_id: &'static str,
+                    lang: LANG,
+                    args: Option<&FluentArgs<'_>>,
+                ) -> String {
+                    let mut bundle = self.bundles.get(&lang).expect("no bundle");
+                    if !bundle.has_message(msg_id) {
+                        bundle = self
+                            .bundles
+                            .get(&Self::FALLBACK_LANG)
+                            .expect("no fallback bundle");
+                    }
+                    let msg = bundle
+                        .get_message(msg_id)
+                        .expect("no message")
+                        .value()
+                        .expect("no value in message");
+                    let mut errs = ::std::vec![];
+                    bundle.format_pattern(msg, args, &mut errs).to_string()
+                }
+
                 #message_methods
             }
 

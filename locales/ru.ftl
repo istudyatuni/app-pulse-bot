@@ -11,6 +11,10 @@ notify-button = Уведомлять
 ignore-button = Игнорировать
 see-update-button = Посмотреть обновление
 
+## Other
+
+lang-name = Русский
+
 ## Errors notifications
 
 -something-went-wrong = Что-то пошло не так
@@ -26,6 +30,8 @@ something-wrong-try-again = { -something-went-wrong }, попробуйте ещ
 
 notifications-enabled = { -notifications } включены
 notifications-disabled = { -notifications } выключены
+
+lang-saved = Язык сохранён
 
 not-implemented-already-subscribed = Вы уже подписаны
 

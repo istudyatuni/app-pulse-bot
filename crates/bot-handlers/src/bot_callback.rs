@@ -11,8 +11,19 @@ use db::{models::ShouldNotify, DB};
 
 use crate::{
     keyboards::{Keyboards, NewAppKeyboardKind},
-    tr, IGNORE_TOKEN, NOTIFY_TOKEN, DEFAULT_USER_LANG,
+    tr, DEFAULT_USER_LANG, IGNORE_TOKEN, NOTIFY_FLAG, NOTIFY_TOKEN, SET_LANG_FLAG,
 };
+
+#[derive(Debug)]
+enum Callback {
+    Notify {
+        app_id: String,
+        should_notify: ShouldNotify,
+    },
+    SetLang {
+        lang: String,
+    },
+}
 
 pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseResult<()> {
     let answer_err = bot.answer_callback_query(&q.id).show_alert(true);
@@ -36,18 +47,41 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
     log::debug!("got callback: {:?}", data);
 
     let data: Vec<_> = data.split(':').collect();
-    if data.len() != 2 {
-        log::error!("invalid callback: {data:?}");
-        answer_err
-            .text(tr!(something_wrong_invalid_callback, &lang))
-            .await?;
-        return Ok(());
-    }
+    let callback_type = match data[0] {
+        NOTIFY_FLAG => {
+            if data.len() != 3 {
+                log::error!("invalid callback: {data:?}");
+                answer_err
+                    .text(tr!(something_wrong_invalid_callback, &lang))
+                    .await?;
+                return Ok(());
+            }
 
-    let (app_id, should_notify) = (data[0], data[1]);
-    let should_notify = match should_notify {
-        NOTIFY_TOKEN => ShouldNotify::Notify,
-        IGNORE_TOKEN => ShouldNotify::Ignore,
+            let (app_id, should_notify) = (data[1].to_string(), data[2]);
+            let should_notify = match should_notify {
+                NOTIFY_TOKEN => ShouldNotify::Notify,
+                IGNORE_TOKEN => ShouldNotify::Ignore,
+                _ => {
+                    return Ok(());
+                }
+            };
+            Callback::Notify {
+                app_id,
+                should_notify,
+            }
+        }
+        SET_LANG_FLAG => {
+            if data.len() != 2 {
+                log::error!("invalid callback: {data:?}");
+                answer_err
+                    .text(tr!(something_wrong_invalid_callback, &lang))
+                    .await?;
+                return Ok(());
+            }
+
+            let new_lang = data[1].to_string();
+            Callback::SetLang { lang: new_lang }
+        }
         _ => {
             log::error!("invalid callback: {data:?}");
             answer_err
@@ -57,6 +91,49 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
         }
     };
 
+    match callback_type {
+        Callback::Notify {
+            app_id,
+            should_notify,
+        } => {
+            let res = handle_update_callback(should_notify, db, chat_id, &app_id, &lang).await?;
+            match res {
+                Ok((popup_msg, keyboard_kind)) => {
+                    bot.answer_callback_query(&q.id).text(popup_msg).await?;
+                    edit_callback_msg(q.message, bot, chat_id, &app_id, keyboard_kind, &lang)
+                        .await?;
+                }
+                Err(Some(e)) => {
+                    answer_err.text(e).await?;
+                }
+                _ => (),
+            }
+        }
+        Callback::SetLang { lang: new_lang } => {
+            let res = handle_lang_callback(db, chat_id, &new_lang, &lang).await?;
+            match res {
+                Ok(popup_msg) => {
+                    bot.answer_callback_query(&q.id).text(popup_msg).await?;
+                    remove_callback_keyboard(q.message, bot, chat_id).await?;
+                }
+                Err(Some(e)) => {
+                    answer_err.text(e).await?;
+                }
+                _ => (),
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn handle_update_callback(
+    should_notify: ShouldNotify,
+    db: DB,
+    chat_id: UserId,
+    app_id: &str,
+    lang: &str,
+) -> ResponseResult<Result<(String, NewAppKeyboardKind), Option<String>>> {
     match db
         .save_should_notify_user(chat_id.into(), app_id, should_notify)
         .await
@@ -64,30 +141,40 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
         Ok(_) => (),
         Err(e) => {
             log::error!("failed to save user should_notify: {e}");
-            answer_err
-                .text(tr!(something_wrong_try_again, &lang))
-                .await?;
-            return Ok(());
+            return Ok(Err(Some(tr!(something_wrong_try_again, lang))));
         }
     }
-
     let (popup_msg, keyboard_kind) = match should_notify {
         ShouldNotify::Notify => (
-            tr!(notifications_enabled, &lang),
+            tr!(notifications_enabled, lang),
             NewAppKeyboardKind::NotifyEnabled,
         ),
         ShouldNotify::Ignore => (
-            tr!(notifications_disabled, &lang),
+            tr!(notifications_disabled, lang),
             NewAppKeyboardKind::NotifyDisabled,
         ),
         _ => {
-            log::error!("unreachable should_notify, data: {data:?}");
-            return Ok(());
+            return Ok(Err(None));
         }
     };
-    bot.answer_callback_query(&q.id).text(popup_msg).await?;
-    edit_callback_msg(q.message, bot, chat_id, app_id, keyboard_kind, &lang).await?;
-    Ok(())
+    Ok(Ok((popup_msg, keyboard_kind)))
+}
+
+async fn handle_lang_callback(
+    db: DB,
+    chat_id: UserId,
+    new_lang: &str,
+    lang: &str,
+) -> ResponseResult<Result<String, Option<String>>> {
+    match db.save_user_lang(chat_id.into(), new_lang).await {
+        Ok(_) => (),
+        Err(e) => {
+            log::error!("failed to update lang for user: {e}");
+            return Ok(Err(Some(tr!(something_wrong_try_again, lang))));
+        }
+    }
+
+    Ok(Ok(tr!(lang_saved, lang)))
 }
 
 async fn edit_callback_msg(
@@ -107,6 +194,17 @@ async fn edit_callback_msg(
                 lang,
             ))
             .await?;
+    }
+    Ok(())
+}
+
+async fn remove_callback_keyboard(
+    msg: Option<Message>,
+    bot: Bot,
+    chat_id: UserId,
+) -> ResponseResult<()> {
+    if let Some(Message { id, .. }) = msg {
+        bot.edit_message_reply_markup(chat_id, id).await?;
     }
     Ok(())
 }

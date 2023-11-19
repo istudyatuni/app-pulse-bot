@@ -1,9 +1,7 @@
-#![allow(unused)]
-
 use reqwest::Url;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup};
 
-use crate::{tr, IGNORE_TOKEN, NOTIFY_TOKEN};
+use crate::{tr, IGNORE_TOKEN, NOTIFY_FLAG, NOTIFY_TOKEN, SET_LANG_FLAG};
 
 const BELL_MSG: &str = "🔔";
 const NO_BELL_MSG: &str = "🔕";
@@ -63,7 +61,7 @@ impl KeyboardBuilder {
         self.keys[self.current_row].push(InlineKeyboardButton::url(text, url));
         self
     }
-    fn build_reply_markup(mut self) -> ReplyMarkup {
+    fn build_reply_markup(self) -> ReplyMarkup {
         ReplyMarkup::InlineKeyboard(self.build_inline_keyboard_markup())
     }
     fn build_inline_keyboard_markup(mut self) -> InlineKeyboardMarkup {
@@ -94,15 +92,21 @@ impl Keyboards {
         let mut keyboard = match kind {
             NewAppKeyboardKind::Both => KeyboardBuilder::with_rows_capacity(2)
                 .row()
-                .callback(tr!(notify_button, lang), format!("{app_id}:{NOTIFY_TOKEN}"))
-                .callback(tr!(ignore_button, lang), format!("{app_id}:{IGNORE_TOKEN}"))
+                .callback(
+                    tr!(notify_button, lang),
+                    notify_payload(app_id, NOTIFY_TOKEN),
+                )
+                .callback(
+                    tr!(ignore_button, lang),
+                    notify_payload(app_id, IGNORE_TOKEN),
+                )
                 .row(),
             NewAppKeyboardKind::NotifyEnabled => KeyboardBuilder::with_rows_capacity(1)
                 .row()
-                .callback(BELL_MSG, format!("{app_id}:{IGNORE_TOKEN}")),
+                .callback(BELL_MSG, notify_payload(app_id, IGNORE_TOKEN)),
             NewAppKeyboardKind::NotifyDisabled => KeyboardBuilder::with_rows_capacity(1)
                 .row()
-                .callback(NO_BELL_MSG, format!("{app_id}:{NOTIFY_TOKEN}")),
+                .callback(NO_BELL_MSG, notify_payload(app_id, NOTIFY_TOKEN)),
         };
 
         if let Some(url) = url {
@@ -126,6 +130,19 @@ impl Keyboards {
     ) -> InlineKeyboardMarkup {
         Self::update_keyboard(app_id, url, kind, lang).build_inline_keyboard_markup()
     }
+    pub(crate) fn languages() -> ReplyMarkup {
+        const LANGS_IN_ROW: usize = 3;
+        let langs: Vec<&'static str> = i18n::Localize::languages();
+        let mut keyboard = KeyboardBuilder::with_rows_capacity(langs.len() / LANGS_IN_ROW + 1);
+        for c in langs.chunks(LANGS_IN_ROW) {
+            keyboard = keyboard.row();
+            for &lang in c {
+                keyboard = keyboard.callback(tr!(lang_name, lang), lang_payload(lang));
+            }
+        }
+
+        keyboard.build_reply_markup()
+    }
 }
 
 #[derive(Debug)]
@@ -136,6 +153,14 @@ pub(crate) enum NewAppKeyboardKind {
     NotifyEnabled,
     /// Notifications disabled, show "no-bell" icon
     NotifyDisabled,
+}
+
+fn notify_payload(app_id: &str, token: &str) -> String {
+    format!("{NOTIFY_FLAG}:{app_id}:{token}")
+}
+
+fn lang_payload(lang: &str) -> String {
+    format!("{SET_LANG_FLAG}:{lang}")
 }
 
 #[cfg(test)]

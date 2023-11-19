@@ -92,7 +92,7 @@ impl DB {
     pub async fn save_user_lang(&self, user_id: UserId, lang: &str) -> Result<()> {
         let _: Option<models::User> = self
             .conn
-            .update((USER_UPDATE_TABLE, user_id))
+            .update((USER_TABLE, user_id))
             .patch(PatchOp::replace("/lang", lang))
             .await?;
         log::debug!("user lang updated");

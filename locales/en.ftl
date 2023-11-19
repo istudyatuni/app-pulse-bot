@@ -11,6 +11,10 @@ notify-button = Notify
 ignore-button = Ignore
 see-update-button = See update
 
+## Other
+
+lang-name = English
+
 ## Errors notifications
 
 -something-went-wrong = Something went wrong
@@ -26,6 +30,8 @@ something-wrong-try-again = { -something-went-wrong }, please try again
 
 notifications-enabled = { -notifications } enabled
 notifications-disabled = { -notifications } disabled
+
+lang-saved = Language saved
 
 not-implemented-already-subscribed = You are already subscribed
 

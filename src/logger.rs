@@ -1,10 +1,7 @@
-#![allow(unused)]
-
 use std::thread;
 
 use log::{Level, Metadata, Record};
-use simplelog::{Config, SharedLogger};
-use teloxide::{requests::Requester, types::ChatId, Bot};
+use simplelog::SharedLogger;
 use tokio::sync::mpsc::Sender;
 
 use crate::TG_LOG_ENABLED;
@@ -37,7 +34,7 @@ impl log::Log for TgLogger {
             }
             thread::scope(|s| {
                 s.spawn(|| {
-                    self.sender.blocking_send(msg);
+                    let _ = self.sender.blocking_send(msg);
                 });
             });
         }

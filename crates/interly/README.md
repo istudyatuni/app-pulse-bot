@@ -66,9 +66,10 @@ locales
         - `ignore`
         - `log`
         - `panic` (_current behaviour_)
-- [ ] Fallback with respect to [region][unic_langid_LanguageIdentifier] (`"ru_RU"` -> `"ru"`).
+- [ ] Fallback with respect to [region][unic_langid_LanguageIdentifier] (e.g. `"ru_RU"` -> `"ru"`).
 - [ ] Support defining not at crate top (now just not tested, probably this already works).
-- [ ] More [translation formats][tr-formats-list] support (long-term)
+    - Probably this just required generating correct `#vis` identifier inside `tr!()`.
+- [ ] More [translation formats][tr-formats-list] support (long-term).
 
 [selectors]: https://projectfluent.org/fluent/guide/selectors.html
 [expression_select]: https://docs.rs/fluent-syntax/latest/fluent_syntax/ast/enum.Expression.html#variant.Select
@@ -83,7 +84,7 @@ locales
 
 Open an issue, probably interly wants this too!
 
-## Whats generated
+## What's generated
 
 <details>
 
@@ -120,7 +121,7 @@ pub(crate) struct Localize {
     bundles: __interly::Bundles,
 }
 
-mod __interly {
+pub(crate) mod __interly {
     use ::std::collections::HashMap;
     use ::std::sync::Arc;
     use ::interly::{
@@ -180,28 +181,39 @@ mod __interly {
             Self { bundles }
         }
 
-        pub(crate) fn hello_world(&self, lang: impl Into<LANG>, name: &str) -> String {
+        pub(crate) fn languages() -> Vec<&'static str> {
+            vec!["ru", "en"])
+        }
+
+        pub(crate) fn __format_msg(
+            &self,
+            msg_id: &'static str,
+            lang: LANG,
+            args: Option<&FluentArgs<'_>>,
+        ) -> String {
             let lang = lang.into();
             let mut bundle = self.bundles.get(&lang).expect("no bundle");
-            if !bundle.has_message("hello-world") {
+            if !bundle.has_message(msg_id) {
                 bundle = self
                     .bundles
                     .get(&Self::FALLBACK_LANG)
                     .expect("no fallback bundle");
             }
             let msg = bundle
-                .get_message("hello-world")
+                .get_message(msg_id)
                 .expect("no message")
                 .value()
                 .expect("no value in message");
             let mut errs = vec![];
-            bundle
-                .format_pattern(
-                    msg,
-                    Some(&FluentArgs::from_iter(vec![("name", name)])),
-                    &mut errs,
-                )
-                .to_string()
+            bundle.format_pattern(msg, args, &mut errs).to_string()
+        }
+
+        pub(crate) fn hello_world(&self, lang: impl Into<LANG>, name: &str) -> String {
+            self.__format_msg(
+                "hello-world",
+                lang.into(),
+                Some(&FluentArgs::from_iter(vec![("name", name)])),
+            )
         }
     }
 
@@ -222,6 +234,12 @@ mod __interly {
             }
         }
     }
+
+    impl From<&::std::string::String> for LANG {
+        fn from(lang: &::std::string::String) -> Self {
+            lang.as_str().into()
+        }
+    }
 }
 
 #[allow(unused)]
@@ -233,8 +251,6 @@ macro_rules! tr {
         $crate::__interly::LOCALIZE.$e($lang, $($v),*)
     };
 }
-
-pub(crate) use tr;
 
 fn main() {
     println!("{}", crate::__interly::LOCALIZE.hello_world("en", "world"));

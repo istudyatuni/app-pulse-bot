@@ -40,7 +40,7 @@ const TG_LOG_ENABLED: bool = IS_PROD;
 #[tokio::main]
 async fn main() -> Result<()> {
     let tg_logs_chan = mpsc::channel(100);
-    let log_chat_id = ChatId(LOG_CHAT_ID.parse().expect("invalid logs chat_id"));
+    let log_chat_id = LOG_CHAT_ID.parse().ok().map(ChatId);
 
     CombinedLogger::init(vec![
         TermLogger::new(
@@ -67,10 +67,14 @@ async fn main() -> Result<()> {
     let cancel_token = CancellationToken::new();
 
     let mut jobs = JoinSet::new();
-    jobs.spawn(spawn_with_token(
-        cancel_token.clone(),
-        start_tg_logs_job(bot.clone(), log_chat_id, tg_logs_chan.1),
-    ));
+    if let Some(log_chat_id) = log_chat_id {
+        jobs.spawn(spawn_with_token(
+            cancel_token.clone(),
+            start_tg_logs_job(bot.clone(), log_chat_id, tg_logs_chan.1),
+        ));
+    } else {
+        log::warn!("LOG_CHAT_ID env not set, skip starting tg logs job")
+    }
     jobs.spawn(spawn_with_token(
         cancel_token.clone(),
         start_bot(bot.clone(), db.clone()),

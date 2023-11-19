@@ -61,15 +61,21 @@ impl KeyboardBuilder {
         self.keys[self.current_row].push(InlineKeyboardButton::url(text, url));
         self
     }
-    fn build_reply_markup(self) -> ReplyMarkup {
-        ReplyMarkup::InlineKeyboard(self.build_inline_keyboard_markup())
+}
+
+impl From<KeyboardBuilder> for ReplyMarkup {
+    fn from(value: KeyboardBuilder) -> Self {
+        Self::InlineKeyboard(value.into())
     }
-    fn build_inline_keyboard_markup(mut self) -> InlineKeyboardMarkup {
-        if let KeyboardBuilderState::Invalid = self.state {
+}
+
+impl From<KeyboardBuilder> for InlineKeyboardMarkup {
+    fn from(mut value: KeyboardBuilder) -> Self {
+        if let KeyboardBuilderState::Invalid = value.state {
             log::error!("failed to build reply_inline_keyboard, dropping");
-            self.keys = vec![];
+            value.keys = vec![];
         }
-        InlineKeyboardMarkup::new(self.keys)
+        Self::new(value.keys)
     }
 }
 
@@ -83,7 +89,7 @@ enum KeyboardBuilderState {
 pub(crate) struct Keyboards;
 
 impl Keyboards {
-    fn update_keyboard(
+    pub(crate) fn update(
         app_id: &str,
         url: Option<Url>,
         kind: NewAppKeyboardKind,
@@ -114,23 +120,7 @@ impl Keyboards {
         }
         keyboard
     }
-    pub(crate) fn update(
-        app_id: &str,
-        url: Option<Url>,
-        kind: NewAppKeyboardKind,
-        lang: &str,
-    ) -> ReplyMarkup {
-        Self::update_keyboard(app_id, url, kind, lang).build_reply_markup()
-    }
-    pub(crate) fn update_as_inline_keyboard(
-        app_id: &str,
-        url: Option<Url>,
-        kind: NewAppKeyboardKind,
-        lang: &str,
-    ) -> InlineKeyboardMarkup {
-        Self::update_keyboard(app_id, url, kind, lang).build_inline_keyboard_markup()
-    }
-    pub(crate) fn languages() -> ReplyMarkup {
+    pub(crate) fn languages() -> KeyboardBuilder {
         const LANGS_IN_ROW: usize = 3;
         let langs: Vec<&'static str> = i18n::Localize::languages();
         let mut keyboard = KeyboardBuilder::with_rows_capacity(langs.len() / LANGS_IN_ROW + 1);
@@ -141,7 +131,7 @@ impl Keyboards {
             }
         }
 
-        keyboard.build_reply_markup()
+        keyboard
     }
 }
 
@@ -210,6 +200,7 @@ mod tests {
             ),
         ];
         for (res, expected) in table {
+            let res: ReplyMarkup = res.into();
             assert_eq!(res, Reply::InlineKeyboard(Markup::new(expected)));
         }
     }

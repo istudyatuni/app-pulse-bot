@@ -187,12 +187,10 @@ async fn edit_callback_msg(
 ) -> ResponseResult<()> {
     if let Some(Message { id, kind, .. }) = msg {
         bot.edit_message_reply_markup(chat_id, id)
-            .reply_markup(Keyboards::update_as_inline_keyboard(
-                app_id,
-                get_url_from_callback_msg(kind),
-                keyboard_kind,
-                lang,
-            ))
+            .reply_markup(
+                Keyboards::update(app_id, get_url_from_callback_msg(kind), keyboard_kind, lang)
+                    .into(),
+            )
             .await?;
     }
     Ok(())

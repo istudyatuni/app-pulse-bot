@@ -35,7 +35,7 @@ fn make_msg_fn(vis: Visibility, msg: &MessageInfo) -> TokenStream {
         pat_args.push(quote! { (#arg_name, #arg) });
     }
     let msg_id = &msg.id;
-    let pat_args = if args.len() > 0 {
+    let pat_args = if !args.is_empty() {
         quote! { Some(&FluentArgs::from_iter(::std::vec![#(#pat_args),*])) }
     } else {
         quote! { None }

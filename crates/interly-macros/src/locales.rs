@@ -30,32 +30,26 @@ pub(crate) fn extract_messages(
         let mut messages = vec![];
 
         for e in resource.entries() {
-            match e {
-                Entry::Message(Message {
-                    id,
-                    value: Some(Pattern { elements }),
-                    ..
-                }) => {
-                    let mut attrs = vec![];
-                    for e in elements {
-                        match e {
-                            PatternElement::Placeable {
-                                expression:
-                                    Expression::Inline(InlineExpression::VariableReference {
-                                        id, ..
-                                    }),
-                            } => {
-                                attrs.push(id.name.to_owned());
-                            }
-                            _ => (),
-                        }
+            if let Entry::Message(Message {
+                id,
+                value: Some(Pattern { elements }),
+                ..
+            }) = e
+            {
+                let mut attrs = vec![];
+                for e in elements {
+                    if let PatternElement::Placeable {
+                        expression:
+                            Expression::Inline(InlineExpression::VariableReference { id, .. }),
+                    } = e
+                    {
+                        attrs.push(id.name.to_owned());
                     }
-                    messages.push(MessageInfo {
-                        id: id.name.to_owned(),
-                        attrs,
-                    });
                 }
-                _ => (),
+                messages.push(MessageInfo {
+                    id: id.name.to_owned(),
+                    attrs,
+                });
             }
         }
 

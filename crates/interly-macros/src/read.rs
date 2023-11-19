@@ -2,7 +2,7 @@ use camino::Utf8PathBuf as PathBuf;
 use std::fs;
 
 pub(crate) fn read_files(dir: &str) -> Result<Vec<(PathBuf, String)>, String> {
-    let files = fs::read_dir(&dir).map_err(|e| e.to_string())?;
+    let files = fs::read_dir(dir).map_err(|e| e.to_string())?;
 
     let files = files
         .map(|f| f.map(|f| f.path()))
@@ -11,7 +11,7 @@ pub(crate) fn read_files(dir: &str) -> Result<Vec<(PathBuf, String)>, String> {
 
     let contents: Vec<_> = files
         .iter()
-        .map(|f| fs::read_to_string(f))
+        .map(fs::read_to_string)
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
 

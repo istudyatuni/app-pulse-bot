@@ -51,7 +51,7 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
 }
 
 fn make_command_descriptions(lang: &str) -> String {
-    vec![
+    [
         tr!(commands_list_header, lang),
         "".to_string(),
         // "/subscribe - ".to_string() + tr!(subscribe_command, lang).as_str(),

@@ -72,7 +72,7 @@ impl DB {
         app_id: &str,
         should_notify: models::ShouldNotify,
     ) -> Result<()> {
-        let _: Option<models::User> = match self
+        let _: Option<models::UserUpdate> = match self
             .conn
             .create((USER_UPDATE_TABLE, make_user_update_id(user_id, app_id)))
             .content(models::UserUpdate::new(user_id, app_id, should_notify))
@@ -104,7 +104,7 @@ impl DB {
         app_id: &str,
         should_notify: models::ShouldNotify,
     ) -> Result<()> {
-        let _: Option<models::User> = self
+        let _: Option<models::UserUpdate> = self
             .conn
             .update((USER_UPDATE_TABLE, make_user_update_id(user_id, app_id)))
             .patch(PatchOp::replace("/should_notify", should_notify))

@@ -210,7 +210,9 @@ fn get_url_from_callback_msg(kind: MessageKind) -> Option<Url> {
     if let Some((text, entities)) = get_msg_text_from_callback(kind) {
         for e in entities {
             if e.kind == MessageEntityKind::Url {
-                return Url::parse(&text[e.offset..e.offset + e.length]).ok();
+                let chars = text.chars().collect::<Vec<_>>();
+                let chars = &chars[e.offset..e.offset + e.length];
+                return Url::parse(&chars.iter().collect::<String>()).ok();
             }
         }
     }

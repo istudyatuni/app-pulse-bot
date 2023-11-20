@@ -4,6 +4,7 @@ welcome = Привет!
 welcome-choose-language = { welcome } Выбери язык:
 new-app-msg = Новое приложение для отслеживания:
 new-update-msg = Обновление для { $app }
+subscribed = Вы подписаны
 
 ## Buttons messages
 

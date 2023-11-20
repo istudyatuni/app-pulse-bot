@@ -8,6 +8,11 @@ use types::{Id, UserId};
 
 const USER_TABLE: &str = "user";
 const USER_UPDATE_TABLE: &str = "user_update";
+const USER_SUBSCRIBE_TABLE: &str = "user_subscribe";
+// const SOURCE_TABLE: &str = "source";
+
+// Temporary, while there is only one source
+const SOURCE_ID: Id = 1;
 
 #[derive(Debug, Clone)]
 pub struct DB {
@@ -71,26 +76,22 @@ impl DB {
     ) -> Result<()> {
         log::debug!("saving user {user_id} should_notify: {should_notify:?}");
         let update = models::UserUpdate::new(user_id.into(), app_id, should_notify);
-        let res = sqlx::query(&format!(
-            "insert
-             into {USER_UPDATE_TABLE}
-             (user_id, app_id, should_notify)
-             values (?, ?, ?)"
+
+        // on conflict: https://sqlite.org/lang_upsert.html
+        // "excluded." means "get new value"
+        sqlx::query(&format!(
+            "insert into {USER_UPDATE_TABLE}
+             (user_id, source_id, app_id, should_notify)
+             values (?, ?, ?, ?)
+             on conflict(user_id, source_id, app_id)
+             do update set should_notify=excluded.should_notify"
         ))
         .bind(update.user_id())
+        .bind(SOURCE_ID)
         .bind(update.app_id())
         .bind(update.should_notify().to_db())
         .execute(&self.pool)
-        .await;
-
-        if let Err(sqlx::Error::Database(ref e)) = res {
-            if e.is_unique_violation() {
-                return self
-                    .update_should_notify_user(user_id, app_id, should_notify)
-                    .await;
-            }
-        }
-        res?;
+        .await?;
 
         log::debug!("user preference saved");
         Ok(())
@@ -109,25 +110,24 @@ impl DB {
         log::debug!("user lang updated");
         Ok(())
     }
-    async fn update_should_notify_user(
-        &self,
-        user_id: UserId,
-        app_id: &str,
-        should_notify: models::ShouldNotify,
-    ) -> Result<()> {
-        let id: Id = user_id.into();
+    pub async fn save_user_subscribed(&self, user_id: UserId, subscribed: bool) -> Result<()> {
+        log::debug!("saving user {user_id} subscribe: {subscribed}");
+        let update = models::UserSubscribe::new(user_id.into(), subscribed);
+
         sqlx::query(&format!(
-            "update {USER_UPDATE_TABLE}
-             set should_notify = ?
-             where user_id = ? and app_id = ?"
+            "insert into {USER_SUBSCRIBE_TABLE}
+             (user_id, source_id, subscribed)
+             values (?, ?, ?)
+             on conflict(user_id, source_id)
+             do update set subscribed=excluded.subscribed"
         ))
-        .bind(should_notify.to_db())
-        .bind(id)
-        .bind(app_id)
+        .bind(update.user_id())
+        .bind(SOURCE_ID)
+        .bind(update.subscribed())
         .execute(&self.pool)
         .await?;
 
-        log::debug!("user preference updated");
+        log::debug!("user subscribe saved");
         Ok(())
     }
     pub async fn should_notify_user(
@@ -140,16 +140,14 @@ impl DB {
         let update = sqlx::query_as::<_, models::ShouldNotify>(&format!(
             "select should_notify
              from {USER_UPDATE_TABLE}
-             where user_id = ? and app_id = ?"
+             where user_id = ? and source_id = ? and app_id = ?"
         ))
         .bind(id)
+        .bind(SOURCE_ID)
         .bind(app_id)
         .fetch_optional(&self.pool)
         .await?
         .unwrap_or_default();
         Ok(update)
     }
-    /*pub fn add_app(&self, name: &str, source_id: &str) {
-        log::debug!("saving app {name}");
-    }*/
 }

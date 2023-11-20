@@ -1,5 +1,7 @@
 use sqlx::{sqlite::SqliteRow, Row};
 
+use crate::SOURCE_ID;
+
 use super::types::{Id, UserId};
 
 #[derive(Debug, Default, sqlx::FromRow)]
@@ -23,15 +25,11 @@ impl User {
     }
 }
 
-/*#[derive(Debug)]
-struct App {
-    id: Id,
-    app_id: String,
-}*/
-
 #[derive(Debug, Default)]
 pub struct UserUpdate {
     user_id: Id,
+    #[allow(unused)]
+    source_id: Id,
     app_id: String,
     should_notify: ShouldNotify,
 }
@@ -40,6 +38,7 @@ impl UserUpdate {
     pub fn new(user_id: Id, app_id: &str, should_notify: ShouldNotify) -> Self {
         Self {
             user_id,
+            source_id: SOURCE_ID,
             app_id: app_id.to_string(),
             should_notify,
         }
@@ -81,5 +80,29 @@ impl sqlx::FromRow<'_, SqliteRow> for ShouldNotify {
         } else {
             Ok(Self::Notify)
         }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct UserSubscribe {
+    user_id: Id,
+    #[allow(unused)]
+    source_id: Id,
+    subscribed: bool,
+}
+
+impl UserSubscribe {
+    pub fn new(user_id: UserId, subscribed: bool) -> Self {
+        Self {
+            user_id: user_id.into(),
+            source_id: SOURCE_ID,
+            subscribed,
+        }
+    }
+    pub fn user_id(&self) -> Id {
+        self.user_id
+    }
+    pub fn subscribed(&self) -> bool {
+        self.subscribed
     }
 }

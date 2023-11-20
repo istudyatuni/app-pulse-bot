@@ -41,8 +41,14 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                 .await?;
         }
         Command::Subscribe => {
-            bot.send_message(msg.chat.id, tr!(not_implemented_already_subscribed, &lang))
-                .await?;
+            match db.save_user_subscribed(msg.chat.id.into(), true).await {
+                Ok(_) => {
+                    bot.send_message(msg.chat.id, tr!(subscribed, &lang))
+                        .await?;
+                    log::debug!("subscribed user: {:?}", msg.chat.id);
+                }
+                Err(e) => log::error!("failed to subscribe user {}: {e}", msg.chat.id.0),
+            }
         }
     };
 
@@ -53,7 +59,7 @@ fn make_command_descriptions(lang: &str) -> String {
     [
         tr!(commands_list_header, lang),
         "".to_string(),
-        // "/subscribe - ".to_string() + tr!(subscribe_command, lang).as_str(),
+        "/subscribe - ".to_string() + tr!(subscribe_command, lang).as_str(),
         "/help - ".to_string() + tr!(help_command, lang).as_str(),
     ]
     .join("\n")

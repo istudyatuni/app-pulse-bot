@@ -4,6 +4,7 @@ welcome = Welcome!
 welcome-choose-language = { welcome } Choose language:
 new-app-msg = New app to track updates:
 new-update-msg = Update for { $app }
+subscribed = Subscribed
 
 ## Buttons messages
 

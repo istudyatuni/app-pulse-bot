@@ -15,7 +15,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Upd
         log::debug!("got {} updates", updates.len());
         for update in updates {
             log::debug!("got update for {}", update.app_id());
-            let users = match db.select_users().await {
+            let users = match db.select_subscribed_users().await {
                 Ok(v) => v,
                 Err(e) => {
                     log::error!("failed to select users: {e}");

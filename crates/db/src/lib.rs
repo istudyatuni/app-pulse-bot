@@ -60,13 +60,16 @@ impl DB {
             Err(e) => Err(e.into()),
         }
     }
-    pub async fn select_users(&self) -> Result<Vec<models::User>> {
-        log::debug!("select users");
-        Ok(
-            sqlx::query_as::<_, models::User>(&format!("select * from {USER_TABLE}"))
-                .fetch_all(&self.pool)
-                .await?,
-        )
+    pub async fn select_subscribed_users(&self) -> Result<Vec<models::User>> {
+        log::debug!("select subscribed users");
+        Ok(sqlx::query_as::<_, models::User>(&format!(
+            "select u.* from {USER_TABLE} u
+             join {USER_SUBSCRIBE_TABLE} us
+               on u.user_id = us.user_id
+             where us.subscribed = true"
+        ))
+        .fetch_all(&self.pool)
+        .await?)
     }
     pub async fn save_should_notify_user(
         &self,

@@ -43,16 +43,14 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
             bot.send_message(msg.chat.id, make_command_descriptions(&lang))
                 .await?;
         }
-        Command::Subscribe => {
-            match db.save_user_subscribed(msg.chat.id.into(), true).await {
-                Ok(_) => {
-                    bot.send_message(msg.chat.id, tr!(subscribed, &lang))
-                        .await?;
-                    log::debug!("subscribed user: {:?}", msg.chat.id);
-                }
-                Err(e) => log::error!("failed to subscribe user {}: {e}", msg.chat.id.0),
+        Command::Subscribe => match db.save_user_subscribed(msg.chat.id.into(), true).await {
+            Ok(_) => {
+                bot.send_message(msg.chat.id, tr!(subscribed, &lang))
+                    .await?;
+                log::debug!("subscribed user: {:?}", msg.chat.id);
             }
-        }
+            Err(e) => log::error!("failed to subscribe user {}: {e}", msg.chat.id.0),
+        },
     };
 
     Ok(())

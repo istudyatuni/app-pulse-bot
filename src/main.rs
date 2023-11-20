@@ -34,7 +34,6 @@ const LOG_LEVEL: LevelFilter = if IS_PROD {
 } else {
     LevelFilter::Debug
 };
-const SET_BOT_COMMANDS: bool = IS_PROD;
 const TG_LOG_ENABLED: bool = IS_PROD;
 
 #[tokio::main]
@@ -63,9 +62,7 @@ async fn main() -> Result<()> {
         TG_BOT_TOKEN,
         Client::builder().timeout(REQUEST_TIMEOUT).build()?,
     );
-    if SET_BOT_COMMANDS {
-        bot.set_my_commands(Command::bot_commands()).await?;
-    }
+    bot.set_my_commands(Command::bot_commands()).await?;
 
     let updates_chan = mpsc::channel(100);
     let cancel_token = CancellationToken::new();

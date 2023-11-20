@@ -110,7 +110,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
             }
         }
         Callback::SetLang { lang: new_lang } => {
-            let res = handle_lang_callback(db, chat_id, &new_lang, &lang).await?;
+            let res = handle_lang_callback(db, chat_id, &new_lang).await?;
             match res {
                 Ok(popup_msg) => {
                     bot.answer_callback_query(&q.id).text(popup_msg).await?;
@@ -164,17 +164,16 @@ async fn handle_lang_callback(
     db: DB,
     chat_id: UserId,
     new_lang: &str,
-    lang: &str,
 ) -> ResponseResult<Result<String, Option<String>>> {
     match db.save_user_lang(chat_id.into(), new_lang).await {
         Ok(_) => (),
         Err(e) => {
             log::error!("failed to update lang for user: {e}");
-            return Ok(Err(Some(tr!(something_wrong_try_again, lang))));
+            return Ok(Err(Some(tr!(something_wrong_try_again, new_lang))));
         }
     }
 
-    Ok(Ok(tr!(lang_saved, lang)))
+    Ok(Ok(tr!(lang_saved, new_lang)))
 }
 
 async fn edit_callback_msg(

@@ -23,7 +23,7 @@ use crate::logger::TgLogger;
 mod handlers;
 mod logger;
 
-const DB_FILE: &str = "data.db";
+const DB_FILE: &str = dotenv!("DATABASE_URL");
 const TG_BOT_TOKEN: &str = dotenv!("BOT_TOKEN");
 const LOG_CHAT_ID: &str = dotenv!("LOG_CHAT_ID");
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -53,6 +53,7 @@ async fn main() -> Result<()> {
     ])
     .expect("failed to init logger");
 
+    log::debug!("opening db at {DB_FILE}");
     let db = DB::init(DB_FILE).await?;
 
     let bot = Bot::with_client(

@@ -1,11 +1,10 @@
 use std::fmt::Display;
 
-use serde::{Deserialize, Serialize};
-use surrealdb::sql::{Id, Number, Value};
 use teloxide::types::{ChatId as TgChatId, UserId as TgUserId};
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone, Copy)]
-#[serde(transparent)]
+pub type Id = i64;
+
+#[derive(Debug, Default, Clone, Copy)]
 pub struct UserId(pub u64);
 
 impl Display for UserId {
@@ -14,8 +13,7 @@ impl Display for UserId {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone, Copy)]
-#[serde(transparent)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct ChatId(pub i64);
 
 impl Display for ChatId {
@@ -35,6 +33,8 @@ macro_rules! cast {
 }
 
 cast!(
+    i64 => ChatId: v => Self(v),
+
     ChatId => UserId: v => Self(v.0 as _),
     UserId => ChatId: v => Self(v.0 as _),
 
@@ -47,7 +47,7 @@ cast!(
     UserId => TgChatId: v => Self(v.0 as _),
     TgChatId => UserId: v => Self(v.0 as _),
 
-    ChatId => Id: v => Self::Number(v.0),
-    UserId => Id: v => Self::Number(v.0 as _),
-    UserId => Value: v => Self::Number(Number::Int(v.0 as _)),
+    ChatId => Id: v => v.0,
+    Id => UserId: v => Self(v as _),
+    UserId => Id: v => v.0 as _,
 );

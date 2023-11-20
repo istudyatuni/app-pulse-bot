@@ -9,6 +9,5 @@ anyhow.workspace = true
 camino.workspace = true
 i18n.workspace = true
 log.workspace = true
-serde.workspace = true
-surrealdb.workspace = true
+sqlx.workspace = true
 teloxide.workspace = true

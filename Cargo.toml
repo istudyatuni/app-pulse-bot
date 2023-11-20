@@ -31,9 +31,9 @@ quote = "1"
 reqwest = "0.11.22"
 serde = { version = "1.0.192", features = ["derive"] }
 simplelog = "0.12.1"
-surrealdb = { version = "1.0.0", features = ["kv-rocksdb"] }
+sqlx = { version = "0.7.2", features = ["macros",  "migrate", "runtime-tokio",  "sqlite",  "tls-rustls"] }
 syn = "2"
-teloxide = { version = "0.12.2", default-features = false, features = ["macros", "ctrlc_handler", "rustls", "sqlite-storage-rustls"] }
+teloxide = { version = "0.12.2", default-features = false, features = ["macros", "ctrlc_handler", "rustls"] }
 tokio = { version = "1.34.0", features = ["full"] }
 tokio-util = "0.7.10"
 unic-langid = { version = "0.9.1", features = ["macros"] }

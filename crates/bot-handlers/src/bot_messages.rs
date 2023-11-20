@@ -7,8 +7,11 @@ use crate::{keyboards::Keyboards, tr, DEFAULT_USER_LANG};
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
 pub enum Command {
+    #[command(description = "off")]
     Start,
+    #[command(description = "Subscribe")]
     Subscribe,
+    #[command(description = "Display this text")]
     Help,
 }
 

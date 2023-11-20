@@ -4,7 +4,6 @@ use db::DB;
 
 use crate::{keyboards::Keyboards, tr, DEFAULT_USER_LANG};
 
-// todo: translate command descriptions
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
 pub enum Command {

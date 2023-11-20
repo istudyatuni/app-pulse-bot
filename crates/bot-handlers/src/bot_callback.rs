@@ -109,12 +109,13 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
                 _ => (),
             }
         }
-        Callback::SetLang { lang: new_lang } => {
-            let res = handle_lang_callback(db, chat_id, &new_lang).await?;
+        Callback::SetLang { lang } => {
+            let res = handle_lang_callback(db, chat_id, &lang).await?;
             match res {
                 Ok(popup_msg) => {
                     bot.answer_callback_query(&q.id).text(popup_msg).await?;
-                    remove_callback_keyboard(q.message, bot, chat_id).await?;
+                    remove_callback_keyboard(&q.message, bot.clone(), chat_id).await?;
+                    edit_welcome_msg(&q.message, bot, chat_id, &lang).await?;
                 }
                 Err(Some(e)) => {
                     answer_err.text(e).await?;
@@ -163,17 +164,30 @@ async fn handle_update_callback(
 async fn handle_lang_callback(
     db: DB,
     chat_id: UserId,
-    new_lang: &str,
+    lang: &str,
 ) -> ResponseResult<Result<String, Option<String>>> {
-    match db.save_user_lang(chat_id.into(), new_lang).await {
+    match db.save_user_lang(chat_id.into(), lang).await {
         Ok(_) => (),
         Err(e) => {
             log::error!("failed to update lang for user: {e}");
-            return Ok(Err(Some(tr!(something_wrong_try_again, new_lang))));
+            return Ok(Err(Some(tr!(something_wrong_try_again, lang))));
         }
     }
 
-    Ok(Ok(tr!(lang_saved, new_lang)))
+    Ok(Ok(tr!(lang_saved, lang)))
+}
+
+async fn edit_welcome_msg(
+    msg: &Option<Message>,
+    bot: Bot,
+    chat_id: UserId,
+    lang: &str,
+) -> ResponseResult<()> {
+    if let Some(Message { id, .. }) = msg {
+        bot.edit_message_text(chat_id, id.clone(), tr!(welcome_suggest_subscribe, lang))
+            .await?;
+    }
+    Ok(())
 }
 
 async fn edit_callback_msg(
@@ -187,8 +201,13 @@ async fn edit_callback_msg(
     if let Some(Message { id, kind, .. }) = msg {
         bot.edit_message_reply_markup(chat_id, id)
             .reply_markup(
-                Keyboards::update(app_id, get_url_from_callback_msg(kind), keyboard_kind, lang)
-                    .into(),
+                Keyboards::update(
+                    app_id,
+                    extract_url_from_callback_msg(kind),
+                    keyboard_kind,
+                    lang,
+                )
+                .into(),
             )
             .await?;
     }
@@ -196,18 +215,18 @@ async fn edit_callback_msg(
 }
 
 async fn remove_callback_keyboard(
-    msg: Option<Message>,
+    msg: &Option<Message>,
     bot: Bot,
     chat_id: UserId,
 ) -> ResponseResult<()> {
     if let Some(Message { id, .. }) = msg {
-        bot.edit_message_reply_markup(chat_id, id).await?;
+        bot.edit_message_reply_markup(chat_id, id.clone()).await?;
     }
     Ok(())
 }
 
-fn get_url_from_callback_msg(kind: MessageKind) -> Option<Url> {
-    if let Some((text, entities)) = get_msg_text_from_callback(kind) {
+fn extract_url_from_callback_msg(kind: MessageKind) -> Option<Url> {
+    if let Some((text, entities)) = extract_msg_text_from_callback(kind) {
         for e in entities {
             if e.kind == MessageEntityKind::Url {
                 let chars = text.chars().collect::<Vec<_>>();
@@ -219,7 +238,7 @@ fn get_url_from_callback_msg(kind: MessageKind) -> Option<Url> {
     None
 }
 
-fn get_msg_text_from_callback(kind: MessageKind) -> Option<(String, Vec<MessageEntity>)> {
+fn extract_msg_text_from_callback(kind: MessageKind) -> Option<(String, Vec<MessageEntity>)> {
     if let MessageKind::Common(MessageCommon {
         media_kind: MediaKind::Text(MediaText { text, entities }),
         ..

@@ -25,7 +25,7 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
     match cmd {
         Command::Start => match user {
             Some(_) => {
-                bot.send_message(msg.chat.id, tr!(welcome, &lang))
+                bot.send_message(msg.chat.id, tr!(welcome_choose_language, &lang))
                     .reply_markup(Keyboards::languages())
                     .await?;
             }

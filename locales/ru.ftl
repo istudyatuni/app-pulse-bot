@@ -3,6 +3,10 @@
 welcome = Привет!
 welcome-choose-language = { welcome } Выбери язык:
 new-app-msg = Новое приложение для отслеживания:
+welcome-suggest-subscribe = { welcome }
+
+    Теперь вы можете подписаться, чтобы отслеживать обновления: /subscribe
+
 new-update-msg = Обновление для { $app }
 subscribed = Вы подписаны
 

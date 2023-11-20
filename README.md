@@ -13,3 +13,7 @@ and fill it.
 ```sh
 cargo b --release --features=prod
 ```
+
+## Interly
+
+Also take a look at [Interly](crates/interly/README.md), internalization library with [Fluent](https://projectfluent.org) support. This project translated with Interly.

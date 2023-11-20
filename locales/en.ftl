@@ -14,7 +14,8 @@ see-update-button = See update
 
 ## Other
 
-lang-name = English
+# https://emojipedia.org/flags
+lang-name = 🇺🇸 English
 
 ## Errors notifications
 

@@ -14,7 +14,7 @@ see-update-button = Посмотреть обновление
 
 ## Other
 
-lang-name = Русский
+lang-name = 🇷🇺 Русский
 
 ## Errors notifications
 

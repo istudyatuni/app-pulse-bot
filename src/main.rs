@@ -6,11 +6,7 @@ use reqwest::Client;
 use simplelog::*;
 use teloxide::{prelude::*, utils::command::BotCommands};
 
-use tokio::{
-    signal,
-    sync::mpsc::{self},
-    task::JoinSet,
-};
+use tokio::{signal, sync::mpsc, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 
 use bot_handlers::{callback_handler, message_handler, start_updates_notify_job, Command};
@@ -41,22 +37,10 @@ async fn main() -> Result<()> {
     let tg_logs_chan = mpsc::channel(100);
     let log_chat_id = LOG_CHAT_ID.parse().ok().map(ChatId);
 
-    let term_logger_config = if IS_PROD {
-        Config::default()
-    } else {
-        ConfigBuilder::new()
-            .add_filter_ignore_str("h2")
-            .add_filter_ignore_str("hyper")
-            .add_filter_ignore_str("reqwest")
-            .add_filter_ignore_str("rustls")
-            .add_filter_ignore_str("sqlx")
-            .build()
-    };
-
     CombinedLogger::init(vec![
         TermLogger::new(
             LOG_LEVEL,
-            term_logger_config,
+            term_logger_config(),
             TerminalMode::Mixed,
             ColorChoice::Auto,
         ),
@@ -64,11 +48,7 @@ async fn main() -> Result<()> {
     ])
     .expect("failed to init logger");
 
-    log::debug!("opening db at {DB_FILE}");
-    if DB_FILE.is_empty() {
-        panic!("DB_URL env variable is empty")
-    }
-    let db = DB::init(DB_FILE).await?;
+    let db = DB::init(&db_path()).await?;
 
     let bot = Bot::with_client(
         TG_BOT_TOKEN,
@@ -114,6 +94,37 @@ async fn main() -> Result<()> {
     while (jobs.join_next().await).is_some() {}
 
     Ok(())
+}
+
+fn db_path() -> String {
+    if DB_FILE.is_empty() {
+        panic!("DB_URL env variable is empty")
+    }
+    let db_file = if IS_PROD {
+        let home = match std::env::var("HOME") {
+            Ok(s) => s,
+            Err(_) => "/".to_string(),
+        };
+        format!("{home}/{DB_FILE}")
+    } else {
+        DB_FILE.to_string()
+    };
+    log::debug!("opening db at {db_file}");
+    db_file
+}
+
+fn term_logger_config() -> Config {
+    if IS_PROD {
+        Config::default()
+    } else {
+        ConfigBuilder::new()
+            .add_filter_ignore_str("h2")
+            .add_filter_ignore_str("hyper")
+            .add_filter_ignore_str("reqwest")
+            .add_filter_ignore_str("rustls")
+            .add_filter_ignore_str("sqlx")
+            .build()
+    }
 }
 
 async fn spawn_with_token<R>(token: CancellationToken, f: impl Future<Output = R>) {

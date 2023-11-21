@@ -178,8 +178,8 @@ mod tests {
                 Keyboards::update(APP_ID, Some(url.clone()), Kind::Both, USER_LANG),
                 vec![
                     vec![
-                        Btn::callback(NOTIFY_MSG, "test:notify"),
-                        Btn::callback(IGNORE_MSG, "test:ignore"),
+                        Btn::callback(NOTIFY_MSG, "notify:test:notify"),
+                        Btn::callback(IGNORE_MSG, "notify:test:ignore"),
                     ],
                     vec![update_btn.clone()],
                 ],
@@ -187,14 +187,14 @@ mod tests {
             (
                 Keyboards::update(APP_ID, Some(url.clone()), Kind::NotifyEnabled, USER_LANG),
                 vec![vec![
-                    Btn::callback(BELL_MSG, "test:ignore"),
+                    Btn::callback(BELL_MSG, "notify:test:ignore"),
                     update_btn.clone(),
                 ]],
             ),
             (
                 Keyboards::update(APP_ID, Some(url.clone()), Kind::NotifyDisabled, USER_LANG),
                 vec![vec![
-                    Btn::callback(NO_BELL_MSG, "test:notify"),
+                    Btn::callback(NO_BELL_MSG, "notify:test:notify"),
                     update_btn.clone(),
                 ]],
             ),

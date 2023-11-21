@@ -139,7 +139,7 @@ async fn handle_update_callback(
         .save_should_notify_user(chat_id.into(), app_id, should_notify)
         .await
     {
-        Ok(_) => (),
+        Ok(()) => (),
         Err(e) => {
             log::error!("failed to save user should_notify: {e}");
             return Ok(Err(Some(tr!(something_wrong_try_again, lang))));
@@ -167,7 +167,7 @@ async fn handle_lang_callback(
     lang: &str,
 ) -> ResponseResult<Result<String, Option<String>>> {
     match db.save_user_lang(chat_id.into(), lang).await {
-        Ok(_) => (),
+        Ok(()) => (),
         Err(e) => {
             log::error!("failed to update lang for user: {e}");
             return Ok(Err(Some(tr!(something_wrong_try_again, lang))));

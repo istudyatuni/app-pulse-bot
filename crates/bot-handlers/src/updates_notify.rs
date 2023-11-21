@@ -15,7 +15,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
     while let Some(updates) = rx.recv().await {
         log::debug!("got {} updates", updates.count());
         match db.save_source_updated_at(updates.last_update).await {
-            Ok(_) => (),
+            Ok(()) => (),
             Err(e) => log::error!("failed to save source last_updated_at: {e}"),
         }
 
@@ -63,7 +63,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 .save_user_last_notified(u.user_id().into(), now)
                 .await
             {
-                Ok(_) => (),
+                Ok(()) => (),
                 Err(e) => log::error!("failed to save user last_notified_at: {e}"),
             }
         }

@@ -30,7 +30,7 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                     .await?;
             }
             None => match db.save_user(msg.chat.id.into()).await {
-                Ok(_) => {
+                Ok(()) => {
                     bot.send_message(msg.chat.id, tr!(welcome, &lang))
                         .reply_markup(Keyboards::languages())
                         .await?;
@@ -44,7 +44,7 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                 .await?;
         }
         Command::Subscribe => match db.save_user_subscribed(msg.chat.id.into(), true).await {
-            Ok(_) => {
+            Ok(()) => {
                 bot.send_message(msg.chat.id, tr!(subscribed, &lang))
                     .await?;
                 log::debug!("subscribed user: {:?}", msg.chat.id);

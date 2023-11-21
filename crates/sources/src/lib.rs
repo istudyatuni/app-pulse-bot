@@ -134,7 +134,7 @@ where
             continue;
         }
         match tx.send(updates).await {
-            Ok(_) => log::debug!("sending updates"),
+            Ok(()) => log::debug!("sending updates"),
             Err(_) => log::error!("failed to send update to mpsc, dropping"),
         }
     }

@@ -1,5 +1,11 @@
 # Telegram bot for checking updates
 
+Supported sources:
+
+- https://t.me/alexstranniklite
+
+## Developing
+
 First of all, you should define some variables. Copy `.env`
 
 ```sh

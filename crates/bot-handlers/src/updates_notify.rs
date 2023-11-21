@@ -59,10 +59,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
 
         let now = DateTime::now();
         for u in users {
-            match db
-                .save_user_last_notified(u.user_id().into(), now)
-                .await
-            {
+            match db.save_user_last_notified(u.user_id().into(), now).await {
                 Ok(()) => (),
                 Err(e) => log::error!("failed to save user last_notified_at: {e}"),
             }

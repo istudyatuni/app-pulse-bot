@@ -41,10 +41,22 @@ async fn main() -> Result<()> {
     let tg_logs_chan = mpsc::channel(100);
     let log_chat_id = LOG_CHAT_ID.parse().ok().map(ChatId);
 
+    let term_logger_config = if IS_PROD {
+        Config::default()
+    } else {
+        ConfigBuilder::new()
+            .add_filter_ignore_str("h2")
+            .add_filter_ignore_str("hyper")
+            .add_filter_ignore_str("reqwest")
+            .add_filter_ignore_str("rustls")
+            .add_filter_ignore_str("sqlx")
+            .build()
+    };
+
     CombinedLogger::init(vec![
         TermLogger::new(
             LOG_LEVEL,
-            Config::default(),
+            term_logger_config,
             TerminalMode::Mixed,
             ColorChoice::Auto,
         ),

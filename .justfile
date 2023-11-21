@@ -14,3 +14,6 @@ build-release:
 # Run tests
 test what='--workspace':
 	cargo test {{what}}
+
+deploy ssh-path:
+	scp target/x86_64-unknown-linux-musl/release/app-pulse-bot {{ssh-path}}

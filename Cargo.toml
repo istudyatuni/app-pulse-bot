@@ -19,6 +19,7 @@ prod = []
 anyhow = "1.0.75"
 async-trait = "0.1.74"
 camino = "1.1.6"
+chrono = "0.4.31"
 dotenvy_macro = "0.15.7"
 fluent = "0.16.0"
 fluent-syntax = "0.11.0"
@@ -39,6 +40,7 @@ tokio-util = "0.7.10"
 unic-langid = { version = "0.9.1", features = ["macros"] }
 
 bot-handlers = { path = "crates/bot-handlers" }
+common = { path = "crates/common" }
 db = { path = "crates/db" }
 i18n = { path = "crates/i18n" }
 interly = { path = "crates/interly" }

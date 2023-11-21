@@ -6,8 +6,9 @@ publish.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-camino.workspace = true
 i18n.workspace = true
 log.workspace = true
 sqlx.workspace = true
 teloxide.workspace = true
+
+common.workspace = true

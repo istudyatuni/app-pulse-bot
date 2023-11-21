@@ -1,5 +1,7 @@
 use sqlx::{sqlite::SqliteRow, Row};
 
+use common::{DateTime, UnixDateTime};
+
 use crate::SOURCE_ID;
 
 use super::types::{Id, UserId};
@@ -8,6 +10,7 @@ use super::types::{Id, UserId};
 pub struct User {
     user_id: Id,
     lang: String,
+    last_notified_at: UnixDateTime,
 }
 
 impl User {
@@ -15,6 +18,7 @@ impl User {
         Self {
             user_id: user_id.into(),
             lang: i18n::DEFAULT_USER_LANG.to_string(),
+            last_notified_at: DateTime::now(),
         }
     }
     pub fn user_id(&self) -> Id {
@@ -22,6 +26,9 @@ impl User {
     }
     pub fn lang(&self) -> &str {
         self.lang.as_str()
+    }
+    pub fn last_notified_at(&self) -> UnixDateTime {
+        self.last_notified_at
     }
 }
 
@@ -104,5 +111,19 @@ impl UserSubscribe {
     }
     pub fn subscribed(&self) -> bool {
         self.subscribed
+    }
+}
+
+#[allow(unused)]
+#[derive(Debug, sqlx::FromRow)]
+pub struct Source {
+    source_id: Id,
+    name: String,
+    last_updated_at: UnixDateTime,
+}
+
+impl Source {
+    pub fn last_updated_at(&self) -> UnixDateTime {
+        self.last_updated_at
     }
 }

@@ -1,6 +1,7 @@
 create table user (
 	user_id int primary key,
-	lang text not null
+	lang text not null,
+	last_notified_at int default 0 -- unix time
 );
 
 create table user_update (
@@ -14,7 +15,8 @@ create table user_update (
 
 create table source (
 	source_id int primary key,
-	name text
+	name text,
+	last_updated_at int default 0 -- unix time
 );
 
 create table user_subscribe (

@@ -2,27 +2,35 @@ use anyhow::Result;
 use teloxide::prelude::*;
 use tokio::sync::mpsc::Receiver;
 
+use common::DateTime;
 use db::{models::ShouldNotify, DB};
-use sources::Update;
+use sources::{Update, UpdatesList};
 
 use crate::keyboards::{Keyboards, NewAppKeyboardKind};
 use crate::tr;
 
-pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Update>>) {
+pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<UpdatesList>) {
     log::debug!("starting listen for updates");
     // todo: graceful shutdown for updates
     while let Some(updates) = rx.recv().await {
-        log::debug!("got {} updates", updates.len());
-        for update in updates {
+        log::debug!("got {} updates", updates.count());
+        match db.save_source_updated_at(updates.last_update).await {
+            Ok(_) => (),
+            Err(e) => log::error!("failed to save source last_updated_at: {e}"),
+        }
+
+        let users = match db.select_users_to_notify().await {
+            Ok(v) => v,
+            Err(e) => {
+                log::error!("failed to select users: {e}");
+                continue;
+            }
+        };
+        log::debug!("sending to {} users", users.len());
+
+        for update in updates.updates {
             log::debug!("got update for {}", update.app_id());
-            let users = match db.select_subscribed_users().await {
-                Ok(v) => v,
-                Err(e) => {
-                    log::error!("failed to select users: {e}");
-                    continue;
-                }
-            };
-            for user in users {
+            for user in &users {
                 let user_id = user.user_id();
                 let chat_id = ChatId(user_id);
                 let app_id = update.app_id();
@@ -46,6 +54,17 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Vec<Upd
                     }
                 };
                 f.log_on_error().await;
+            }
+        }
+
+        let now = DateTime::now();
+        for u in users {
+            match db
+                .save_user_last_notified(u.user_id().into(), now)
+                .await
+            {
+                Ok(_) => (),
+                Err(e) => log::error!("failed to save user last_notified_at: {e}"),
             }
         }
     }

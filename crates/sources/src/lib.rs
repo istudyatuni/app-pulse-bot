@@ -5,6 +5,8 @@ use async_trait::async_trait;
 use reqwest::Url;
 use tokio::sync::mpsc::Sender;
 
+use common::UnixDateTime;
+
 pub mod alexstranniklite;
 
 mod extractor;
@@ -30,16 +32,31 @@ pub trait UpdateSource {
     }
 
     /// Fetch updates
-    async fn get_updates(&self) -> Vec<Update>;
+    async fn get_updates(&self) -> UpdatesList;
 
     fn reset_timer(&self);
 
     /// Sleep if timeout isn't end, then fetch updates
-    async fn get_updates_or_sleep(&self) -> Vec<Update> {
+    async fn get_updates_or_sleep(&self) -> UpdatesList {
         self.sleep().await;
         let res = self.get_updates().await;
         self.reset_timer();
         res
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct UpdatesList {
+    pub updates: Vec<Update>,
+    pub last_update: UnixDateTime,
+}
+
+impl UpdatesList {
+    pub fn is_empty(&self) -> bool {
+        self.updates.is_empty()
+    }
+    pub fn count(&self) -> usize {
+        self.updates.len()
     }
 }
 
@@ -107,12 +124,15 @@ impl UpdateBuilder {
     }
 }
 
-pub async fn start_update_loop<S>(source: S, tx: Sender<Vec<Update>>)
+pub async fn start_update_loop<S>(source: S, tx: Sender<UpdatesList>)
 where
     S: UpdateSource + Send + Sync,
 {
     loop {
         let updates = source.get_updates_or_sleep().await;
+        if updates.is_empty() {
+            continue;
+        }
         match tx.send(updates).await {
             Ok(_) => log::debug!("sending updates"),
             Err(_) => log::error!("failed to send update to mpsc, dropping"),

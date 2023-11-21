@@ -2,14 +2,16 @@ use anyhow::Result;
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 
 pub mod models;
-mod types;
+pub mod types;
+
+use common::UnixDateTime;
 
 use types::{Id, UserId};
 
 const USER_TABLE: &str = "user";
 const USER_UPDATE_TABLE: &str = "user_update";
 const USER_SUBSCRIBE_TABLE: &str = "user_subscribe";
-// const SOURCE_TABLE: &str = "source";
+const SOURCE_TABLE: &str = "source";
 
 // Temporary, while there is only one source
 const SOURCE_ID: Id = 1;
@@ -31,6 +33,10 @@ impl DB {
 
         Ok(Self { pool })
     }
+}
+
+// User
+impl DB {
     pub async fn save_user(&self, user_id: UserId) -> Result<()> {
         log::debug!("saving user {user_id}");
         let user = models::User::new(user_id);
@@ -60,14 +66,21 @@ impl DB {
             Err(e) => Err(e.into()),
         }
     }
-    pub async fn select_subscribed_users(&self) -> Result<Vec<models::User>> {
+    /// Select subscribed and not yet notified users for specific source
+    pub async fn select_users_to_notify(&self) -> Result<Vec<models::User>> {
         log::debug!("select subscribed users");
         Ok(sqlx::query_as::<_, models::User>(&format!(
-            "select u.* from {USER_TABLE} u
+            "select u.*
+             from {USER_TABLE} u
              join {USER_SUBSCRIBE_TABLE} us
                on u.user_id = us.user_id
-             where us.subscribed = true"
+             join {SOURCE_TABLE} s
+               on us.source_id = s.source_id
+             where us.subscribed = true
+               and s.last_updated_at > u.last_notified_at
+               and s.source_id = ?",
         ))
+        .bind(SOURCE_ID)
         .fetch_all(&self.pool)
         .await?)
     }
@@ -133,6 +146,27 @@ impl DB {
         log::debug!("user subscribe saved");
         Ok(())
     }
+    pub async fn save_user_last_notified(
+        &self,
+        user_id: UserId,
+        last_notified_at: UnixDateTime,
+    ) -> Result<()> {
+        log::debug!("saving user {user_id} last_notified_at: {last_notified_at}");
+        let user_id: Id = user_id.into();
+
+        sqlx::query(&format!(
+            "update {USER_TABLE}
+             set last_notified_at = ?
+             where user_id = ?",
+        ))
+        .bind(last_notified_at)
+        .bind(user_id)
+        .execute(&self.pool)
+        .await?;
+
+        log::debug!("user last_notified_at saved");
+        Ok(())
+    }
     pub async fn should_notify_user(
         &self,
         user_id: UserId,
@@ -152,5 +186,38 @@ impl DB {
         .await?
         .unwrap_or_default();
         Ok(update)
+    }
+}
+
+// Source
+impl DB {
+    pub async fn save_source_updated_at(&self, last_updated_at: UnixDateTime) -> Result<()> {
+        log::debug!("save source last_updated_at: {last_updated_at}");
+        sqlx::query(&format!(
+            "update {SOURCE_TABLE}
+             set last_updated_at = ?
+             where source_id = ?"
+        ))
+        .bind(last_updated_at)
+        .bind(SOURCE_ID)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+    pub async fn get_source_updated_at(&self) -> Result<UnixDateTime> {
+        log::debug!("select source last_updated_at");
+        let res = sqlx::query_as::<_, models::Source>(&format!(
+            "select last_updated_at
+             from {SOURCE_TABLE}
+             where source_id = ?"
+        ))
+        .bind(SOURCE_ID)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if res.is_none() {
+            log::error!("source not found when selecting last_updated_at");
+        }
+        Ok(res.map(|s| s.last_updated_at()).unwrap_or_default())
     }
 }

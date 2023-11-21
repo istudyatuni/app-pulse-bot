@@ -56,9 +56,9 @@ impl UpdateSource for Source {
         }
     }
 
-    async fn get_updates(&self) -> Vec<super::Update> {
+    async fn get_updates(&self) -> super::UpdatesList {
         if self.wait_remains().is_some() {
-            return vec![];
+            return super::UpdatesList::default();
         }
 
         log::debug!("fetching updates for {CHANNEL_NAME}");
@@ -66,9 +66,11 @@ impl UpdateSource for Source {
             Ok(v) => v,
             Err(e) => {
                 log::error!("failed to fetch: {e}");
-                return vec![];
+                return super::UpdatesList::default();
             }
         };
+
+        let last_update = if !msgs.is_empty() { msgs[0].date } else { 0 };
 
         // Seaching 2 messages: update, then description, only in this case saving update
         let channel_link = format!("https://t.me/{CHANNEL_NAME}/");
@@ -92,7 +94,10 @@ impl UpdateSource for Source {
                 msg_with_update = None;
             }
         }
-        updates
+        super::UpdatesList {
+            updates,
+            last_update,
+        }
     }
 
     fn reset_timer(&self) {

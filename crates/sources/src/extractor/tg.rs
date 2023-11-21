@@ -3,6 +3,8 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
+use common::UnixDateTime;
+
 const API_URL: &str = "https://tg.i-c-a.su/json/";
 const API_LIMIT_MSGS: u32 = 10;
 
@@ -27,6 +29,7 @@ pub(crate) struct Message {
     pub(crate) message: String,
     pub(crate) reply_markup: Option<ReplyMarkup>,
     pub(crate) media: Option<Media>,
+    pub(crate) date: UnixDateTime,
 }
 
 // reply_markup

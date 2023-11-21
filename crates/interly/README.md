@@ -67,6 +67,7 @@ locales
         - `log`
         - `panic` (_current behaviour_)
 - [ ] Fallback with respect to [region][unic_langid_LanguageIdentifier] (e.g. `"ru_RU"` -> `"ru"`).
+    - Probably calculate fallbacks on compile time?
 - [ ] Support defining not at crate top (now just not tested, probably this already works).
     - Probably this just required generating correct `#vis` identifier inside `tr!()`.
 - [ ] More [translation formats][tr-formats-list] support (long-term).
@@ -182,7 +183,7 @@ pub(crate) mod __interly {
         }
 
         pub(crate) fn languages() -> Vec<&'static str> {
-            vec!["ru", "en"])
+            vec!["ru", "en"]
         }
 
         pub(crate) fn __format_msg(

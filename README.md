@@ -12,6 +12,9 @@ and fill it.
 
 ```sh
 cargo b --release --features=prod
+
+# or build with cross
+just build-release
 ```
 
 ## Interly

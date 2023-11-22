@@ -10,10 +10,17 @@ const API_LIMIT_MSGS: u32 = 10;
 
 pub(crate) async fn fetch_public_channel(name: &str) -> Result<Vec<Message>> {
     log::debug!("fetching public channel {name}");
-    let res: Response = reqwest::get(format!("{API_URL}{name}?limit={API_LIMIT_MSGS}"))
+    let raw: String = reqwest::get(format!("{API_URL}{name}?limit={API_LIMIT_MSGS}"))
         .await?
-        .json()
+        .text()
         .await?;
+    let res: Response = serde_json::from_str(&raw)?;
+    if res.messages.is_empty() {
+        return Err(ResponseError::Empty {
+            full: serde_json::from_str(&raw)?,
+        }
+        .into());
+    }
     if let Some(errors) = res.errors {
         return Err(ResponseError::Arbitrary(errors).into());
     }
@@ -29,8 +36,10 @@ struct Response {
 
 #[derive(Debug, thiserror::Error)]
 enum ResponseError {
-    #[error("got error when fetching: {0:?}")]
+    #[error("got errors: {0:?}")]
     Arbitrary(serde_json::Value),
+    #[error("got no messages, raw content: {full:?}")]
+    Empty { full: serde_json::Value },
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -1,10 +1,7 @@
 use reqwest::Url;
 use teloxide::{
     prelude::*,
-    types::{
-        CallbackQuery, MediaKind, MediaText, MessageCommon, MessageEntity, MessageEntityKind,
-        MessageKind,
-    },
+    types::{CallbackQuery, InlineKeyboardButtonKind, MessageCommon, MessageKind},
 };
 
 use db::{models::ShouldNotify, DB};
@@ -225,27 +222,19 @@ async fn remove_callback_keyboard(
     Ok(())
 }
 
+// Assuming in message's keyboard only one "Url" button
 fn extract_url_from_callback_msg(kind: MessageKind) -> Option<Url> {
-    if let Some((text, entities)) = extract_msg_text_from_callback(kind) {
-        for e in entities {
-            if e.kind == MessageEntityKind::Url {
-                let chars = text.chars().collect::<Vec<_>>();
-                let chars = &chars[e.offset..e.offset + e.length];
-                return Url::parse(&chars.iter().collect::<String>()).ok();
+    if let MessageKind::Common(MessageCommon {
+        reply_markup: Some(markup),
+        ..
+    }) = kind
+    {
+        for button in markup.inline_keyboard.iter().flatten() {
+            match &button.kind {
+                InlineKeyboardButtonKind::Url(url) => return Some(url.clone()),
+                _ => continue,
             }
         }
     }
     None
-}
-
-fn extract_msg_text_from_callback(kind: MessageKind) -> Option<(String, Vec<MessageEntity>)> {
-    if let MessageKind::Common(MessageCommon {
-        media_kind: MediaKind::Text(MediaText { text, entities }),
-        ..
-    }) = kind
-    {
-        Some((text, entities))
-    } else {
-        None
-    }
 }

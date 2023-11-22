@@ -17,7 +17,6 @@ Helper to update app
 
 ```sh
 #!/bin/bash
-systemctl stop app-pulse-bot.service
 mv app-pulse-bot /usr/local/bin
-systemctl start app-pulse-bot.service
+systemctl restart app-pulse-bot.service
 ```

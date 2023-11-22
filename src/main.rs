@@ -20,7 +20,11 @@ mod handlers;
 mod logger;
 
 const DB_FILE: &str = dotenv!("DB_URL");
-const TG_BOT_TOKEN: &str = dotenv!("BOT_TOKEN");
+const TG_BOT_TOKEN: &str = if IS_PROD {
+    dotenv!("PROD_BOT_TOKEN")
+} else {
+    dotenv!("BOT_TOKEN")
+};
 const LOG_CHAT_ID: &str = dotenv!("LOG_CHAT_ID");
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 

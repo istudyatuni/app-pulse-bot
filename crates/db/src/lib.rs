@@ -128,7 +128,7 @@ impl DB {
     }
     pub async fn save_user_subscribed(&self, user_id: UserId, subscribed: bool) -> Result<()> {
         log::debug!("saving user {user_id} subscribe: {subscribed}");
-        let update = models::UserSubscribe::new(user_id.into(), subscribed);
+        let update = models::UserSubscribe::new(user_id, subscribed);
 
         sqlx::query(&format!(
             "insert into {USER_SUBSCRIBE_TABLE}

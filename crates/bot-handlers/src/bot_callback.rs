@@ -181,7 +181,7 @@ async fn edit_welcome_msg(
     lang: &str,
 ) -> ResponseResult<()> {
     if let Some(Message { id, .. }) = msg {
-        bot.edit_message_text(chat_id, id.clone(), tr!(welcome_suggest_subscribe, lang))
+        bot.edit_message_text(chat_id, *id, tr!(welcome_suggest_subscribe, lang))
             .await?;
     }
     Ok(())
@@ -217,7 +217,7 @@ async fn remove_callback_keyboard(
     chat_id: UserId,
 ) -> ResponseResult<()> {
     if let Some(Message { id, .. }) = msg {
-        bot.edit_message_reply_markup(chat_id, id.clone()).await?;
+        bot.edit_message_reply_markup(chat_id, *id).await?;
     }
     Ok(())
 }

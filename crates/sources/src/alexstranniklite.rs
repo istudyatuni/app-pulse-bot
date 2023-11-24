@@ -91,7 +91,7 @@ impl UpdateSource for Source {
                             .build(),
                     );
 
-                    if last_update != 0 {
+                    if last_update == 0 {
                         last_update = upd.date;
                     }
                 }

@@ -2,13 +2,20 @@
 
 welcome = Привет!
 welcome-choose-language = { welcome } Выбери язык:
-new-app-msg = Новое приложение для отслеживания:
 welcome-suggest-subscribe = { welcome }
 
     Теперь вы можете подписаться, чтобы отслеживать обновления: /subscribe
 
+new-app-msg = Новое приложение для отслеживания:
 new-update-msg = Обновление для { $app }
 subscribed = Вы подписаны
+unsubscribed = Вы отписаны
+
+about-description =
+    Этот бот помогает отслеживать обновления приложений.
+    Пока что поддерживается только один источник: @alexstranniklite
+
+    Исходный код: https://github.com/istudyatuni/app-pulse-bot
 
 ## Buttons messages
 
@@ -44,4 +51,6 @@ not-implemented-already-subscribed = Вы уже подписаны
 
 commands-list-header = Поддерживаемые команды:
 subscribe-command = Подписаться
+unsubscribe-command = Отписаться
+about-command = Об этом боте
 help-command = Показать эту справку

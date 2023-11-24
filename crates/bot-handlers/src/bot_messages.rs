@@ -11,6 +11,10 @@ pub enum Command {
     Start,
     #[command(description = "Subscribe")]
     Subscribe,
+    #[command(description = "Unsubscribe")]
+    Unsubscribe,
+    #[command(description = "About")]
+    About,
     #[command(description = "Display this text")]
     Help,
 }
@@ -51,6 +55,18 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
             }
             Err(e) => log::error!("failed to subscribe user {}: {e}", msg.chat.id.0),
         },
+        Command::Unsubscribe => match db.save_user_subscribed(msg.chat.id.into(), false).await {
+            Ok(()) => {
+                bot.send_message(msg.chat.id, tr!(unsubscribed, &lang))
+                    .await?;
+                log::debug!("unsubscribed user: {:?}", msg.chat.id);
+            }
+            Err(e) => log::error!("failed to unsubscribe user {}: {e}", msg.chat.id.0),
+        },
+        Command::About => {
+            bot.send_message(msg.chat.id, tr!(about_description, &lang))
+                .await?;
+        }
     };
 
     Ok(())
@@ -61,6 +77,8 @@ fn make_command_descriptions(lang: &str) -> String {
         tr!(commands_list_header, lang),
         "".to_string(),
         "/subscribe - ".to_string() + tr!(subscribe_command, lang).as_str(),
+        "/unsubscribe - ".to_string() + tr!(unsubscribe_command, lang).as_str(),
+        "/about - ".to_string() + tr!(about_command, lang).as_str(),
         "/help - ".to_string() + tr!(help_command, lang).as_str(),
     ]
     .join("\n")

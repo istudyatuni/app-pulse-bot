@@ -9,6 +9,13 @@ welcome-suggest-subscribe = { welcome }
 new-app-msg = New app to track updates:
 new-update-msg = Update for { $app }
 subscribed = Subscribed
+unsubscribed = Unsubscribed
+
+about-description =
+    This bot help you track applications updates.
+    Currently only one source supported: @alexstranniklite
+
+    Source code: https://github.com/istudyatuni/app-pulse-bot
 
 ## Buttons messages
 
@@ -45,4 +52,6 @@ not-implemented-already-subscribed = You are already subscribed
 
 commands-list-header = Supported commands:
 subscribe-command = Subscribe
+unsubscribe-command = Unsubscribe
+about-command = About this bot
 help-command = Display this help

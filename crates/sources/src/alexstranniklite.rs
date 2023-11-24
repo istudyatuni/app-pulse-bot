@@ -70,7 +70,7 @@ impl UpdateSource for Source {
             }
         };
 
-        let last_update = if !msgs.is_empty() { msgs[0].date } else { 0 };
+        let mut last_update = 0;
 
         // Seaching 2 messages: update, then description, only in this case saving update
         let channel_link = format!("https://t.me/{CHANNEL_NAME}/");
@@ -89,7 +89,11 @@ impl UpdateSource for Source {
                             .description_link(&format!("{channel_link}{}", msg.id))
                             .update_link(&format!("{channel_link}{}", upd.id))
                             .build(),
-                    )
+                    );
+
+                    if last_update != 0 {
+                        last_update = upd.date;
+                    }
                 }
                 msg_with_update = None;
             }

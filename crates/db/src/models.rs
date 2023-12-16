@@ -116,6 +116,38 @@ impl UserSubscribe {
 
 #[allow(unused)]
 #[derive(Debug, sqlx::FromRow)]
+pub struct App {
+    app_id: String,
+    source_id: Id,
+    name: String,
+    last_updated_at: UnixDateTime,
+}
+
+impl App {
+    pub fn new(app_id: &str, source_id: Id, name: &str, last_updated_at: UnixDateTime) -> Self {
+        Self {
+            app_id: app_id.to_string(),
+            source_id,
+            name: name.to_string(),
+            last_updated_at,
+        }
+    }
+    pub fn app_id(&self) -> &str {
+        &self.app_id
+    }
+    pub fn source_id(&self) -> Id {
+        self.source_id
+    }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn last_updated_at(&self) -> UnixDateTime {
+        self.last_updated_at
+    }
+}
+
+#[allow(unused)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct Source {
     source_id: Id,
     name: String,

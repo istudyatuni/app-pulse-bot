@@ -19,21 +19,30 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
             Err(e) => log::error!("failed to save source last_updated_at: {e}"),
         }
 
-        let users = match db.select_users_to_notify().await {
-            Ok(v) => v,
-            Err(e) => {
-                log::error!("failed to select users: {e}");
-                continue;
-            }
-        };
-        log::debug!("sending to {} users", users.len());
-
         for update in updates.updates {
-            log::debug!("got update for {}", update.app_id());
+            let app_id = update.app_id();
+            log::debug!("got update for app {}", app_id);
+
+            match db.add_or_update_app(app_id, "", update.update_time()).await {
+                Ok(()) => (),
+                Err(e) => {
+                    log::error!("failed to add app: {e}");
+                    continue;
+                }
+            }
+
+            let users = match db.select_users_to_notify(app_id).await {
+                Ok(v) => v,
+                Err(e) => {
+                    log::error!("failed to select users: {e}");
+                    continue;
+                }
+            };
+            log::debug!("sending app '{app_id}' update to {} users", users.len());
+
             for user in &users {
                 let user_id = user.user_id();
                 let chat_id = ChatId(user_id);
-                let app_id = update.app_id();
                 let lang = user.lang();
                 let f = match db.should_notify_user(user_id.into(), app_id).await {
                     Ok(s) => match s {
@@ -55,13 +64,13 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 };
                 f.log_on_error().await;
             }
-        }
 
-        let now = DateTime::now();
-        for u in users {
-            match db.save_user_last_notified(u.user_id().into(), now).await {
-                Ok(()) => (),
-                Err(e) => log::error!("failed to save user last_notified_at: {e}"),
+            let now = DateTime::now();
+            for u in users {
+                match db.save_user_last_notified(u.user_id().into(), now).await {
+                    Ok(()) => (),
+                    Err(e) => log::error!("failed to save user last_notified_at: {e}"),
+                }
             }
         }
     }

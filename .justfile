@@ -17,3 +17,7 @@ test what='--workspace':
 
 deploy ssh-path:
 	scp target/x86_64-unknown-linux-musl/release/app-pulse-bot {{ssh-path}}
+
+# Add new migration
+add-migrate name:
+	sqlx migrate add '{{ name }}'

@@ -11,6 +11,7 @@ use types::{Id, UserId};
 const USER_TABLE: &str = "user";
 const USER_UPDATE_TABLE: &str = "user_update";
 const USER_SUBSCRIBE_TABLE: &str = "user_subscribe";
+const APP_TABLE: &str = "app";
 const SOURCE_TABLE: &str = "source";
 
 // Temporary, while there is only one source
@@ -37,7 +38,7 @@ impl DB {
 
 // User
 impl DB {
-    pub async fn save_user(&self, user_id: UserId) -> Result<()> {
+    pub async fn add_user(&self, user_id: UserId) -> Result<()> {
         log::debug!("saving user {user_id}");
         let user = models::User::new(user_id);
         sqlx::query(&format!(
@@ -67,20 +68,21 @@ impl DB {
         }
     }
     /// Select subscribed and not yet notified users for specific source
-    pub async fn select_users_to_notify(&self) -> Result<Vec<models::User>> {
+    pub async fn select_users_to_notify(&self, app_id: &str) -> Result<Vec<models::User>> {
         log::debug!("select subscribed users");
         Ok(sqlx::query_as::<_, models::User>(&format!(
             "select u.*
              from {USER_TABLE} u
-             join {USER_SUBSCRIBE_TABLE} us
-               on u.user_id = us.user_id
-             join {SOURCE_TABLE} s
-               on us.source_id = s.source_id
+             join {USER_SUBSCRIBE_TABLE} us on u.user_id = us.user_id
+             join {SOURCE_TABLE} s on us.source_id = s.source_id
+             join {APP_TABLE} a on a.source_id = s.source_id
              where us.subscribed = true
-               and s.last_updated_at > u.last_notified_at
-               and s.source_id = ?",
+               and s.source_id = ?
+               and a.app_id = ?
+               and a.last_updated_at > u.last_notified_at",
         ))
         .bind(SOURCE_ID)
+        .bind(app_id)
         .fetch_all(&self.pool)
         .await?)
     }
@@ -189,6 +191,35 @@ impl DB {
     }
 }
 
+// App
+impl DB {
+    /// Add new app, if there is already exists app with
+    /// (`app_id`, `source_id`), update `last_updated_at`
+    pub async fn add_or_update_app(
+        &self,
+        app_id: &str,
+        name: &str,
+        last_updated_at: UnixDateTime,
+    ) -> Result<()> {
+        log::debug!("saving app {app_id}");
+        let app = models::App::new(app_id, SOURCE_ID, name, last_updated_at);
+        sqlx::query(&format!(
+            "insert into {APP_TABLE}
+             (app_id, source_id, name, last_updated_at)
+             values (?, ?, ?, ?)
+             on conflict(app_id, source_id)
+             do update set last_updated_at=excluded.last_updated_at"
+        ))
+        .bind(app.app_id())
+        .bind(app.source_id())
+        .bind(app.name())
+        .bind(app.last_updated_at())
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+}
+
 // Source
 impl DB {
     pub async fn save_source_updated_at(&self, last_updated_at: UnixDateTime) -> Result<()> {
@@ -219,5 +250,89 @@ impl DB {
             log::error!("source not found when selecting last_updated_at");
         }
         Ok(res.map(|s| s.last_updated_at()).unwrap_or_default())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ops::RangeFrom;
+
+    use super::*;
+
+    struct Timer {
+        iter: Box<dyn Iterator<Item = i64>>,
+    }
+
+    impl Timer {
+        fn new() -> Self {
+            Self {
+                iter: Box::new(RangeFrom { start: 0i64 }),
+            }
+        }
+        fn skip(&mut self, count: u32) {
+            for _ in 0..count {
+                self.iter.next();
+            }
+        }
+        fn next<T: From<i64>>(&mut self) -> T {
+            self.iter.next().unwrap().into()
+        }
+    }
+
+    async fn prepare_db_timer(id: i32) -> Result<(DB, Timer)> {
+        let file = format!("../../target/test{id}.db");
+
+        let _ = tokio::fs::remove_file(&file).await;
+        let db = DB::init(&file).await?;
+
+        Ok((db, Timer::new()))
+    }
+
+    #[tokio::test]
+    async fn test_select_users_to_notify() -> Result<()> {
+        const APP_ID: &str = "test";
+
+        let (db, mut timer) = prepare_db_timer(1).await?;
+        timer.skip(1);
+
+        db.add_or_update_app(APP_ID, "", timer.next()).await?;
+
+        // there are 2 users
+        for u in [1, 2] {
+            db.add_user(u.into()).await?;
+            db.save_user_subscribed(u.into(), true).await?;
+        }
+
+        // source updated before one of users was notified
+        db.save_source_updated_at(timer.next()).await?;
+        db.save_user_last_notified(1.into(), timer.next()).await?;
+
+        let users = db.select_users_to_notify(APP_ID).await?;
+        assert_eq!(users.len(), 1);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_no_select_users_to_notify() -> Result<()> {
+        const APP_ID: &str = "test";
+
+        let (db, mut timer) = prepare_db_timer(2).await?;
+        timer.skip(1);
+
+        db.add_or_update_app(APP_ID, "", timer.next()).await?;
+
+        // there is one user
+        db.add_user(1.into()).await?;
+        db.save_user_subscribed(1.into(), true).await?;
+
+        // source updated before user was notified
+        db.save_source_updated_at(timer.next()).await?;
+        db.save_user_last_notified(1.into(), timer.next()).await?;
+
+        let users = db.select_users_to_notify(APP_ID).await?;
+        assert_eq!(users.len(), 0);
+
+        Ok(())
     }
 }

@@ -66,6 +66,7 @@ pub struct Update {
     description_link: Option<Url>,
     update_link: Option<Url>,
     app_id: String,
+    update_time: UnixDateTime,
 }
 
 impl Update {
@@ -85,6 +86,9 @@ impl Update {
     }
     pub fn update_link(&self) -> &Option<Url> {
         &self.update_link
+    }
+    pub fn update_time(&self) -> UnixDateTime {
+        self.update_time
     }
 }
 
@@ -117,6 +121,10 @@ impl UpdateBuilder {
     }
     pub(crate) fn app_id<S: Into<String>>(mut self, app_id: S) -> Self {
         self.update.app_id = app_id.into();
+        self
+    }
+    pub(crate) fn update_time(mut self, update_time: UnixDateTime) -> Self {
+        self.update.update_time = update_time;
         self
     }
     pub(crate) fn build(self) -> Update {

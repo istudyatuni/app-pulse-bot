@@ -70,7 +70,7 @@ impl UpdateSource for Source {
             }
         };
 
-        let mut last_update = 0;
+        let mut last_update = None;
 
         // Seaching 2 messages: update, then description, only in this case saving update
         let channel_link = format!("https://t.me/{CHANNEL_NAME}/");
@@ -88,19 +88,18 @@ impl UpdateSource for Source {
                             .app_id(get_app_id(upd))
                             .description_link(&format!("{channel_link}{}", msg.id))
                             .update_link(&format!("{channel_link}{}", upd.id))
+                            .update_time(upd.date)
                             .build(),
                     );
 
-                    if last_update == 0 {
-                        last_update = upd.date;
-                    }
+                    last_update = last_update.or(Some(upd.date));
                 }
                 msg_with_update = None;
             }
         }
         super::UpdatesList {
             updates,
-            last_update,
+            last_update: last_update.unwrap_or(0),
         }
     }
 
@@ -113,6 +112,7 @@ fn is_description(msg: &Message) -> bool {
     has_button(msg, "DOWNLOAD 🛡")
 }
 
+/// If this is a message with APK
 fn is_update(msg: &Message) -> bool {
     has_discuss_button(msg) || has_apk_attachment(msg)
 }

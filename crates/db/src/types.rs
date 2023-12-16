@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use teloxide::types::{ChatId as TgChatId, UserId as TgUserId};
 
 pub type Id = i64;
@@ -7,20 +5,8 @@ pub type Id = i64;
 #[derive(Debug, Default, Clone, Copy)]
 pub struct UserId(pub u64);
 
-impl Display for UserId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ChatId(pub i64);
-
-impl Display for ChatId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
-}
 
 macro_rules! cast {
     ($($from:ty => $to:ty : $value:ident => $convert:expr),* $(,)?) => {
@@ -50,4 +36,20 @@ cast!(
     ChatId => Id: v => v.0,
     Id => UserId: v => Self(v as _),
     UserId => Id: v => v.0 as _,
+);
+
+/// Simple [`std::fmt::Display`] implementation
+macro_rules! display {
+    ($($from:ty : $self:ident => $value:expr),* $(,)?) => {
+        $(impl ::std::fmt::Display for $from {
+            fn fmt(&$self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                $value.fmt(f)
+            }
+        })*
+    };
+}
+
+display!(
+    ChatId: self => self.0,
+    UserId: self => self.0,
 );

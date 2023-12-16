@@ -12,3 +12,6 @@ sqlx.workspace = true
 teloxide.workspace = true
 
 common.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

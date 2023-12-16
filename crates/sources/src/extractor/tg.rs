@@ -8,6 +8,7 @@ use common::UnixDateTime;
 const API_URL: &str = "https://tg.i-c-a.su/json/";
 const API_LIMIT_MSGS: u32 = 10;
 
+/// Returns messages in order from new to old.
 pub(crate) async fn fetch_public_channel(name: &str) -> Result<Vec<Message>> {
     log::debug!("fetching public channel {name}");
     let raw: String = reqwest::get(format!("{API_URL}{name}?limit={API_LIMIT_MSGS}"))

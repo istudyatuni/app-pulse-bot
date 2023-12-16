@@ -33,7 +33,7 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                     .reply_markup(Keyboards::languages())
                     .await?;
             }
-            None => match db.save_user(msg.chat.id.into()).await {
+            None => match db.add_user(msg.chat.id.into()).await {
                 Ok(()) => {
                     bot.send_message(msg.chat.id, tr!(welcome, &lang))
                         .reply_markup(Keyboards::languages())

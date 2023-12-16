@@ -368,6 +368,7 @@ dependencies = [
  "log",
  "sqlx",
  "teloxide",
+ "tokio",
 ]
 
 [[package]]

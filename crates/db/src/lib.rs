@@ -148,25 +148,22 @@ impl DB {
         log::debug!("user subscribe saved");
         Ok(())
     }
-    pub async fn save_user_last_notified(
-        &self,
-        user_id: UserId,
-        last_notified_at: UnixDateTime,
-    ) -> Result<()> {
-        log::debug!("saving user {user_id} last_notified_at: {last_notified_at}");
-        let user_id: Id = user_id.into();
+    /// Set `last_notified_at` for all users, subscribed to source
+    pub async fn save_all_users_last_notified(&self, last_notified_at: UnixDateTime) -> Result<()> {
+        log::debug!("saving all users last_notified_at: {last_notified_at}");
 
         sqlx::query(&format!(
             "update {USER_TABLE}
-             set last_notified_at = ?
-             where user_id = ?",
+               set last_notified_at = ?
+             from {USER_SUBSCRIBE_TABLE} us
+             where us.source_id = ?
+               and us.subscribed = true",
         ))
         .bind(last_notified_at)
-        .bind(user_id)
+        .bind(SOURCE_ID)
         .execute(&self.pool)
         .await?;
 
-        log::debug!("user last_notified_at saved");
         Ok(())
     }
     pub async fn should_notify_user(
@@ -188,6 +185,31 @@ impl DB {
         .await?
         .unwrap_or_default();
         Ok(update)
+    }
+}
+
+#[cfg(test)]
+impl DB {
+    pub async fn save_user_last_notified(
+        &self,
+        user_id: UserId,
+        last_notified_at: UnixDateTime,
+    ) -> Result<()> {
+        log::debug!("saving user {user_id} last_notified_at: {last_notified_at}");
+        let user_id: Id = user_id.into();
+
+        sqlx::query(&format!(
+            "update {USER_TABLE}
+             set last_notified_at = ?
+             where user_id = ?",
+        ))
+        .bind(last_notified_at)
+        .bind(user_id)
+        .execute(&self.pool)
+        .await?;
+
+        log::debug!("user last_notified_at saved");
+        Ok(())
     }
 }
 

@@ -42,10 +42,11 @@ impl DB {
         log::debug!("saving user {user_id}");
         let user = models::User::new(user_id);
         sqlx::query(&format!(
-            "insert into {USER_TABLE} (user_id, lang) values (?, ?)"
+            "insert into {USER_TABLE} (user_id, lang, last_version_notified) values (?, ?, ?)"
         ))
         .bind(user.user_id())
         .bind(user.lang())
+        .bind(common::VERSION)
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -83,6 +84,18 @@ impl DB {
         ))
         .bind(SOURCE_ID)
         .bind(app_id)
+        .fetch_all(&self.pool)
+        .await?)
+    }
+    /// Select users, not yet notified about bot update
+    pub async fn select_users_to_notify_about_bot_update(&self) -> Result<Vec<models::User>> {
+        log::debug!("select not notified users");
+        Ok(sqlx::query_as::<_, models::User>(&format!(
+            "select *
+             from {USER_TABLE}
+             where last_version_notified < ?",
+        ))
+        .bind(common::VERSION)
         .fetch_all(&self.pool)
         .await?)
     }
@@ -164,6 +177,20 @@ impl DB {
         .execute(&self.pool)
         .await?;
 
+        Ok(())
+    }
+    pub async fn save_user_user_version_notified(&self, user_id: UserId) -> Result<()> {
+        log::debug!("saving user {user_id} version notified");
+        let user = models::User::new(user_id);
+        sqlx::query(&format!(
+            "update {USER_TABLE}
+             set last_version_notified = ?
+             where user_id = ?"
+        ))
+        .bind(common::VERSION)
+        .bind(user.user_id())
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
     pub async fn should_notify_user(
@@ -356,5 +383,13 @@ mod tests {
         assert_eq!(users.len(), 0);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_version_str_comparison() {
+        assert!("0.0.1" < "0.1.0");
+        assert!("0.1.0" < "0.2.0");
+        assert!("0.1.0" < "0.10.0");
+        assert!("0.1.0" < "1.0.0");
     }
 }

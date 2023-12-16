@@ -9,3 +9,5 @@ impl DateTime {
         Utc::now().timestamp()
     }
 }
+
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");

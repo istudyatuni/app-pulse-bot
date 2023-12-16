@@ -10,6 +10,10 @@ use crate::keyboards::{Keyboards, NewAppKeyboardKind};
 use crate::tr;
 
 pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<UpdatesList>) {
+    if let Err(e) = notify_bot_update(bot.clone(), db.clone()).await {
+        log::error!("failed to notify about bot update: {e}")
+    }
+
     log::debug!("starting listen for updates");
     // todo: graceful shutdown for updates
     while let Some(updates) = rx.recv().await {
@@ -112,5 +116,38 @@ async fn send_update(bot: Bot, chat_id: ChatId, update: &Update, lang: &str) -> 
             lang,
         ))
         .await?;
+    Ok(())
+}
+
+async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
+    let users = db.select_users_to_notify_about_bot_update().await?;
+    log::debug!("sending bot update notification to {} users", users.len());
+
+    let mut failed = (0, users.len());
+    let mut errors = vec![];
+    for u in users {
+        let user_id = u.user_id();
+        let chat_id = ChatId(user_id);
+        let lang = u.lang();
+        if let Err(e) = bot.send_message(chat_id, tr!(bot_updated, lang)).await {
+            failed.0 += 1;
+            errors.push(e.to_string());
+        } else if let Err(e) = db.save_user_user_version_notified(user_id.into()).await {
+            log::error!("failed to save user {user_id} notified: {e}");
+        }
+    }
+    if failed.0 > 0 {
+        // one formatted error message from telegram is approximately 200-400
+        // symbols, so 5 chunks each 400 symbols is 2k symbols, while message
+        // limit is 4096 symbols, so it's pretty appropriate constant
+        for (i, e) in errors.chunks(5).enumerate() {
+            let e = e.join("\n\n");
+            log::error!(
+                "failed to send bot update notification to {}/{} users. errors ({i}):\n\n{e}",
+                failed.0,
+                failed.1
+            );
+        }
+    }
     Ok(())
 }

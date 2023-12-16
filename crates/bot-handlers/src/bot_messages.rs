@@ -13,6 +13,8 @@ pub enum Command {
     Subscribe,
     #[command(description = "Unsubscribe")]
     Unsubscribe,
+    #[command(description = "Show latest update")]
+    Changelog,
     #[command(description = "About")]
     About,
     #[command(description = "Display this text")]
@@ -43,10 +45,6 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                 Err(e) => log::error!("failed to save user {}: {e}", msg.chat.id.0),
             },
         },
-        Command::Help => {
-            bot.send_message(msg.chat.id, make_command_descriptions(&lang))
-                .await?;
-        }
         Command::Subscribe => match db.save_user_subscribed(msg.chat.id.into(), true).await {
             Ok(()) => {
                 bot.send_message(msg.chat.id, tr!(subscribed, &lang))
@@ -63,8 +61,16 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
             }
             Err(e) => log::error!("failed to unsubscribe user {}: {e}", msg.chat.id.0),
         },
+        Command::Changelog => {
+            bot.send_message(msg.chat.id, tr!(changelog_description, &lang))
+                .await?;
+        }
         Command::About => {
             bot.send_message(msg.chat.id, tr!(about_description, &lang))
+                .await?;
+        }
+        Command::Help => {
+            bot.send_message(msg.chat.id, make_command_descriptions(&lang))
                 .await?;
         }
     };
@@ -78,6 +84,7 @@ fn make_command_descriptions(lang: &str) -> String {
         "".to_string(),
         "/subscribe - ".to_string() + tr!(subscribe_command, lang).as_str(),
         "/unsubscribe - ".to_string() + tr!(unsubscribe_command, lang).as_str(),
+        "/changelog - ".to_string() + tr!(changelog_command, lang).as_str(),
         "/about - ".to_string() + tr!(about_command, lang).as_str(),
         "/help - ".to_string() + tr!(help_command, lang).as_str(),
     ]

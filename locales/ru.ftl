@@ -17,6 +17,8 @@ about-description =
 
     Исходный код: https://github.com/istudyatuni/app-pulse-bot
 
+bot-updated = Бот обновился! Посмотреть, что нового: /changelog
+
 ## Buttons messages
 
 notify-button = Уведомлять
@@ -52,5 +54,17 @@ not-implemented-already-subscribed = Вы уже подписаны
 commands-list-header = Поддерживаемые команды:
 subscribe-command = Подписаться
 unsubscribe-command = Отписаться
+changelog-command = Список изменений
 about-command = Об этом боте
 help-command = Показать эту справку
+
+## Changelog
+
+changelog-header = Что нового:
+
+# Only from latest update.
+changelog-description =
+    { changelog-header }
+
+    - Больше не будут приходить несколько повторных сообщений об одном и том же обновлении одного и того же приложения
+    - Бот теперь присылает сообщение о своём обновлении

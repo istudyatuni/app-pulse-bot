@@ -70,7 +70,8 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                 .await?;
         }
         Command::Help => {
-            bot.send_message(msg.chat.id, make_command_descriptions(&lang))
+            bot.send_message(msg.chat.id, escape(&make_help(&lang)))
+                .parse_mode(teloxide::types::ParseMode::MarkdownV2)
                 .await?;
         }
     };
@@ -78,7 +79,7 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
     Ok(())
 }
 
-fn make_command_descriptions(lang: &str) -> String {
+fn make_help(lang: &str) -> String {
     [
         tr!(commands_list_header, lang),
         "".to_string(),
@@ -87,6 +88,31 @@ fn make_command_descriptions(lang: &str) -> String {
         "/changelog - ".to_string() + tr!(changelog_command, lang).as_str(),
         "/about - ".to_string() + tr!(about_command, lang).as_str(),
         "/help - ".to_string() + tr!(help_command, lang).as_str(),
+        "".to_string(),
+        tr!(how_to_use, lang),
     ]
     .join("\n")
+}
+
+/// Modified version of [`teloxide::utils::markdown::escape`]
+fn escape(s: &str) -> String {
+    s
+        // .replace('_', r"\_")
+        // .replace('*', r"\*")
+        .replace('[', r"\[")
+        .replace(']', r"\]")
+        .replace('(', r"\(")
+        .replace(')', r"\)")
+        .replace('~', r"\~")
+        .replace('`', r"\`")
+        .replace('>', r"\>")
+        .replace('#', r"\#")
+        .replace('+', r"\+")
+        .replace('-', r"\-")
+        .replace('=', r"\=")
+        .replace('|', r"\|")
+        .replace('{', r"\{")
+        .replace('}', r"\}")
+        .replace('.', r"\.")
+        .replace('!', r"\!")
 }

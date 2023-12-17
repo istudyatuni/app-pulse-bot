@@ -388,6 +388,7 @@ mod tests {
     #[test]
     fn test_version_str_comparison() {
         assert!("0.0.1" < "0.1.0");
+        assert!("0.1.0" < "0.1.1");
         assert!("0.1.0" < "0.2.0");
         assert!("0.1.0" < "0.10.0");
         assert!("0.1.0" < "1.0.0");

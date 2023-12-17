@@ -17,6 +17,18 @@ about-description =
 
     Исходный код: https://github.com/istudyatuni/app-pulse-bot
 
+how-to-use-header = *Как пользоваться ботом:*
+
+how-to-use = { how-to-use-header }
+
+    Бот присылает уведомления о новых приложениях. Под каждым сообщением есть кнопки "{ notify-button }" и "{ ignore-button }".
+
+    При нажатии кнопки "{ notify-button }" бот это запоминает, и будет присылать уведомления о последующих обновлениях этого приложения.
+
+    При нажатии кнопки "{ ignore-button }" бот больше не будет присылать уведомления о последующих обновлениях.
+
+    Если не нажать ни одну из этих кнопок, то бот будет присылать уведомления для этого приложения, но как будто это новое приложение, а не обновление.
+
 bot-updated = Бот обновился! Посмотреть, что нового: /changelog
 
 ## Buttons messages
@@ -51,7 +63,7 @@ not-implemented-already-subscribed = Вы уже подписаны
 
 ## Commands descriptions
 
-commands-list-header = Поддерживаемые команды:
+commands-list-header = *Поддерживаемые команды:*
 subscribe-command = Подписаться
 unsubscribe-command = Отписаться
 changelog-command = Список изменений
@@ -60,7 +72,7 @@ help-command = Показать эту справку
 
 ## Changelog
 
-changelog-header = Что нового:
+changelog-header = *Что нового:*
 
 # Only from latest update.
 changelog-description =

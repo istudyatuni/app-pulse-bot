@@ -79,5 +79,4 @@ changelog-header = What's new:
 changelog-description =
     { changelog-header }
 
-    - No more multiple repeated messages about the same update for the same app
-    - Bot now sends a message about its update
+    - A description of how to use the bot has been added to /help.

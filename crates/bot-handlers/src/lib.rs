@@ -1,5 +1,6 @@
 mod bot_callback;
 mod bot_messages;
+mod callback;
 mod keyboards;
 mod updates_notify;
 mod utils;

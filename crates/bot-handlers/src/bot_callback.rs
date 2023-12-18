@@ -9,21 +9,10 @@ use teloxide::{
 use db::{models::ShouldNotify, DB};
 
 use crate::{
+    callback::{Callback, CallbackParseError},
     keyboards::{Keyboards, LanguagesKeyboardToken, NewAppKeyboardKind},
-    tr, DEFAULT_USER_LANG, IGNORE_TOKEN, NOTIFY_FLAG, NOTIFY_TOKEN, SET_LANG_FLAG,
+    tr, DEFAULT_USER_LANG,
 };
-
-#[derive(Debug)]
-enum Callback {
-    Notify {
-        app_id: String,
-        should_notify: ShouldNotify,
-    },
-    SetLang {
-        lang: String,
-        token: LanguagesKeyboardToken,
-    },
-}
 
 pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseResult<()> {
     let answer_err = bot.answer_callback_query(&q.id).show_alert(true);
@@ -46,62 +35,29 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
     };
     log::debug!("got callback: {:?}", data);
 
-    let data: Vec<_> = data.split(':').collect();
-    let callback_type = match data[0] {
-        NOTIFY_FLAG => {
-            if data.len() != 3 {
-                log::error!("invalid callback: {data:?}");
-                answer_err
-                    .text(tr!(something_wrong_invalid_callback, &lang))
-                    .await?;
-                return Ok(());
-            }
-
-            let (app_id, should_notify) = (data[1].to_string(), data[2]);
-            let should_notify = match should_notify {
-                NOTIFY_TOKEN => ShouldNotify::Notify,
-                IGNORE_TOKEN => ShouldNotify::Ignore,
-                _ => {
-                    return Ok(());
+    let callback = match Callback::try_from(&data) {
+        Ok(c) => c,
+        Err(e) => {
+            let msg = match e {
+                CallbackParseError::InvalidCallback => {
+                    log::error!("invalid callback: {data:?}");
+                    tr!(something_wrong_invalid_callback, &lang)
+                }
+                CallbackParseError::InvalidToken => {
+                    log::error!("invalid token in callback: {data:?}");
+                    tr!(something_wrong_invalid_callback, &lang)
+                }
+                CallbackParseError::UnknowkCallbackType => {
+                    log::error!("unknown callback: {data:?}");
+                    tr!(something_wrong_unknown_callback_type, &lang)
                 }
             };
-            Callback::Notify {
-                app_id,
-                should_notify,
-            }
-        }
-        SET_LANG_FLAG => {
-            if data.len() != 3 {
-                log::error!("invalid callback: {data:?}");
-                answer_err
-                    .text(tr!(something_wrong_invalid_callback, &lang))
-                    .await?;
-                return Ok(());
-            }
-
-            let token: Option<LanguagesKeyboardToken> = data[1].try_into().ok();
-            let Some(token) = token else {
-                log::error!("invalid token in callback: {data:?}");
-                answer_err
-                    .text(tr!(something_wrong_invalid_callback, &lang))
-                    .await?;
-                return Ok(());
-            };
-            Callback::SetLang {
-                lang: data[2].to_string(),
-                token,
-            }
-        }
-        _ => {
-            log::error!("invalid callback: {data:?}");
-            answer_err
-                .text(tr!(something_wrong_unknown_callback_type, &lang))
-                .await?;
+            answer_err.text(msg).await?;
             return Ok(());
         }
     };
 
-    match callback_type {
+    match callback {
         Callback::Notify {
             app_id,
             should_notify,

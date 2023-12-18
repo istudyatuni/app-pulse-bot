@@ -1,4 +1,4 @@
-Service unit, copy to `/etc/systemd/system/`
+Service unit, copy to `/etc/systemd/system/app-pulse-bot.service`
 
 ```
 [Unit]
@@ -11,6 +11,12 @@ RestartSec=1
 
 [Install]
 WantedBy=multi-user.target
+```
+
+Run
+
+```sh
+systemctl enable app-pulse-bot
 ```
 
 Helper to update app

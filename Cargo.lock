@@ -59,7 +59,7 @@ checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 
 [[package]]
 name = "app-pulse-bot"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -168,7 +168,7 @@ dependencies = [
 
 [[package]]
 name = "bot-handlers"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "common",
@@ -236,7 +236,7 @@ dependencies = [
 
 [[package]]
 name = "common"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "chrono",
 ]
@@ -359,7 +359,7 @@ dependencies = [
 
 [[package]]
 name = "db"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "common",
@@ -883,7 +883,7 @@ dependencies = [
 
 [[package]]
 name = "i18n"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "interly",
 ]
@@ -939,7 +939,7 @@ dependencies = [
 
 [[package]]
 name = "interly"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "fluent",
  "interly-macros",
@@ -950,7 +950,7 @@ dependencies = [
 
 [[package]]
 name = "interly-macros"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "camino",
  "fluent",
@@ -1770,7 +1770,7 @@ dependencies = [
 
 [[package]]
 name = "sources"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "async-trait",

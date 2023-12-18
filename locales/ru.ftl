@@ -81,6 +81,7 @@ changelog-header = *Что нового:*
 # Only from latest update.
 changelog-description =
     - В /help добавлено описание, как пользоваться ботом.
+    - Добавлена команда /settings с возможностью изменить язык бота.
 
 changelog =
     { changelog-header }

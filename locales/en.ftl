@@ -82,6 +82,7 @@ changelog-header = *What's new:*
 # Only from latest update.
 changelog-description =
     - A description of how to use the bot has been added to /help.
+    - Added /settings command with the ability to change the language of the bot.
 
 changelog =
     { changelog-header }

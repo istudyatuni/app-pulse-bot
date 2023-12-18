@@ -29,7 +29,7 @@ pub enum Command {
 }
 
 pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
-    let user = db.select_user(msg.chat.id.into()).await.ok().flatten();
+    let user = db.select_user(msg.chat.id).await.ok().flatten();
     let lang = user
         .as_ref()
         .map(|u| u.lang().to_string())
@@ -40,15 +40,15 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
             Some(_) => {
                 send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
             }
-            None => match db.add_user(msg.chat.id.into()).await {
+            None => match db.add_user(msg.chat.id).await {
                 Ok(()) => {
                     send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
-                    log::debug!("saved user: {:?}", db.select_user(msg.chat.id.into()).await);
+                    log::debug!("saved user: {:?}", db.select_user(msg.chat.id).await);
                 }
                 Err(e) => log::error!("failed to save user {}: {e}", msg.chat.id.0),
             },
         },
-        Command::Subscribe => match db.save_user_subscribed(msg.chat.id.into(), true).await {
+        Command::Subscribe => match db.save_user_subscribed(msg.chat.id, true).await {
             Ok(()) => {
                 bot.send_message(msg.chat.id, tr!(subscribed, &lang))
                     .await?;
@@ -56,7 +56,7 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
             }
             Err(e) => log::error!("failed to subscribe user {}: {e}", msg.chat.id.0),
         },
-        Command::Unsubscribe => match db.save_user_subscribed(msg.chat.id.into(), false).await {
+        Command::Unsubscribe => match db.save_user_subscribed(msg.chat.id, false).await {
             Ok(()) => {
                 bot.send_message(msg.chat.id, tr!(unsubscribed, &lang))
                     .await?;

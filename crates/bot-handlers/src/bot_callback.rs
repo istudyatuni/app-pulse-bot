@@ -30,7 +30,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
     let chat_id = q.from.id;
 
     let lang = db
-        .select_user(chat_id.into())
+        .select_user(chat_id)
         .await
         .ok()
         .flatten()
@@ -147,7 +147,7 @@ async fn handle_update_callback(
     lang: &str,
 ) -> ResponseResult<Result<(String, NewAppKeyboardKind), Option<String>>> {
     match db
-        .save_should_notify_user(chat_id.into(), app_id, should_notify)
+        .save_should_notify_user(chat_id, app_id, should_notify)
         .await
     {
         Ok(()) => (),
@@ -173,7 +173,7 @@ async fn handle_update_callback(
 }
 
 async fn handle_lang_callback(db: DB, chat_id: UserId, lang: &str) -> Result<String, String> {
-    match db.save_user_lang(chat_id.into(), lang).await {
+    match db.save_user_lang(chat_id, lang).await {
         Ok(()) => (),
         Err(e) => {
             log::error!("failed to update lang for user: {e}");

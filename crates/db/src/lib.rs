@@ -38,7 +38,8 @@ impl DB {
 
 // User
 impl DB {
-    pub async fn add_user(&self, user_id: UserId) -> Result<()> {
+    pub async fn add_user(&self, user_id: impl Into<UserId>) -> Result<()> {
+        let user_id = user_id.into();
         log::debug!("saving user {user_id}");
         let user = models::User::new(user_id);
         sqlx::query(&format!(
@@ -51,7 +52,8 @@ impl DB {
         .await?;
         Ok(())
     }
-    pub async fn select_user(&self, user_id: UserId) -> Result<Option<models::User>> {
+    pub async fn select_user(&self, user_id: impl Into<UserId>) -> Result<Option<models::User>> {
+        let user_id = user_id.into();
         log::debug!("select user {user_id}");
         let id: Id = user_id.into();
         let res = sqlx::query_as::<_, models::User>(&format!(
@@ -101,10 +103,11 @@ impl DB {
     }
     pub async fn save_should_notify_user(
         &self,
-        user_id: UserId,
+        user_id: impl Into<UserId>,
         app_id: &str,
         should_notify: models::ShouldNotify,
     ) -> Result<()> {
+        let user_id = user_id.into();
         log::debug!("saving user {user_id} should_notify: {should_notify:?}");
         let update = models::UserUpdate::new(user_id.into(), app_id, should_notify);
 
@@ -127,8 +130,8 @@ impl DB {
         log::debug!("user preference saved");
         Ok(())
     }
-    pub async fn save_user_lang(&self, user_id: UserId, lang: &str) -> Result<()> {
-        let id: Id = user_id.into();
+    pub async fn save_user_lang(&self, user_id: impl Into<UserId>, lang: &str) -> Result<()> {
+        let id: Id = user_id.into().into();
         sqlx::query(&format!(
             "update {USER_TABLE}
              set lang = ?
@@ -141,7 +144,12 @@ impl DB {
         log::debug!("user lang updated");
         Ok(())
     }
-    pub async fn save_user_subscribed(&self, user_id: UserId, subscribed: bool) -> Result<()> {
+    pub async fn save_user_subscribed(
+        &self,
+        user_id: impl Into<UserId>,
+        subscribed: bool,
+    ) -> Result<()> {
+        let user_id = user_id.into();
         log::debug!("saving user {user_id} subscribe: {subscribed}");
         let update = models::UserSubscribe::new(user_id, subscribed);
 
@@ -179,7 +187,8 @@ impl DB {
 
         Ok(())
     }
-    pub async fn save_user_user_version_notified(&self, user_id: UserId) -> Result<()> {
+    pub async fn save_user_user_version_notified(&self, user_id: impl Into<UserId>) -> Result<()> {
+        let user_id = user_id.into();
         log::debug!("saving user {user_id} version notified");
         let user = models::User::new(user_id);
         sqlx::query(&format!(
@@ -195,9 +204,10 @@ impl DB {
     }
     pub async fn should_notify_user(
         &self,
-        user_id: UserId,
+        user_id: impl Into<UserId>,
         app_id: &str,
     ) -> Result<models::ShouldNotify> {
+        let user_id = user_id.into();
         log::debug!("getting user preference");
         let id: Id = user_id.into();
         let update = sqlx::query_as::<_, models::ShouldNotify>(&format!(
@@ -219,9 +229,10 @@ impl DB {
 impl DB {
     pub async fn save_user_last_notified(
         &self,
-        user_id: UserId,
+        user_id: impl Into<UserId>,
         last_notified_at: UnixDateTime,
     ) -> Result<()> {
+        let user_id = user_id.into();
         log::debug!("saving user {user_id} last_notified_at: {last_notified_at}");
         let user_id: Id = user_id.into();
 
@@ -348,13 +359,13 @@ mod tests {
 
         // there are 2 users
         for u in [1, 2] {
-            db.add_user(u.into()).await?;
-            db.save_user_subscribed(u.into(), true).await?;
+            db.add_user(u).await?;
+            db.save_user_subscribed(u, true).await?;
         }
 
         // source updated before one of users was notified
         db.save_source_updated_at(timer.next()).await?;
-        db.save_user_last_notified(1.into(), timer.next()).await?;
+        db.save_user_last_notified(1, timer.next()).await?;
 
         let users = db.select_users_to_notify(APP_ID).await?;
         assert_eq!(users.len(), 1);
@@ -372,15 +383,15 @@ mod tests {
         db.add_or_update_app(APP_ID, "", timer.next()).await?;
 
         // there is one user
-        db.add_user(1.into()).await?;
-        db.save_user_subscribed(1.into(), true).await?;
+        db.add_user(1).await?;
+        db.save_user_subscribed(1, true).await?;
 
         // source updated before user was notified
         db.save_source_updated_at(timer.next()).await?;
-        db.save_user_last_notified(1.into(), timer.next()).await?;
+        db.save_user_last_notified(1, timer.next()).await?;
 
         let users = db.select_users_to_notify(APP_ID).await?;
-        assert_eq!(users.len(), 0);
+        assert!(users.is_empty());
 
         Ok(())
     }

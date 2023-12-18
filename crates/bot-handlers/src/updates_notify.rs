@@ -48,7 +48,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 let user_id = user.user_id();
                 let chat_id = ChatId(user_id);
                 let lang = user.lang();
-                let f = match db.should_notify_user(user_id.into(), app_id).await {
+                let f = match db.should_notify_user(user_id, app_id).await {
                     Ok(s) => match s {
                         ShouldNotify::Unspecified => {
                             send_suggest_update(bot.clone(), chat_id, &update, lang).await
@@ -137,7 +137,7 @@ async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
         {
             failed.0 += 1;
             errors.push(e.to_string());
-        } else if let Err(e) = db.save_user_user_version_notified(user_id.into()).await {
+        } else if let Err(e) = db.save_user_user_version_notified(user_id).await {
             log::error!("failed to save user {user_id} notified: {e}");
         }
     }

@@ -1,0 +1,22 @@
+/// Modified version of [`teloxide::utils::markdown::escape`]
+pub(crate) fn escape<S: Into<String>>(s: S) -> String {
+    s.into()
+        // .replace('_', r"\_")
+        // .replace('*', r"\*")
+        .replace('[', r"\[")
+        .replace(']', r"\]")
+        .replace('(', r"\(")
+        .replace(')', r"\)")
+        .replace('~', r"\~")
+        .replace('`', r"\`")
+        .replace('>', r"\>")
+        .replace('#', r"\#")
+        .replace('+', r"\+")
+        .replace('-', r"\-")
+        .replace('=', r"\=")
+        .replace('|', r"\|")
+        .replace('{', r"\{")
+        .replace('}', r"\}")
+        .replace('.', r"\.")
+        .replace('!', r"\!")
+}

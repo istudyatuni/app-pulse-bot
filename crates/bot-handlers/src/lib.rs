@@ -2,6 +2,7 @@ mod bot_callback;
 mod bot_messages;
 mod keyboards;
 mod updates_notify;
+mod utils;
 
 // flags is at the start of message: {flag}:{payload}
 const NOTIFY_FLAG: &str = "notify";

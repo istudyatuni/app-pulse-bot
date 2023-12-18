@@ -29,7 +29,9 @@ how-to-use = { how-to-use-header }
 
     If you do not click any of these buttons, bot will send you notifications about this app, but as if it's a new app for you, not an update.
 
-bot-updated = Bot has been updated! Check what's new: /changelog
+bot-updated = Bot has been updated!
+
+    { changelog }
 
 ## Buttons messages
 
@@ -73,10 +75,13 @@ help-command = Display this help
 
 ## Changelog
 
-changelog-header = What's new:
+changelog-header = *What's new:*
 
 # Only from latest update.
 changelog-description =
+    - A description of how to use the bot has been added to /help.
+
+changelog =
     { changelog-header }
 
-    - A description of how to use the bot has been added to /help.
+    { changelog-description }

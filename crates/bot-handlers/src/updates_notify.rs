@@ -129,7 +129,12 @@ async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
         let user_id = u.user_id();
         let chat_id = ChatId(user_id);
         let lang = u.lang();
-        if let Err(e) = bot.send_message(chat_id, tr!(bot_updated, lang)).await {
+        let text = crate::utils::escape(tr!(bot_updated, lang));
+        if let Err(e) = bot
+            .send_message(chat_id, text)
+            .parse_mode(teloxide::types::ParseMode::MarkdownV2)
+            .await
+        {
             failed.0 += 1;
             errors.push(e.to_string());
         } else if let Err(e) = db.save_user_user_version_notified(user_id.into()).await {

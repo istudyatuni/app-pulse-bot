@@ -2,7 +2,7 @@ use teloxide::{prelude::*, utils::command::BotCommands};
 
 use db::DB;
 
-use crate::{keyboards::Keyboards, tr, DEFAULT_USER_LANG};
+use crate::{keyboards::Keyboards, tr, utils::escape, DEFAULT_USER_LANG};
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
@@ -62,7 +62,8 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
             Err(e) => log::error!("failed to unsubscribe user {}: {e}", msg.chat.id.0),
         },
         Command::Changelog => {
-            bot.send_message(msg.chat.id, tr!(changelog_description, &lang))
+            bot.send_message(msg.chat.id, escape(tr!(changelog, &lang)))
+                .parse_mode(teloxide::types::ParseMode::MarkdownV2)
                 .await?;
         }
         Command::About => {
@@ -70,7 +71,7 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                 .await?;
         }
         Command::Help => {
-            bot.send_message(msg.chat.id, escape(&make_help(&lang)))
+            bot.send_message(msg.chat.id, escape(make_help(&lang)))
                 .parse_mode(teloxide::types::ParseMode::MarkdownV2)
                 .await?;
         }
@@ -92,27 +93,4 @@ fn make_help(lang: &str) -> String {
         tr!(how_to_use, lang),
     ]
     .join("\n")
-}
-
-/// Modified version of [`teloxide::utils::markdown::escape`]
-fn escape(s: &str) -> String {
-    s
-        // .replace('_', r"\_")
-        // .replace('*', r"\*")
-        .replace('[', r"\[")
-        .replace(']', r"\]")
-        .replace('(', r"\(")
-        .replace(')', r"\)")
-        .replace('~', r"\~")
-        .replace('`', r"\`")
-        .replace('>', r"\>")
-        .replace('#', r"\#")
-        .replace('+', r"\+")
-        .replace('-', r"\-")
-        .replace('=', r"\=")
-        .replace('|', r"\|")
-        .replace('{', r"\{")
-        .replace('}', r"\}")
-        .replace('.', r"\.")
-        .replace('!', r"\!")
 }

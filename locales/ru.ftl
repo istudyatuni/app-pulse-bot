@@ -29,7 +29,9 @@ how-to-use = { how-to-use-header }
 
     Если не нажать ни одну из этих кнопок, то бот будет присылать уведомления для этого приложения, но как будто это новое приложение, а не обновление.
 
-bot-updated = Бот обновился! Посмотреть, что нового: /changelog
+bot-updated = Бот обновился!
+
+    { changelog }
 
 ## Buttons messages
 
@@ -76,6 +78,9 @@ changelog-header = *Что нового:*
 
 # Only from latest update.
 changelog-description =
+    - В /help добавлено описание, как пользоваться ботом.
+
+changelog =
     { changelog-header }
 
-    - В /help добавлено описание, как пользоваться ботом.
+    { changelog-description }

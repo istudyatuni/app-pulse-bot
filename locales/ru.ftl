@@ -1,7 +1,8 @@
 ## Messages
 
 welcome = Привет!
-welcome-choose-language = { welcome } Выбери язык:
+choose-language = Выбери язык:
+welcome-choose-language = { welcome } { choose-language }
 welcome-suggest-subscribe = { welcome }
 
     Теперь вы можете подписаться, чтобы отслеживать обновления: /subscribe
@@ -69,6 +70,7 @@ commands-list-header = *Поддерживаемые команды:*
 subscribe-command = Подписаться
 unsubscribe-command = Отписаться
 changelog-command = Список изменений
+settings-command = Настройки
 about-command = Об этом боте
 help-command = Показать эту справку
 

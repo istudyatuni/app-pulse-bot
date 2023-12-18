@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use reqwest::Url;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup};
 
@@ -120,14 +122,14 @@ impl Keyboards {
         }
         keyboard
     }
-    pub(crate) fn languages() -> KeyboardBuilder {
+    pub(crate) fn languages(token: LanguagesKeyboardToken) -> KeyboardBuilder {
         const LANGS_IN_ROW: usize = 3;
         let langs: Vec<&'static str> = i18n::Localize::languages();
         let mut keyboard = KeyboardBuilder::with_rows_capacity(langs.len() / LANGS_IN_ROW + 1);
         for c in langs.chunks(LANGS_IN_ROW) {
             keyboard = keyboard.row();
             for &lang in c {
-                keyboard = keyboard.callback(tr!(lang_name, lang), lang_payload(lang));
+                keyboard = keyboard.callback(tr!(lang_name, lang), lang_payload(lang, token));
             }
         }
 
@@ -145,12 +147,43 @@ pub(crate) enum NewAppKeyboardKind {
     NotifyDisabled,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LanguagesKeyboardToken {
+    /// Keyboard was requested when user pressed /start
+    Start,
+    /// Keyboard was requested when user pressed /settings
+    Settings,
+}
+
+impl Display for LanguagesKeyboardToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Start => "start",
+            Self::Settings => "settings",
+        };
+        s.fmt(f)
+    }
+}
+
+impl TryFrom<&str> for LanguagesKeyboardToken {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let s = match value {
+            "start" => Some(Self::Start),
+            "settings" => Some(Self::Settings),
+            _ => None,
+        };
+        s.ok_or(())
+    }
+}
+
 fn notify_payload(app_id: &str, token: &str) -> String {
     format!("{NOTIFY_FLAG}:{app_id}:{token}")
 }
 
-fn lang_payload(lang: &str) -> String {
-    format!("{SET_LANG_FLAG}:{lang}")
+fn lang_payload(lang: &str, token: LanguagesKeyboardToken) -> String {
+    format!("{SET_LANG_FLAG}:{token}:{lang}")
 }
 
 #[cfg(test)]

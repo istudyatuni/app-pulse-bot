@@ -1,13 +1,15 @@
 use reqwest::Url;
 use teloxide::{
     prelude::*,
-    types::{CallbackQuery, InlineKeyboardButtonKind, MessageCommon, MessageKind},
+    types::{
+        CallbackQuery, InlineKeyboardButtonKind, InlineKeyboardMarkup, MessageCommon, MessageKind,
+    },
 };
 
 use db::{models::ShouldNotify, DB};
 
 use crate::{
-    keyboards::{Keyboards, NewAppKeyboardKind},
+    keyboards::{Keyboards, LanguagesKeyboardToken, NewAppKeyboardKind},
     tr, DEFAULT_USER_LANG, IGNORE_TOKEN, NOTIFY_FLAG, NOTIFY_TOKEN, SET_LANG_FLAG,
 };
 
@@ -19,6 +21,7 @@ enum Callback {
     },
     SetLang {
         lang: String,
+        token: LanguagesKeyboardToken,
     },
 }
 
@@ -68,7 +71,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
             }
         }
         SET_LANG_FLAG => {
-            if data.len() != 2 {
+            if data.len() != 3 {
                 log::error!("invalid callback: {data:?}");
                 answer_err
                     .text(tr!(something_wrong_invalid_callback, &lang))
@@ -76,8 +79,18 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
                 return Ok(());
             }
 
-            let new_lang = data[1].to_string();
-            Callback::SetLang { lang: new_lang }
+            let token: Option<LanguagesKeyboardToken> = data[1].try_into().ok();
+            let Some(token) = token else {
+                log::error!("invalid token in callback: {data:?}");
+                answer_err
+                    .text(tr!(something_wrong_invalid_callback, &lang))
+                    .await?;
+                return Ok(());
+            };
+            Callback::SetLang {
+                lang: data[2].to_string(),
+                token,
+            }
         }
         _ => {
             log::error!("invalid callback: {data:?}");
@@ -97,8 +110,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
             match res {
                 Ok((popup_msg, keyboard_kind)) => {
                     bot.answer_callback_query(&q.id).text(popup_msg).await?;
-                    edit_callback_msg(q.message, bot, chat_id, &app_id, keyboard_kind, &lang)
-                        .await?;
+                    edit_update_msg(q.message, bot, chat_id, &app_id, keyboard_kind, &lang).await?;
                 }
                 Err(Some(e)) => {
                     answer_err.text(e).await?;
@@ -106,20 +118,22 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
                 _ => (),
             }
         }
-        Callback::SetLang { lang } => {
-            let res = handle_lang_callback(db, chat_id, &lang).await?;
-            match res {
-                Ok(popup_msg) => {
-                    bot.answer_callback_query(&q.id).text(popup_msg).await?;
-                    remove_callback_keyboard(&q.message, bot.clone(), chat_id).await?;
-                    edit_welcome_msg(&q.message, bot, chat_id, &lang).await?;
-                }
-                Err(Some(e)) => {
-                    answer_err.text(e).await?;
-                }
-                _ => (),
+        Callback::SetLang { lang, token } => match handle_lang_callback(db, chat_id, &lang).await {
+            Ok(popup_msg) => {
+                bot.answer_callback_query(&q.id).text(popup_msg).await?;
+                let (text, markup) = match token {
+                    LanguagesKeyboardToken::Start => (tr!(welcome_suggest_subscribe, &lang), None),
+                    LanguagesKeyboardToken::Settings => (
+                        tr!(choose_language, &lang),
+                        Some(Keyboards::languages(token)),
+                    ),
+                };
+                edit_msg_text(&q.message, bot, chat_id, text, markup).await?;
             }
-        }
+            Err(e) => {
+                answer_err.text(e).await?;
+            }
+        },
     }
 
     Ok(())
@@ -158,36 +172,40 @@ async fn handle_update_callback(
     Ok(Ok((popup_msg, keyboard_kind)))
 }
 
-async fn handle_lang_callback(
-    db: DB,
-    chat_id: UserId,
-    lang: &str,
-) -> ResponseResult<Result<String, Option<String>>> {
+async fn handle_lang_callback(db: DB, chat_id: UserId, lang: &str) -> Result<String, String> {
     match db.save_user_lang(chat_id.into(), lang).await {
         Ok(()) => (),
         Err(e) => {
             log::error!("failed to update lang for user: {e}");
-            return Ok(Err(Some(tr!(something_wrong_try_again, lang))));
+            return Err(tr!(something_wrong_try_again, lang));
         }
     }
 
-    Ok(Ok(tr!(lang_saved, lang)))
+    Ok(tr!(lang_saved, lang))
 }
 
-async fn edit_welcome_msg(
+async fn edit_msg_text<S, M>(
     msg: &Option<Message>,
     bot: Bot,
     chat_id: UserId,
-    lang: &str,
-) -> ResponseResult<()> {
+    text: S,
+    markup: Option<M>,
+) -> ResponseResult<()>
+where
+    S: Into<String>,
+    M: Into<InlineKeyboardMarkup>,
+{
     if let Some(Message { id, .. }) = msg {
-        bot.edit_message_text(chat_id, *id, tr!(welcome_suggest_subscribe, lang))
-            .await?;
+        let mut e = bot.edit_message_text(chat_id, *id, text);
+        if let Some(m) = markup {
+            e = e.reply_markup(m.into());
+        }
+        e.await?;
     }
     Ok(())
 }
 
-async fn edit_callback_msg(
+async fn edit_update_msg(
     msg: Option<Message>,
     bot: Bot,
     chat_id: UserId,
@@ -207,17 +225,6 @@ async fn edit_callback_msg(
                 .into(),
             )
             .await?;
-    }
-    Ok(())
-}
-
-async fn remove_callback_keyboard(
-    msg: &Option<Message>,
-    bot: Bot,
-    chat_id: UserId,
-) -> ResponseResult<()> {
-    if let Some(Message { id, .. }) = msg {
-        bot.edit_message_reply_markup(chat_id, *id).await?;
     }
     Ok(())
 }

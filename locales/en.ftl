@@ -1,7 +1,8 @@
 ## Messages
 
 welcome = Welcome!
-welcome-choose-language = { welcome } Choose language:
+choose-language = Choose language:
+welcome-choose-language = { welcome } { choose-language }
 welcome-suggest-subscribe = { welcome }
 
     Now you can /subscribe to keep track of updates
@@ -70,6 +71,7 @@ commands-list-header = *Supported commands:*
 subscribe-command = Subscribe
 unsubscribe-command = Unsubscribe
 changelog-command = Changelog
+settings-command = Configuration
 about-command = About this bot
 help-command = Display this help
 

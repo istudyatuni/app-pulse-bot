@@ -2,7 +2,12 @@ use teloxide::{prelude::*, utils::command::BotCommands};
 
 use db::DB;
 
-use crate::{keyboards::Keyboards, tr, utils::escape, DEFAULT_USER_LANG};
+use crate::{
+    keyboards::{Keyboards, LanguagesKeyboardToken},
+    tr,
+    utils::escape,
+    DEFAULT_USER_LANG,
+};
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
@@ -15,6 +20,8 @@ pub enum Command {
     Unsubscribe,
     #[command(description = "Show latest update")]
     Changelog,
+    #[command(description = "Configuration")]
+    Settings,
     #[command(description = "About")]
     About,
     #[command(description = "Display this text")]
@@ -31,15 +38,11 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
     match cmd {
         Command::Start => match user {
             Some(_) => {
-                bot.send_message(msg.chat.id, tr!(welcome_choose_language, &lang))
-                    .reply_markup(Keyboards::languages())
-                    .await?;
+                send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
             }
             None => match db.add_user(msg.chat.id.into()).await {
                 Ok(()) => {
-                    bot.send_message(msg.chat.id, tr!(welcome, &lang))
-                        .reply_markup(Keyboards::languages())
-                        .await?;
+                    send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
                     log::debug!("saved user: {:?}", db.select_user(msg.chat.id.into()).await);
                 }
                 Err(e) => log::error!("failed to save user {}: {e}", msg.chat.id.0),
@@ -66,6 +69,11 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                 .parse_mode(teloxide::types::ParseMode::MarkdownV2)
                 .await?;
         }
+        Command::Settings => {
+            bot.send_message(msg.chat.id, tr!(choose_language, &lang))
+                .reply_markup(Keyboards::languages(LanguagesKeyboardToken::Settings))
+                .await?;
+        }
         Command::About => {
             bot.send_message(msg.chat.id, tr!(about_description, &lang))
                 .await?;
@@ -87,10 +95,18 @@ fn make_help(lang: &str) -> String {
         "/subscribe - ".to_string() + tr!(subscribe_command, lang).as_str(),
         "/unsubscribe - ".to_string() + tr!(unsubscribe_command, lang).as_str(),
         "/changelog - ".to_string() + tr!(changelog_command, lang).as_str(),
+        "/settings - ".to_string() + tr!(settings_command, lang).as_str(),
         "/about - ".to_string() + tr!(about_command, lang).as_str(),
         "/help - ".to_string() + tr!(help_command, lang).as_str(),
         "".to_string(),
         tr!(how_to_use, lang),
     ]
     .join("\n")
+}
+
+async fn send_welcome_msg(bot: Bot, chat_id: ChatId, lang: &str) -> ResponseResult<()> {
+    bot.send_message(chat_id, tr!(welcome_choose_language, lang))
+        .reply_markup(Keyboards::languages(LanguagesKeyboardToken::Start))
+        .await?;
+    Ok(())
 }

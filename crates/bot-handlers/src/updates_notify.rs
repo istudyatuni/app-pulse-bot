@@ -18,21 +18,17 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
     // todo: graceful shutdown for updates
     while let Some(updates) = rx.recv().await {
         log::debug!("got {} updates", updates.count());
-        match db.save_source_updated_at(updates.last_update).await {
-            Ok(()) => (),
-            Err(e) => log::error!("failed to save source last_updated_at: {e}"),
+        if let Err(e) = db.save_source_updated_at(updates.last_update).await {
+            log::error!("failed to save source last_updated_at: {e}");
         }
 
         for update in updates.updates {
             let app_id = update.app_id();
             log::debug!("got update for app {}", app_id);
 
-            match db.add_or_update_app(app_id, "", update.update_time()).await {
-                Ok(()) => (),
-                Err(e) => {
-                    log::error!("failed to add app: {e}");
-                    continue;
-                }
+            if let Err(e) = db.add_or_update_app(app_id, "", update.update_time()).await {
+                log::error!("failed to add app: {e}");
+                continue;
             }
 
             let users = match db.select_users_to_notify(app_id).await {
@@ -70,9 +66,8 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
             }
         }
 
-        match db.save_all_users_last_notified(DateTime::now()).await {
-            Ok(()) => (),
-            Err(e) => log::error!("failed to save all users last_notified_at: {e}"),
+        if let Err(e) = db.save_all_users_last_notified(DateTime::now()).await {
+            log::error!("failed to save all users last_notified_at: {e}");
         }
     }
 }

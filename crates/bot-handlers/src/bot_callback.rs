@@ -106,7 +106,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
             app_id,
             should_notify,
         } => {
-            let res = handle_update_callback(should_notify, db, chat_id, &app_id, &lang).await?;
+            let res = handle_update_callback(should_notify, db, chat_id, &app_id, &lang).await;
             match res {
                 Ok((popup_msg, keyboard_kind)) => {
                     bot.answer_callback_query(&q.id).text(popup_msg).await?;
@@ -145,17 +145,13 @@ async fn handle_update_callback(
     chat_id: UserId,
     app_id: &str,
     lang: &str,
-) -> ResponseResult<Result<(String, NewAppKeyboardKind), Option<String>>> {
-    match db
-        .save_should_notify_user(chat_id, app_id, should_notify)
+) -> Result<(String, NewAppKeyboardKind), Option<String>> {
+    db.save_should_notify_user(chat_id, app_id, should_notify)
         .await
-    {
-        Ok(()) => (),
-        Err(e) => {
+        .map_err(|e| {
             log::error!("failed to save user should_notify: {e}");
-            return Ok(Err(Some(tr!(something_wrong_try_again, lang))));
-        }
-    }
+            Some(tr!(something_wrong_try_again, lang))
+        })?;
     let (popup_msg, keyboard_kind) = match should_notify {
         ShouldNotify::Notify => (
             tr!(notifications_enabled, lang),
@@ -166,21 +162,18 @@ async fn handle_update_callback(
             NewAppKeyboardKind::NotifyDisabled,
         ),
         _ => {
-            return Ok(Err(None));
+            log::error!("unreachable: ShouldNotify::Unspecified");
+            return Err(None);
         }
     };
-    Ok(Ok((popup_msg, keyboard_kind)))
+    Ok((popup_msg, keyboard_kind))
 }
 
 async fn handle_lang_callback(db: DB, chat_id: UserId, lang: &str) -> Result<String, String> {
-    match db.save_user_lang(chat_id, lang).await {
-        Ok(()) => (),
-        Err(e) => {
-            log::error!("failed to update lang for user: {e}");
-            return Err(tr!(something_wrong_try_again, lang));
-        }
-    }
-
+    db.save_user_lang(chat_id, lang).await.map_err(|e| {
+        log::error!("failed to update lang for user: {e}");
+        tr!(something_wrong_try_again, lang)
+    })?;
     Ok(tr!(lang_saved, lang))
 }
 
@@ -229,7 +222,8 @@ async fn edit_update_msg(
     Ok(())
 }
 
-// Assuming in message's keyboard only one "Url" button
+/// Assuming in message's keyboard only one
+/// [`InlineKeyboardButtonKind::Url`] button
 fn extract_url_from_callback_msg(kind: MessageKind) -> Option<Url> {
     if let MessageKind::Common(MessageCommon {
         reply_markup: Some(markup),

@@ -132,7 +132,7 @@ async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
         {
             failed.0 += 1;
             errors.push(e.to_string());
-        } else if let Err(e) = db.save_user_user_version_notified(user_id).await {
+        } else if let Err(e) = db.save_user_version_notified(user_id).await {
             log::error!("failed to save user {user_id} notified: {e}");
         }
     }

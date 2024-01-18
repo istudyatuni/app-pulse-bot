@@ -1,7 +1,7 @@
 root = true
 
 [*.rs]
-max_line_length = 100|off
+max_line_length = off
 end_of_line = lf
 indent_style = space
 charset = utf-8

@@ -1,6 +1,17 @@
 use chrono::Utc;
+use lazy_static::lazy_static;
 
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+lazy_static! {
+    static ref VERSION: u32 = env!("BOT_VERSION")
+        .to_string()
+        .parse()
+        .expect("invalid bot version");
+}
+
+/// Get bot version
+pub fn version() -> u32 {
+    *VERSION
+}
 
 pub type UnixDateTime = i64;
 

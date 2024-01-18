@@ -22,8 +22,9 @@ deploy ssh-path:
 add-migrate name:
 	sqlx migrate add '{{ name }}'
 
-# Bump version in Cargo.toml
-bump to:
+# Bump package and bot versions in Cargo.toml
+bump package bot:
 	@# https://github.com/ceejbot/tomato
-	tomato set 'workspace.package.version' {{to}} Cargo.toml
+	tomato set 'workspace.package.version' {{package}} Cargo.toml
+	tomato set 'package.metadata.bot.version' {{bot}} Cargo.toml
 	cargo c

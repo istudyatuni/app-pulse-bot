@@ -47,7 +47,7 @@ impl DB {
         ))
         .bind(user.user_id())
         .bind(user.lang())
-        .bind(common::VERSION)
+        .bind(common::version())
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -91,13 +91,20 @@ impl DB {
     }
     /// Select users, not yet notified about bot update
     pub async fn select_users_to_notify_about_bot_update(&self) -> Result<Vec<models::User>> {
+        self.select_users_to_notify_about_bot_update_impl(common::version())
+            .await
+    }
+    async fn select_users_to_notify_about_bot_update_impl(
+        &self,
+        version: u32,
+    ) -> Result<Vec<models::User>> {
         log::debug!("select not notified users");
         Ok(sqlx::query_as::<_, models::User>(&format!(
             "select *
              from {USER_TABLE}
              where last_version_notified < ?",
         ))
-        .bind(common::VERSION)
+        .bind(version)
         .fetch_all(&self.pool)
         .await?)
     }
@@ -187,7 +194,15 @@ impl DB {
 
         Ok(())
     }
-    pub async fn save_user_user_version_notified(&self, user_id: impl Into<UserId>) -> Result<()> {
+    pub async fn save_user_version_notified(&self, user_id: impl Into<UserId>) -> Result<()> {
+        self.save_user_version_notified_impl(user_id, common::version())
+            .await
+    }
+    async fn save_user_version_notified_impl(
+        &self,
+        user_id: impl Into<UserId>,
+        version: u32,
+    ) -> Result<()> {
         let user_id = user_id.into();
         log::debug!("saving user {user_id} version notified");
         let user = models::User::new(user_id);
@@ -196,7 +211,7 @@ impl DB {
              set last_version_notified = ?
              where user_id = ?"
         ))
-        .bind(common::VERSION)
+        .bind(version)
         .bind(user.user_id())
         .execute(&self.pool)
         .await?;
@@ -339,20 +354,21 @@ mod tests {
         }
     }
 
-    async fn prepare_db_timer(id: i32) -> Result<(DB, Timer)> {
-        let file = format!("../../target/test{id}.db");
+    async fn prepare_db_timer(test_name: &str) -> Result<DB> {
+        let file = format!("../../target/{test_name}.db");
 
         let _ = tokio::fs::remove_file(&file).await;
         let db = DB::init(&file).await?;
 
-        Ok((db, Timer::new()))
+        Ok(db)
     }
 
     #[tokio::test]
     async fn test_select_users_to_notify() -> Result<()> {
         const APP_ID: &str = "test";
 
-        let (db, mut timer) = prepare_db_timer(1).await?;
+        let db = prepare_db_timer("test_select_users_to_notify").await?;
+        let mut timer = Timer::new();
         timer.skip(1);
 
         db.add_or_update_app(APP_ID, "", timer.next()).await?;
@@ -377,7 +393,8 @@ mod tests {
     async fn test_no_select_users_to_notify() -> Result<()> {
         const APP_ID: &str = "test";
 
-        let (db, mut timer) = prepare_db_timer(2).await?;
+        let db = prepare_db_timer("test_no_select_users_to_notify").await?;
+        let mut timer = Timer::new();
         timer.skip(1);
 
         db.add_or_update_app(APP_ID, "", timer.next()).await?;
@@ -396,12 +413,24 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_version_str_comparison() {
-        assert!("0.0.1" < "0.1.0");
-        assert!("0.1.0" < "0.1.1");
-        assert!("0.1.0" < "0.2.0");
-        assert!("0.1.0" < "0.10.0");
-        assert!("0.1.0" < "1.0.0");
+    #[tokio::test]
+    async fn test_select_users_to_notify_about_bot_update() -> Result<()> {
+        let db = prepare_db_timer("test_select_users_to_notify_about_bot_update").await?;
+        let mut timer = Timer::new();
+        timer.skip(1);
+
+        // there is one user
+        db.add_user(1).await?;
+        db.save_user_version_notified_impl(1, 0).await?;
+
+        for v in 1..20 {
+            let users = db
+                .select_users_to_notify_about_bot_update_impl(v + 1)
+                .await?;
+            assert_eq!(users.len(), 1, "notify about version {}", v + 1);
+            db.save_user_version_notified_impl(1, v).await?;
+        }
+
+        Ok(())
     }
 }

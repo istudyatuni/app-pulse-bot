@@ -13,7 +13,7 @@ pub(crate) async fn start_tg_logs_job(bot: Bot, chat_id: ChatId, mut rx: Receive
             .parse_mode(ParseMode::MarkdownV2)
             .await
         {
-            println!("failed to send log: {e}");
+            eprintln!("failed to send log: {e}");
         }
     }
 }

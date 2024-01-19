@@ -3,10 +3,14 @@ use std::{future::Future, time::Duration};
 use anyhow::Result;
 use dotenvy_macro::dotenv;
 use reqwest::Client;
-use simplelog::*;
+use simplelog::LevelFilter;
 use teloxide::{prelude::*, utils::command::BotCommands};
 
-use tokio::{signal, sync::mpsc, task::JoinSet};
+use tokio::{
+    signal,
+    sync::mpsc::{self, Sender},
+    task::JoinSet,
+};
 use tokio_util::sync::CancellationToken;
 
 use bot_handlers::{callback_handler, message_handler, start_updates_notify_job, Command};
@@ -41,16 +45,7 @@ async fn main() -> Result<()> {
     let tg_logs_chan = mpsc::channel(100);
     let log_chat_id = LOG_CHAT_ID.parse().ok().map(ChatId);
 
-    CombinedLogger::init(vec![
-        TermLogger::new(
-            LOG_LEVEL,
-            term_logger_config(),
-            TerminalMode::Mixed,
-            ColorChoice::Auto,
-        ),
-        TgLogger::new(tg_logs_chan.0),
-    ])
-    .expect("failed to init logger");
+    init_logger(tg_logs_chan.0);
 
     let db = DB::init(&db_path()).await?;
 
@@ -114,8 +109,12 @@ fn db_path() -> String {
     db_file
 }
 
-fn term_logger_config() -> Config {
-    if IS_PROD {
+fn init_logger(sender: Sender<String>) {
+    use simplelog::*;
+
+    use logger::{Config as TgConfig, ConfigBuilder as TgConfigBuilder};
+
+    let term_config = if IS_PROD {
         Config::default()
     } else {
         ConfigBuilder::new()
@@ -125,7 +124,27 @@ fn term_logger_config() -> Config {
             .add_filter_ignore_str("rustls")
             .add_filter_ignore_str("sqlx")
             .build()
-    }
+    };
+
+    let tg_config = if IS_PROD {
+        TgConfig::default()
+    } else {
+        TgConfigBuilder::new()
+            .add_ignore("ConnectionReset")
+            .add_ignore("TerminatedByOtherGetUpdates")
+            .build()
+    };
+
+    CombinedLogger::init(vec![
+        TermLogger::new(
+            LOG_LEVEL,
+            term_config,
+            TerminalMode::Mixed,
+            ColorChoice::Auto,
+        ),
+        TgLogger::new(sender, tg_config),
+    ])
+    .expect("failed to init logger");
 }
 
 async fn spawn_with_token<R>(token: CancellationToken, f: impl Future<Output = R>) {

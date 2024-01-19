@@ -114,7 +114,6 @@ impl UserSubscribe {
     }
 }
 
-#[allow(unused)]
 #[derive(Debug, sqlx::FromRow)]
 pub struct App {
     app_id: String,

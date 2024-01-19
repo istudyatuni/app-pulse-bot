@@ -17,9 +17,6 @@ impl TgLogger {
         let s = Self { sender: sx, config };
         Box::new(s)
     }
-    fn is_should_ignore(&self, msg: &str) -> bool {
-        self.config.ignore.iter().any(|pat| msg.contains(pat))
-    }
 }
 
 impl log::Log for TgLogger {
@@ -30,7 +27,7 @@ impl log::Log for TgLogger {
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
             let text = record.args().to_string();
-            if self.is_should_ignore(&text) {
+            if self.config.is_should_ignore(&text) {
                 return;
             }
 
@@ -71,6 +68,12 @@ pub struct Config {
     ignore: Vec<String>,
 }
 
+impl Config {
+    fn is_should_ignore(&self, msg: &str) -> bool {
+        self.ignore.iter().any(|pat| msg.contains(pat))
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ConfigBuilder(Config);
 
@@ -84,5 +87,17 @@ impl ConfigBuilder {
     }
     pub fn build(&mut self) -> Config {
         self.0.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_ignore() {
+        let conf = ConfigBuilder::new().add_ignore("test").build();
+        assert!(conf.is_should_ignore("test - ignored"));
+        assert!(!conf.is_should_ignore("not ignored"));
     }
 }

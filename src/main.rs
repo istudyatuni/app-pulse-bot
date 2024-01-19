@@ -127,12 +127,12 @@ fn init_logger(sender: Sender<String>) {
     };
 
     let tg_config = if IS_PROD {
-        TgConfig::default()
-    } else {
         TgConfigBuilder::new()
             .add_ignore("ConnectionReset")
             .add_ignore("TerminatedByOtherGetUpdates")
             .build()
+    } else {
+        TgConfig::default()
     };
 
     CombinedLogger::init(vec![

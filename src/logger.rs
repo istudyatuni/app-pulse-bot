@@ -4,16 +4,16 @@ use log::{Level, Metadata, Record};
 use simplelog::SharedLogger;
 use tokio::sync::mpsc::Sender;
 
-use crate::TG_LOG_ENABLED;
+use crate::{handlers::tg_logs::LogMessage, TG_LOG_ENABLED};
 
 #[derive(Debug)]
 pub(crate) struct TgLogger {
-    sender: Sender<String>,
+    sender: Sender<LogMessage>,
     config: Config,
 }
 
 impl TgLogger {
-    pub(crate) fn new(sx: Sender<String>, config: Config) -> Box<Self> {
+    pub(crate) fn new(sx: Sender<LogMessage>, config: Config) -> Box<Self> {
         let s = Self { sender: sx, config };
         Box::new(s)
     }
@@ -40,7 +40,7 @@ impl log::Log for TgLogger {
             }
             thread::scope(|s| {
                 s.spawn(|| {
-                    let _ = self.sender.blocking_send(msg);
+                    let _ = self.sender.blocking_send(LogMessage::log_error(msg));
                 });
             });
         }

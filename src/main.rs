@@ -2,6 +2,7 @@ use std::{future::Future, time::Duration};
 
 use anyhow::Result;
 use dotenvy_macro::dotenv;
+use handlers::tg_logs::LogMessage;
 use reqwest::Client;
 use simplelog::LevelFilter;
 use teloxide::{prelude::*, utils::command::BotCommands};
@@ -44,6 +45,10 @@ const TG_LOG_ENABLED: bool = IS_PROD;
 async fn main() -> Result<()> {
     let tg_logs_chan = mpsc::channel(100);
     let log_chat_id = LOG_CHAT_ID.parse().ok().map(ChatId);
+
+    if IS_PROD {
+        notify_boot(&tg_logs_chan.0);
+    }
 
     init_logger(tg_logs_chan.0);
 
@@ -109,7 +114,15 @@ fn db_path() -> String {
     db_file
 }
 
-fn init_logger(sender: Sender<String>) {
+fn notify_boot(sender: &Sender<LogMessage>) {
+    std::thread::scope(|s| {
+        s.spawn(|| {
+            let _ = sender.blocking_send(LogMessage::simple("Bot started"));
+        });
+    });
+}
+
+fn init_logger(sender: Sender<LogMessage>) {
     use simplelog::*;
 
     use logger::{Config as TgConfig, ConfigBuilder as TgConfigBuilder};

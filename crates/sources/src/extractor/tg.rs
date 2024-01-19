@@ -1,5 +1,7 @@
 #![allow(non_camel_case_types)]
 
+use std::time::Duration;
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
@@ -10,20 +12,45 @@ const API_LIMIT_MSGS: u32 = 10;
 
 /// Returns messages in order from new to old.
 pub(crate) async fn fetch_public_channel(name: &str) -> Result<Vec<Message>> {
+    // retry on FLOOD_WAIT
+    loop {
+        match fetch_public_channel_impl(name).await {
+            Err(FetchError::FloodWait(wait)) => tokio::time::sleep(wait).await,
+            res => return res.map_err(Into::into),
+        }
+    }
+}
+
+async fn fetch_public_channel_impl(name: &str) -> Result<Vec<Message>, FetchError> {
+    const FLOOD_WAIT: &str = "FLOOD_WAIT_";
+
     log::debug!("fetching public channel {name}");
     let raw: String = reqwest::get(format!("{API_URL}{name}?limit={API_LIMIT_MSGS}"))
         .await?
         .text()
         .await?;
     let res: Response = serde_json::from_str(&raw)?;
-    if res.messages.is_empty() {
-        return Err(ResponseError::Empty {
-            full: serde_json::from_str(&raw)?,
-        }
-        .into());
-    }
     if let Some(errors) = res.errors {
-        return Err(ResponseError::Arbitrary(errors).into());
+        for e in &errors {
+            match e {
+                ResponseError::String(s) if s.starts_with(FLOOD_WAIT) => {
+                    let parsed = s.trim_start_matches(FLOOD_WAIT).parse::<u64>();
+                    if let Ok(sec) = parsed {
+                        return Err(FetchError::FloodWait(Duration::from_secs(sec)));
+                    } else {
+                        log::error!("failed to parse seconds from FLOOD_WAIT_X ({s}) error");
+                        break;
+                    }
+                }
+                _ => (),
+            }
+        }
+        return Err(FetchError::Arbitrary(errors));
+    }
+    if res.messages.is_empty() {
+        return Err(FetchError::Empty {
+            full: serde_json::from_str(&raw)?,
+        });
     }
     Ok(res.messages)
 }
@@ -32,15 +59,27 @@ pub(crate) async fn fetch_public_channel(name: &str) -> Result<Vec<Message>> {
 struct Response {
     #[serde(default = "Vec::new")]
     messages: Vec<Message>,
-    errors: Option<serde_json::Value>,
+    errors: Option<Vec<ResponseError>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+enum ResponseError {
+    String(String),
+    Any(serde_json::Value),
 }
 
 #[derive(Debug, thiserror::Error)]
-enum ResponseError {
+enum FetchError {
+    #[error("flood wait: {0:?}")]
+    FloodWait(Duration),
     #[error("got errors: {0:?}")]
-    Arbitrary(serde_json::Value),
+    Arbitrary(Vec<ResponseError>),
     #[error("got no messages, raw content: {full:?}")]
     Empty { full: serde_json::Value },
+    #[error("network error: {0}")]
+    Reqwest(#[from] reqwest::Error),
+    #[error("invalid json: {0}")]
+    JsonParse(#[from] serde_json::Error),
 }
 
 #[derive(Debug, Serialize, Deserialize)]

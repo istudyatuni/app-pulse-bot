@@ -9,13 +9,22 @@ use common::UnixDateTime;
 
 const API_URL: &str = "https://tg.i-c-a.su/json/";
 const API_LIMIT_MSGS: u32 = 10;
+const MAX_RETRIES: u32 = 5;
 
 /// Returns messages in order from new to old.
 pub(crate) async fn fetch_public_channel(name: &str) -> Result<Vec<Message>> {
     // retry on FLOOD_WAIT
+    let mut retries = 0;
     loop {
         match fetch_public_channel_impl(name).await {
-            Err(FetchError::FloodWait(wait)) => tokio::time::sleep(wait).await,
+            Err(FetchError::FloodWait(wait)) if retries < MAX_RETRIES => {
+                tokio::time::sleep(wait).await;
+                retries += 1;
+            }
+            e @ Err(FetchError::FloodWait(_)) => {
+                log::error!("failed to fetch telegram/{name} in {MAX_RETRIES} retries");
+                return e.map_err(Into::into);
+            }
             res => return res.map_err(Into::into),
         }
     }
@@ -35,12 +44,11 @@ async fn fetch_public_channel_impl(name: &str) -> Result<Vec<Message>, FetchErro
             match e {
                 ResponseError::String(s) if s.starts_with(FLOOD_WAIT) => {
                     let parsed = s.trim_start_matches(FLOOD_WAIT).parse::<u64>();
-                    if let Ok(sec) = parsed {
-                        return Err(FetchError::FloodWait(Duration::from_secs(sec)));
-                    } else {
+                    let Ok(sec) = parsed else {
                         log::error!("failed to parse seconds from FLOOD_WAIT_X ({s}) error");
                         break;
-                    }
+                    };
+                    return Err(FetchError::FloodWait(Duration::from_secs(sec)));
                 }
                 _ => (),
             }

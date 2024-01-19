@@ -98,7 +98,7 @@ impl DB {
         &self,
         version: u32,
     ) -> Result<Vec<models::User>> {
-        log::debug!("select not notified users");
+        log::debug!("select users to notify about bot update: version {version}");
         Ok(sqlx::query_as::<_, models::User>(&format!(
             "select *
              from {USER_TABLE}

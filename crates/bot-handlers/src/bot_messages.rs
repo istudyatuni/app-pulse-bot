@@ -1,6 +1,6 @@
 use teloxide::{prelude::*, utils::command::BotCommands};
 
-use db::DB;
+use db::{models::User, DB};
 
 use crate::{
     keyboards::{Keyboards, LanguagesKeyboardToken},
@@ -30,17 +30,17 @@ pub enum Command {
 
 pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
     let user = db.select_user(msg.chat.id).await.ok().flatten();
-    let lang = user
-        .as_ref()
-        .map(|u| u.lang().to_string())
-        .unwrap_or(DEFAULT_USER_LANG.to_string());
+    let lang = get_user_lang(
+        user.as_ref(),
+        msg.from().map(|c| c.language_code.to_owned()).flatten(),
+    );
 
     match cmd {
         Command::Start => match user {
             Some(_) => {
                 send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
             }
-            None => match db.add_user(msg.chat.id).await {
+            None => match db.add_user_with_lang(msg.chat.id, &lang).await {
                 Ok(()) => {
                     send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
                     log::debug!("saved user: {:?}", db.select_user(msg.chat.id).await);
@@ -109,4 +109,52 @@ async fn send_welcome_msg(bot: Bot, chat_id: ChatId, lang: &str) -> ResponseResu
         .reply_markup(Keyboards::languages(LanguagesKeyboardToken::Start))
         .await?;
     Ok(())
+}
+
+fn get_user_lang<S>(user: Option<&User>, tg_lang: Option<S>) -> String
+where
+    S: AsRef<str>,
+{
+    // 1. get lang from db
+    // 2. get lang from msg.from.language_code and check, if it's available
+    // 3. otherwise return DEFAULT_USER_LANG
+    user.map(|u| u.lang().to_owned()).unwrap_or(
+        tg_lang
+            .map(|lang| {
+                i18n::Localize::languages()
+                    .iter()
+                    .find(|&&l| lang.as_ref() == l)
+                    .map(|l| l.to_string())
+            })
+            .flatten()
+            .unwrap_or(DEFAULT_USER_LANG.to_string()),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_user_lang() {
+        assert!(["en", "ru"].iter().all(|lang| i18n::Localize::languages()
+            .iter()
+            .find(|&l| lang == l)
+            .is_some()));
+
+        let table = vec![
+            (Some("en"), None, "en"),
+            (Some("en"), Some("ru"), "en"),
+            (None, Some("ru"), "ru"),
+            (None, None, DEFAULT_USER_LANG),
+        ];
+        for (i, &(db_lang, tg_lang, expected)) in table.iter().enumerate() {
+            let user = db_lang.map(|lang| User::new_with_lang(0.into(), lang));
+            assert_eq!(
+                get_user_lang(user.as_ref(), tg_lang),
+                expected,
+                "test table[{i}]"
+            );
+        }
+    }
 }

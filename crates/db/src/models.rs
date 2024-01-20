@@ -21,6 +21,13 @@ impl User {
             last_notified_at: DateTime::now(),
         }
     }
+    pub fn new_with_lang(user_id: UserId, lang: impl Into<String>) -> Self {
+        Self {
+            user_id: user_id.into(),
+            lang: lang.into(),
+            last_notified_at: DateTime::now(),
+        }
+    }
     pub fn user_id(&self) -> Id {
         self.user_id
     }

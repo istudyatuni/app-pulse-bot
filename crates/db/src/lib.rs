@@ -39,9 +39,18 @@ impl DB {
 // User
 impl DB {
     pub async fn add_user(&self, user_id: impl Into<UserId>) -> Result<()> {
-        let user_id = user_id.into();
-        log::debug!("saving user {user_id}");
-        let user = models::User::new(user_id);
+        self.add_user_impl(models::User::new(user_id.into())).await
+    }
+    pub async fn add_user_with_lang(
+        &self,
+        user_id: impl Into<UserId>,
+        lang: impl Into<String>,
+    ) -> Result<()> {
+        self.add_user_impl(models::User::new_with_lang(user_id.into(), lang))
+            .await
+    }
+    async fn add_user_impl(&self, user: models::User) -> Result<()> {
+        log::debug!("saving user {}", user.user_id());
         sqlx::query(&format!(
             "insert into {USER_TABLE} (user_id, lang, last_version_notified) values (?, ?, ?)"
         ))

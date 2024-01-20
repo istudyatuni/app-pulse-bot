@@ -1,11 +1,11 @@
 ## Messages
 
-welcome = Welcome!
-choose-language = Choose language:
+welcome = Welcome! This bot help you track applications updates.
+choose-language = You can choose a language, or /subscribe to keep track of updates
 welcome-choose-language = { welcome } { choose-language }
 welcome-suggest-subscribe = { welcome }
 
-    Now you can /subscribe to keep track of updates
+    Language saved. Subscribe to keep track of updates: /subscribe
 
 new-app-msg = New app to track updates:
 new-update-msg = Update for { $app }

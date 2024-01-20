@@ -1,11 +1,11 @@
 ## Messages
 
-welcome = Привет!
-choose-language = Выбери язык:
+welcome = Привет! Этот бот помогает отслеживать обновления приложений.
+choose-language = Вы можете выбрать язык, или подписаться, чтобы отслеживать обновления: /subscribe
 welcome-choose-language = { welcome } { choose-language }
 welcome-suggest-subscribe = { welcome }
 
-    Теперь вы можете подписаться, чтобы отслеживать обновления: /subscribe
+    Язык сохранен. Подписаться, чтобы отслеживать обновления: /subscribe
 
 new-app-msg = Новое приложение для отслеживания:
 new-update-msg = Обновление для { $app }

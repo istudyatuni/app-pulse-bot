@@ -38,9 +38,6 @@ impl DB {
 
 // User
 impl DB {
-    pub async fn add_user(&self, user_id: impl Into<UserId>) -> Result<()> {
-        self.add_user_impl(models::User::new(user_id.into())).await
-    }
     pub async fn add_user_with_lang(
         &self,
         user_id: impl Into<UserId>,
@@ -251,6 +248,9 @@ impl DB {
 
 #[cfg(test)]
 impl DB {
+    pub async fn add_user(&self, user_id: impl Into<UserId>) -> Result<()> {
+        self.add_user_impl(models::User::new(user_id.into())).await
+    }
     pub async fn save_user_last_notified(
         &self,
         user_id: impl Into<UserId>,

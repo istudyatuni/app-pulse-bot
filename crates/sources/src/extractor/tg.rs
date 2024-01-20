@@ -13,6 +13,8 @@ const MAX_RETRIES: u32 = 5;
 
 /// Returns messages in order from new to old.
 pub(crate) async fn fetch_public_channel(name: &str) -> Result<Vec<Message>> {
+    log::debug!("fetching updates for {name}");
+
     // retry on FLOOD_WAIT
     let mut retries = 0;
     loop {
@@ -21,11 +23,16 @@ pub(crate) async fn fetch_public_channel(name: &str) -> Result<Vec<Message>> {
                 tokio::time::sleep(wait).await;
                 retries += 1;
             }
-            e @ Err(FetchError::FloodWait(_)) => {
+            Err(FetchError::FloodWait(_)) => {
                 log::error!("failed to fetch telegram/{name} in {MAX_RETRIES} retries");
-                return e.map_err(Into::into);
+                return Err(FetchError::FloodWaitFailed.into());
             }
-            res => return res.map_err(Into::into),
+            res => {
+                if let Err(ref e) = res {
+                    log::error!("failed to fetch: {e}");
+                }
+                return res.map_err(Into::into);
+            }
         }
     }
 }
@@ -80,6 +87,8 @@ enum ResponseError {
 enum FetchError {
     #[error("flood wait: {0:?}")]
     FloodWait(Duration),
+    #[error("flood wait failed in {MAX_RETRIES} retries")]
+    FloodWaitFailed,
     #[error("got errors: {0:?}")]
     Arbitrary(Vec<ResponseError>),
     #[error("got no messages, raw content: {full:?}")]

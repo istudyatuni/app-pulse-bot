@@ -61,13 +61,9 @@ impl UpdateSource for Source {
             return super::UpdatesList::default();
         }
 
-        log::debug!("fetching updates for {CHANNEL_NAME}");
         let msgs = match fetch_public_channel(CHANNEL_NAME).await {
             Ok(v) => v,
-            Err(e) => {
-                log::error!("failed to fetch: {e}");
-                return super::UpdatesList::default();
-            }
+            Err(_) => return super::UpdatesList::default(),
         };
 
         let mut last_update = None;

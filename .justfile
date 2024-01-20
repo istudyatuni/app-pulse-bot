@@ -5,7 +5,7 @@
 # Run checks
 check:
 	cargo fmt --check
-	cargo clippy
+	cargo clippy -- -D warnings
 	@just test
 
 # Run tests

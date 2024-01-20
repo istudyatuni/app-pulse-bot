@@ -32,7 +32,7 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
     let user = db.select_user(msg.chat.id).await.ok().flatten();
     let lang = get_user_lang(
         user.as_ref(),
-        msg.from().map(|c| c.language_code.to_owned()).flatten(),
+        msg.from().and_then(|c| c.language_code.to_owned()),
     );
 
     match cmd {
@@ -120,13 +120,12 @@ where
     // 3. otherwise return DEFAULT_USER_LANG
     user.map(|u| u.lang().to_owned()).unwrap_or(
         tg_lang
-            .map(|lang| {
+            .and_then(|lang| {
                 i18n::Localize::languages()
                     .iter()
                     .find(|&&l| lang.as_ref() == l)
                     .map(|l| l.to_string())
             })
-            .flatten()
             .unwrap_or(DEFAULT_USER_LANG.to_string()),
     )
 }

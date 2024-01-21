@@ -180,7 +180,7 @@ async fn start_bot(bot: Bot, db: DB) {
         .branch(Update::filter_callback_query().endpoint(callback_handler));
     Dispatcher::builder(bot.clone(), handler)
         .dependencies(dptree::deps![db])
-        .default_handler(|_update| async move { log::error!("unhandled update") })
+        .default_handler(|update| async move { log::error!("unhandled update: {update:?}") })
         .error_handler(LoggingErrorHandler::with_custom_text("error in dispatcher"))
         // .enable_ctrlc_handler()
         .build()

@@ -87,7 +87,7 @@ enum ResponseError {
 enum FetchError {
     #[error("flood wait: {0:?}")]
     FloodWait(Duration),
-    #[error("flood wait failed in {MAX_RETRIES} retries")]
+    #[error("retry on flood wait failed in {MAX_RETRIES} retries")]
     FloodWaitFailed,
     #[error("got errors: {0:?}")]
     Arbitrary(Vec<ResponseError>),

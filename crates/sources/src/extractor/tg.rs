@@ -74,11 +74,11 @@ async fn fetch_public_channel_impl(name: &str) -> Result<Vec<Message>, FetchErro
 struct Response {
     #[serde(default = "Vec::new")]
     messages: Vec<Message>,
-    #[serde(flatten)]
     errors: Option<Vec<ResponseError>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
 enum ResponseError {
     String(String),
     Any(serde_json::Value),

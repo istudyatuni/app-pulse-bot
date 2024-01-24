@@ -74,6 +74,7 @@ async fn fetch_public_channel_impl(name: &str) -> Result<Vec<Message>, FetchErro
 struct Response {
     #[serde(default = "Vec::new")]
     messages: Vec<Message>,
+    #[serde(flatten)]
     errors: Option<Vec<ResponseError>>,
 }
 
@@ -162,4 +163,16 @@ pub(crate) enum Document {
     },
     #[serde(other)]
     Unknown,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_serde() -> Result<()> {
+        let _: Response = serde_json::from_str(r#"{"errors": ["FLOOD_WAIT_23", ["asdf"]]}"#)?;
+
+        Ok(())
+    }
 }

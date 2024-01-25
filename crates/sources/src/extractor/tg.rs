@@ -16,16 +16,10 @@ pub(crate) async fn fetch_public_channel(name: &str) -> Result<Vec<Message>> {
     log::debug!("fetching updates for {name}");
 
     // retry on FLOOD_WAIT
-    let mut retries = 0;
-    loop {
+    for _ in 0..MAX_RETRIES {
         match fetch_public_channel_impl(name).await {
-            Err(FetchError::FloodWait(wait)) if retries < MAX_RETRIES => {
+            Err(FetchError::FloodWait(wait)) => {
                 tokio::time::sleep(wait).await;
-                retries += 1;
-            }
-            Err(FetchError::FloodWait(_)) => {
-                log::error!("failed to fetch telegram/{name} in {MAX_RETRIES} retries");
-                return Err(FetchError::FloodWaitFailed.into());
             }
             res => {
                 if let Err(ref e) = res {
@@ -35,6 +29,8 @@ pub(crate) async fn fetch_public_channel(name: &str) -> Result<Vec<Message>> {
             }
         }
     }
+    log::error!("failed to fetch telegram/{name} in {MAX_RETRIES} retries");
+    Err(FetchError::FloodWaitFailed.into())
 }
 
 async fn fetch_public_channel_impl(name: &str) -> Result<Vec<Message>, FetchError> {

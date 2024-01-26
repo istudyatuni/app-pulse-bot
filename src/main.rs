@@ -46,11 +46,11 @@ async fn main() -> Result<()> {
     let tg_logs_chan = mpsc::channel(100);
     let log_chat_id = LOG_CHAT_ID.parse().ok().map(ChatId);
 
-    if IS_PROD {
-        notify_boot(&tg_logs_chan.0);
-    }
-
     init_logger(tg_logs_chan.0);
+
+    if IS_PROD {
+        log::info!(target = common::TG_LOG_TARGET; "Bot started");
+    }
 
     let db = DB::init(&db_path()).await?;
 
@@ -112,14 +112,6 @@ fn db_path() -> String {
     };
     log::debug!("opening db at {db_file}");
     db_file
-}
-
-fn notify_boot(sender: &Sender<LogMessage>) {
-    std::thread::scope(|s| {
-        s.spawn(|| {
-            let _ = sender.blocking_send(LogMessage::simple("Bot started"));
-        });
-    });
 }
 
 fn init_logger(sender: Sender<LogMessage>) {

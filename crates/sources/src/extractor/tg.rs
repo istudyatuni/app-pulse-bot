@@ -51,7 +51,9 @@ async fn fetch_public_channel_impl(name: &str) -> Result<Vec<Message>, FetchErro
                         log::error!("failed to parse seconds from FLOOD_WAIT_X ({s}) error");
                         break;
                     };
-                    return Err(FetchError::FloodWait(Duration::from_secs(sec)));
+                    let dur = Duration::from_secs(sec);
+                    log::warn!(target = common::TG_LOG_TARGET; "got FLOOD_WAIT_X, waiting for {dur:?}");
+                    return Err(FetchError::FloodWait(dur));
                 }
                 _ => (),
             }
@@ -59,9 +61,7 @@ async fn fetch_public_channel_impl(name: &str) -> Result<Vec<Message>, FetchErro
         return Err(FetchError::Arbitrary(errors));
     }
     if res.messages.is_empty() {
-        return Err(FetchError::Empty {
-            full: serde_json::from_str(&raw)?,
-        });
+        return Err(FetchError::Empty { full: raw });
     }
     Ok(res.messages)
 }
@@ -89,7 +89,7 @@ enum FetchError {
     #[error("got errors: {0:?}")]
     Arbitrary(Vec<ResponseError>),
     #[error("got no messages, raw content: {full:?}")]
-    Empty { full: serde_json::Value },
+    Empty { full: String },
     #[error("network error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("invalid json: {0}")]
@@ -167,7 +167,17 @@ mod tests {
 
     #[test]
     fn test_serde() -> Result<()> {
-        let _: Response = serde_json::from_str(r#"{"errors": ["FLOOD_WAIT_23", ["asdf"]]}"#)?;
+        let r: Response = serde_json::from_str(r#"{"errors": ["FLOOD_WAIT_23", ["asdf"]]}"#)?;
+        assert!(r.messages.is_empty());
+        assert!(r.errors.is_some_and(|e| !e.is_empty()
+            && match &e[0] {
+                ResponseError::String(s) => s == "FLOOD_WAIT_23",
+                _ => false,
+            }));
+
+        let r: Response = serde_json::from_str(r#"{}"#)?;
+        assert!(r.messages.is_empty());
+        assert!(r.errors.is_none());
 
         Ok(())
     }

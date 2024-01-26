@@ -1,11 +1,25 @@
 use std::thread;
 
-use log::{Level, Metadata, Record};
+use log::{kv::Key, Level, Metadata, Record};
 use simplelog::SharedLogger;
 use tokio::sync::mpsc::Sender;
 
 use crate::{handlers::tg_logs::LogMessage, TG_LOG_ENABLED};
 
+/// By default only error logs are sent. If [`crate::TG_LOG_ENABLED`] is
+/// false, do not send anything
+///
+/// If called with "target" key like `log::info!(target =
+/// common::TG_LOG_TARGET; "..")`, will send not only ERROR log.
+///
+/// - All error logs will be wrapped in markdown block with `[ERROR]` appended
+///
+/// If "target" is set:
+///
+/// - All info logs will be sent as is
+/// - All other logs will contain `Level: ` before message
+///
+/// All debug messages are filtered.
 #[derive(Debug)]
 pub(crate) struct TgLogger {
     sender: Sender<LogMessage>,
@@ -25,22 +39,31 @@ impl log::Log for TgLogger {
     }
 
     fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) {
+        // search key "target"
+        let should_always_send = record
+            .key_values()
+            .get(Key::from_str("target"))
+            .is_some_and(|v| v.to_string() == common::TG_LOG_TARGET);
+
+        if self.enabled(record.metadata()) || should_always_send {
             let text = record.args().to_string();
             if self.config.is_should_ignore(&text) {
                 return;
             }
 
-            let mut msg = format!("[ERROR] {text}\n        at {}", record.target());
-            if let Some(file) = record.file() {
-                msg += &format!(": {file}");
-                if let Some(line) = record.line() {
-                    msg += &format!(":{line}");
+            let level = record.metadata().level();
+            let msg = if should_always_send {
+                if level > Level::Error {
+                    LogMessage::simple(text)
+                } else {
+                    LogMessage::simple_with_level(text, level)
                 }
-            }
+            } else {
+                LogMessage::log_error(text, record.target(), record.file(), record.line())
+            };
             thread::scope(|s| {
                 s.spawn(|| {
-                    let _ = self.sender.blocking_send(LogMessage::log_error(msg));
+                    let _ = self.sender.blocking_send(msg);
                 });
             });
         }
@@ -51,7 +74,7 @@ impl log::Log for TgLogger {
 
 impl SharedLogger for TgLogger {
     fn level(&self) -> log::LevelFilter {
-        log::LevelFilter::Error
+        log::LevelFilter::Info
     }
 
     fn config(&self) -> Option<&simplelog::Config> {

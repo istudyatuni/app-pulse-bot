@@ -49,7 +49,7 @@ async fn main() -> Result<()> {
     init_logger(tg_logs_chan.0);
 
     if IS_PROD {
-        log::info!(target = common::TG_LOG_TARGET; "Bot started");
+        log::info!(tg = true; "Bot started");
     }
 
     let db = DB::init(&db_path()).await?;

@@ -13,8 +13,6 @@ pub fn version() -> u32 {
     *VERSION
 }
 
-pub const TG_LOG_TARGET: &str = "tg-notify";
-
 pub type UnixDateTime = i64;
 
 pub struct DateTime;

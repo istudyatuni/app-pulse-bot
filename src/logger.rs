@@ -9,17 +9,17 @@ use crate::{handlers::tg_logs::LogMessage, TG_LOG_ENABLED};
 /// By default only error logs are sent. If [`crate::TG_LOG_ENABLED`] is
 /// false, do not send anything
 ///
-/// If called with "target" key like `log::info!(target =
-/// common::TG_LOG_TARGET; "..")`, will send not only ERROR log.
+/// If called with "tg" key like `log::info!(tg = true; "..")`, will send not
+/// only ERROR log.
 ///
 /// - All error logs will be wrapped in markdown block with `[ERROR]` appended
 ///
-/// If "target" is set:
+/// If "tg" is set to `true`:
 ///
 /// - All info logs will be sent as is
-/// - All other logs will contain `Level: ` before message
+/// - All warn logs will contain `Warning: ` before message
 ///
-/// All debug messages are filtered.
+/// All debug and trace messages are filtered.
 #[derive(Debug)]
 pub(crate) struct TgLogger {
     sender: Sender<LogMessage>,
@@ -39,11 +39,11 @@ impl log::Log for TgLogger {
     }
 
     fn log(&self, record: &Record) {
-        // search key "target"
+        // search key "tg"
         let should_always_send = record
             .key_values()
-            .get(Key::from_str("target"))
-            .is_some_and(|v| v.to_string() == common::TG_LOG_TARGET);
+            .get(Key::from_str("tg"))
+            .is_some_and(|v| v.to_bool().is_some_and(|v| v));
 
         if self.enabled(record.metadata()) || should_always_send {
             let text = record.args().to_string();

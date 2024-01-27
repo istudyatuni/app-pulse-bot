@@ -52,14 +52,16 @@ impl log::Log for TgLogger {
             }
 
             let level = record.metadata().level();
-            let msg = if should_always_send {
-                if level > Level::Error {
-                    LogMessage::simple(text)
-                } else {
-                    LogMessage::simple_with_level(text, level)
+            let msg = if level <= Level::Error {
+                LogMessage::log_error(text, record.target(), record.file(), record.line())
+            } else if should_always_send {
+                match level {
+                    Level::Warn => LogMessage::simple_with_level(text, level),
+                    Level::Info => LogMessage::simple(text),
+                    _ => return,
                 }
             } else {
-                LogMessage::log_error(text, record.target(), record.file(), record.line())
+                return;
             };
             thread::scope(|s| {
                 s.spawn(|| {

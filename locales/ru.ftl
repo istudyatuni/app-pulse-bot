@@ -34,6 +34,8 @@ bot-updated = Бот обновился!
 
     { changelog }
 
+unknown-message = Попробуйте /help
+
 ## Buttons messages
 
 notify-button = Уведомлять

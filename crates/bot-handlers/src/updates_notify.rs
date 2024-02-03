@@ -44,7 +44,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 let user_id = user.user_id();
                 let chat_id = ChatId(user_id);
                 let lang = user.lang();
-                let f = match db.should_notify_user(user_id, app_id).await {
+                let res = match db.should_notify_user(user_id, app_id).await {
                     Ok(s) => match s {
                         ShouldNotify::Unspecified => {
                             send_suggest_update(bot.clone(), chat_id, &update, lang).await
@@ -62,7 +62,14 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                         continue;
                     }
                 };
-                f.log_on_error().await;
+                if let Err(e) = res {
+                    match e {
+                        UpdateError::BotBlocked(chat_id) => handle_bot_blocked(&db, chat_id).await,
+                        UpdateError::RequestError(ref e) => {
+                            log::error!("error from update notifier: {e}")
+                        }
+                    }
+                }
             }
         }
 
@@ -72,7 +79,12 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
     }
 }
 
-async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update, lang: &str) -> Result<()> {
+async fn send_suggest_update(
+    bot: Bot,
+    chat_id: ChatId,
+    update: &Update,
+    lang: &str,
+) -> Result<(), UpdateError> {
     let mut text = vec![tr!(new_app_msg, lang) + "\n"];
     if let Some(description) = update.description() {
         text.push(format!("\n{description}\n"));
@@ -90,11 +102,16 @@ async fn send_suggest_update(bot: Bot, chat_id: ChatId, update: &Update, lang: &
             NewAppKeyboardKind::Both,
             lang,
         ))
-        .await?;
-    Ok(())
+        .await
+        .map_error(chat_id)
 }
 
-async fn send_update(bot: Bot, chat_id: ChatId, update: &Update, lang: &str) -> Result<()> {
+async fn send_update(
+    bot: Bot,
+    chat_id: ChatId,
+    update: &Update,
+    lang: &str,
+) -> Result<(), UpdateError> {
     let app_id = update.app_id();
     let mut text = vec![tr!(new_update_msg, lang, app_id) + "\n"];
     if let Some(url) = update.update_link() {
@@ -110,8 +127,8 @@ async fn send_update(bot: Bot, chat_id: ChatId, update: &Update, lang: &str) -> 
             NewAppKeyboardKind::NotifyEnabled,
             lang,
         ))
-        .await?;
-    Ok(())
+        .await
+        .map_error(chat_id)
 }
 
 async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
@@ -129,9 +146,17 @@ async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
             .send_message(chat_id, text)
             .parse_mode(teloxide::types::ParseMode::MarkdownV2)
             .await
+            .map_error(chat_id)
         {
-            failed.0 += 1;
-            errors.push(e.to_string());
+            match e {
+                UpdateError::BotBlocked(chat_id) => {
+                    handle_bot_blocked(&db, chat_id).await;
+                }
+                UpdateError::RequestError(e) => {
+                    failed.0 += 1;
+                    errors.push(e.to_string());
+                }
+            }
         } else if let Err(e) = db.save_user_version_notified(user_id).await {
             log::error!("failed to save user {user_id} notified: {e}");
         }
@@ -150,4 +175,39 @@ async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[derive(Debug, thiserror::Error)]
+enum UpdateError {
+    #[error("bot blocked by user {0}")]
+    BotBlocked(ChatId),
+
+    #[error("{0}")]
+    RequestError(#[from] teloxide::RequestError),
+}
+
+trait MapError {
+    fn map_error(self, chat_id: ChatId) -> Result<(), UpdateError>;
+}
+
+impl<R> MapError for Result<R, teloxide::RequestError> {
+    fn map_error(self, chat_id: ChatId) -> Result<(), UpdateError> {
+        match self {
+            Ok(_) => Ok(()),
+            Err(e) => match e {
+                teloxide::RequestError::Api(teloxide::ApiError::BotBlocked) => {
+                    Err(UpdateError::BotBlocked(chat_id))
+                }
+                _ => Err(e.into()),
+            },
+        }
+    }
+}
+
+/// Save that user blocked bot
+async fn handle_bot_blocked(db: &DB, chat_id: ChatId) {
+    log::error!("bot blocked by user {chat_id}");
+    if let Err(e) = db.save_user_bot_blocked(chat_id, true).await {
+        log::error!("failed to save user bot_blocked: {e}")
+    }
 }

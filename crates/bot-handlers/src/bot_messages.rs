@@ -28,7 +28,7 @@ pub enum Command {
     Help,
 }
 
-pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
+pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
     let user = db.select_user(msg.chat.id).await.ok().flatten();
     let lang = get_user_lang(
         user.as_ref(),
@@ -37,13 +37,19 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
 
     match cmd {
         Command::Start => match user {
-            Some(_) => {
+            Some(u) => {
+                if u.bot_blocked() {
+                    log::info!(tg = true; "user {} returned", u.user_id());
+                    if let Err(e) = db.save_user_bot_blocked(u.user_id(), false).await {
+                        log::error!("failed to save that user is returned: {e}")
+                    }
+                }
                 send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
             }
             None => match db.add_user_with_lang(msg.chat.id, &lang).await {
                 Ok(()) => {
                     send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
-                    log::debug!("saved user: {:?}", db.select_user(msg.chat.id).await);
+                    log::debug!("saved user: {}", msg.chat.id);
                 }
                 Err(e) => log::error!("failed to save user {}: {e}", msg.chat.id.0),
             },
@@ -85,6 +91,18 @@ pub async fn message_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
         }
     };
 
+    Ok(())
+}
+
+pub async fn message_handler(bot: Bot, msg: Message, db: DB) -> ResponseResult<()> {
+    let user = db.select_user(msg.chat.id).await.ok().flatten();
+    let lang = get_user_lang(
+        user.as_ref(),
+        msg.from().and_then(|c| c.language_code.to_owned()),
+    );
+
+    bot.send_message(msg.chat.id, tr!(unknown_message, &lang))
+        .await?;
     Ok(())
 }
 

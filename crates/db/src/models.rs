@@ -11,6 +11,7 @@ pub struct User {
     user_id: Id,
     lang: String,
     last_notified_at: UnixDateTime,
+    bot_blocked: bool,
 }
 
 impl User {
@@ -19,6 +20,7 @@ impl User {
             user_id: user_id.into(),
             lang: i18n::DEFAULT_USER_LANG.to_string(),
             last_notified_at: DateTime::now(),
+            bot_blocked: false,
         }
     }
     pub fn new_with_lang(user_id: UserId, lang: impl Into<String>) -> Self {
@@ -26,6 +28,7 @@ impl User {
             user_id: user_id.into(),
             lang: lang.into(),
             last_notified_at: DateTime::now(),
+            bot_blocked: false,
         }
     }
     pub fn user_id(&self) -> Id {
@@ -36,6 +39,9 @@ impl User {
     }
     pub fn last_notified_at(&self) -> UnixDateTime {
         self.last_notified_at
+    }
+    pub fn bot_blocked(&self) -> bool {
+        self.bot_blocked
     }
 }
 

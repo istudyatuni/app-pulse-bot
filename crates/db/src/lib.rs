@@ -86,6 +86,7 @@ impl DB {
              join {SOURCE_TABLE} s on us.source_id = s.source_id
              join {APP_TABLE} a on a.source_id = s.source_id
              where us.subscribed = true
+               and u.bot_blocked = false
                and s.source_id = ?
                and a.app_id = ?
                and a.last_updated_at > u.last_notified_at",
@@ -108,7 +109,8 @@ impl DB {
         Ok(sqlx::query_as::<_, models::User>(&format!(
             "select *
              from {USER_TABLE}
-             where last_version_notified < ?",
+             where last_version_notified < ?
+               and bot_blocked = false",
         ))
         .bind(version)
         .fetch_all(&self.pool)
@@ -124,8 +126,6 @@ impl DB {
         log::debug!("saving user {user_id} should_notify: {should_notify:?}");
         let update = models::UserUpdate::new(user_id.into(), app_id, should_notify);
 
-        // on conflict: https://sqlite.org/lang_upsert.html
-        // "excluded." means "get new value"
         sqlx::query(&format!(
             "insert into {USER_UPDATE_TABLE}
              (user_id, source_id, app_id, should_notify)
@@ -218,6 +218,25 @@ impl DB {
              where user_id = ?"
         ))
         .bind(version)
+        .bind(user.user_id())
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+    pub async fn save_user_bot_blocked(
+        &self,
+        user_id: impl Into<UserId>,
+        blocked: bool,
+    ) -> Result<()> {
+        let user_id = user_id.into();
+        log::debug!("saving user {user_id} bot_blocked: {blocked}");
+        let user = models::User::new(user_id);
+        sqlx::query(&format!(
+            "update {USER_TABLE}
+             set bot_blocked = ?
+             where user_id = ?"
+        ))
+        .bind(blocked)
         .bind(user.user_id())
         .execute(&self.pool)
         .await?;

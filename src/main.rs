@@ -14,7 +14,9 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
-use bot_handlers::{callback_handler, message_handler, start_updates_notify_job, Command};
+use bot_handlers::{
+    callback_handler, command_handler, message_handler, start_updates_notify_job, Command,
+};
 use db::DB;
 use sources::{start_update_loop, UpdateSource};
 
@@ -163,11 +165,13 @@ async fn start_bot(bot: Bot, db: DB) {
     log::debug!("starting bot");
     let handler = dptree::entry()
         .branch(
-            Update::filter_message().branch(
-                dptree::entry()
-                    .filter_command::<Command>()
-                    .endpoint(message_handler),
-            ),
+            Update::filter_message()
+                .branch(
+                    dptree::entry()
+                        .filter_command::<Command>()
+                        .endpoint(command_handler),
+                )
+                .endpoint(message_handler),
         )
         .branch(Update::filter_callback_query().endpoint(callback_handler));
     Dispatcher::builder(bot.clone(), handler)

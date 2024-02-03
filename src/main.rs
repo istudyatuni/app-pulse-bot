@@ -27,16 +27,19 @@ mod handlers;
 mod logger;
 
 const DB_FILE: &str = dotenv!("DB_URL");
-const TG_BOT_TOKEN: &str = if IS_PROD {
+const LOG_CHAT_ID: &str = dotenv!("LOG_CHAT_ID");
+const BOT_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+const IS_REAL_PROD: bool = cfg!(feature = "prod");
+const IS_TEST_PROD: bool = cfg!(feature = "test-prod");
+const IS_PROD: bool = IS_REAL_PROD || IS_TEST_PROD;
+
+const TG_BOT_TOKEN: &str = if IS_REAL_PROD {
     dotenv!("PROD_BOT_TOKEN")
 } else {
     dotenv!("BOT_TOKEN")
 };
-const LOG_CHAT_ID: &str = dotenv!("LOG_CHAT_ID");
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
-
-const IS_PROD: bool = cfg!(feature = "prod");
-const LOG_LEVEL: LevelFilter = if IS_PROD {
+const LOG_LEVEL: LevelFilter = if IS_REAL_PROD {
     LevelFilter::Error
 } else {
     LevelFilter::Debug
@@ -58,7 +61,7 @@ async fn main() -> Result<()> {
 
     let bot = Bot::with_client(
         TG_BOT_TOKEN,
-        Client::builder().timeout(REQUEST_TIMEOUT).build()?,
+        Client::builder().timeout(BOT_REQUEST_TIMEOUT).build()?,
     );
     bot.set_my_commands(Command::bot_commands()).await?;
 
@@ -103,7 +106,7 @@ fn db_path() -> String {
     if DB_FILE.is_empty() {
         panic!("DB_URL env variable is empty")
     }
-    let db_file = if IS_PROD {
+    let db_file = if IS_REAL_PROD {
         let home = match std::env::var("HOME") {
             Ok(s) => s,
             Err(_) => "/".to_string(),
@@ -121,7 +124,7 @@ fn init_logger(sender: Sender<LogMessage>) {
 
     use logger::{Config as TgConfig, ConfigBuilder as TgConfigBuilder};
 
-    let term_config = if IS_PROD {
+    let term_config = if IS_REAL_PROD {
         Config::default()
     } else {
         ConfigBuilder::new()
@@ -133,7 +136,7 @@ fn init_logger(sender: Sender<LogMessage>) {
             .build()
     };
 
-    let tg_config = if IS_PROD {
+    let tg_config = if IS_REAL_PROD {
         TgConfigBuilder::new()
             .add_ignore("ConnectionReset")
             .add_ignore("TerminatedByOtherGetUpdates")

@@ -19,6 +19,7 @@ version = 0
 
 [features]
 prod = []
+test-prod = []
 
 [workspace.dependencies]
 anyhow = "1.0.75"

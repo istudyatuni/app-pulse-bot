@@ -49,7 +49,7 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
             None => match db.add_user_with_lang(msg.chat.id, &lang).await {
                 Ok(()) => {
                     send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
-                    log::debug!("saved user: {}", msg.chat.id);
+                    log::debug!("user {} saved", msg.chat.id);
                 }
                 Err(e) => log::error!("failed to save user {}: {e}", msg.chat.id.0),
             },
@@ -58,7 +58,7 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
             Ok(()) => {
                 bot.send_message(msg.chat.id, tr!(subscribed, &lang))
                     .await?;
-                log::debug!("subscribed user: {:?}", msg.chat.id);
+                log::debug!("user {} subscribed", msg.chat.id);
             }
             Err(e) => log::error!("failed to subscribe user {}: {e}", msg.chat.id.0),
         },
@@ -66,7 +66,7 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
             Ok(()) => {
                 bot.send_message(msg.chat.id, tr!(unsubscribed, &lang))
                     .await?;
-                log::debug!("unsubscribed user: {:?}", msg.chat.id);
+                log::debug!("user {} unsubscribed", msg.chat.id);
             }
             Err(e) => log::error!("failed to unsubscribe user {}: {e}", msg.chat.id.0),
         },

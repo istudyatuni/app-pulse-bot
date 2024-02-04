@@ -206,7 +206,7 @@ impl<R> MapError for Result<R, teloxide::RequestError> {
 
 /// Save that user blocked bot
 async fn handle_bot_blocked(db: &DB, chat_id: ChatId) {
-    log::error!("bot blocked by user {chat_id}");
+    log::info!(tg = true; "bot blocked by user {chat_id}");
     if let Err(e) = db.save_user_bot_blocked(chat_id, true).await {
         log::error!("failed to save user bot_blocked: {e}")
     }

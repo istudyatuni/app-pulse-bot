@@ -52,7 +52,7 @@ async fn fetch_public_channel_impl(name: &str) -> Result<Vec<Message>, FetchErro
                         break;
                     };
                     let dur = Duration::from_secs(sec);
-                    log::warn!(tg = true; "got FLOOD_WAIT_X, waiting for {dur:?}");
+                    log::warn!("got FLOOD_WAIT_X, waiting for {dur:?}");
                     return Err(FetchError::FloodWait(dur));
                 }
                 _ => (),

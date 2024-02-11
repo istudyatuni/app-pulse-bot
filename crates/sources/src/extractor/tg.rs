@@ -100,6 +100,7 @@ enum FetchError {
 #[cfg_attr(test, derive(Default))]
 pub(crate) struct Message {
     pub(crate) id: i32,
+    #[serde(deserialize_with = "deserialize_null_default")]
     pub(crate) message: String,
     pub(crate) reply_markup: Option<ReplyMarkup>,
     pub(crate) media: Option<Media>,
@@ -159,6 +160,16 @@ pub(crate) enum Document {
     },
     #[serde(other)]
     Unknown,
+}
+
+// https://github.com/serde-rs/serde/issues/1098#issuecomment-760711617
+fn deserialize_null_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    T: Default + Deserialize<'de>,
+    D: serde::Deserializer<'de>,
+{
+    let opt = Option::deserialize(deserializer)?;
+    Ok(opt.unwrap_or_default())
 }
 
 #[cfg(test)]

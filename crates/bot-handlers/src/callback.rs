@@ -23,11 +23,17 @@ impl TryFrom<&str> for Callback {
         let data: Vec<_> = value.split(':').collect();
         let res = match data[0] {
             NOTIFY_FLAG => {
-                if data.len() != 3 {
+                if data.len() < 3 {
                     return Err(CallbackParseError::InvalidCallback);
                 }
 
-                let (app_id, should_notify) = (data[1].to_string(), data[2]);
+                let (app_id, should_notify) = if data.len() == 3 {
+                    (data[1].to_string(), data[2])
+                } else {
+                    // if data[1] contains ':'
+                    (data[1..data.len()].join(":"), data[data.len() - 1])
+                };
+
                 let should_notify = match should_notify {
                     NOTIFY_TOKEN => ShouldNotify::Notify,
                     IGNORE_TOKEN => ShouldNotify::Ignore,

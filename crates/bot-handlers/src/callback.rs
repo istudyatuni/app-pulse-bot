@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 use crate::{
     keyboards::LanguagesKeyboardToken, IGNORE_TOKEN, NOTIFY_FLAG, NOTIFY_TOKEN, SET_LANG_FLAG,
 };
@@ -5,6 +7,7 @@ use crate::{
 use db::models::ShouldNotify;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub(crate) enum Callback {
     Notify {
         app_id: String,
@@ -31,7 +34,7 @@ impl TryFrom<&str> for Callback {
                     (data[1].to_string(), data[2])
                 } else {
                     // if data[1] contains ':'
-                    (data[1..data.len()].join(":"), data[data.len() - 1])
+                    (data[1..data.len() - 1].join(":"), data[data.len() - 1])
                 };
 
                 let should_notify = match should_notify {
@@ -57,9 +60,7 @@ impl TryFrom<&str> for Callback {
                 };
                 Callback::SetLang { lang, token }
             }
-            _ => {
-                return Err(CallbackParseError::UnknowkCallbackType);
-            }
+            _ => return Err(CallbackParseError::UnknowkCallbackType),
         };
         Ok(res)
     }
@@ -73,8 +74,78 @@ impl TryFrom<&String> for Callback {
     }
 }
 
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub(crate) enum CallbackParseError {
     InvalidCallback,
     InvalidToken,
     UnknowkCallbackType,
+}
+
+#[cfg(test)]
+impl Callback {
+    fn notify(app_id: &str, should_notify: ShouldNotify) -> Self {
+        Self::Notify {
+            app_id: app_id.to_string(),
+            should_notify,
+        }
+    }
+    fn set_lang(token: LanguagesKeyboardToken, lang: &str) -> Self {
+        Self::SetLang {
+            lang: lang.to_string(),
+            token,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_callback_from_str() {
+        let app_id = "some-app";
+        let strange_app_id = "some-app:name";
+        let table = vec![
+            (
+                format!("{NOTIFY_FLAG}:{app_id}:{NOTIFY_TOKEN}"),
+                Ok(Callback::notify(app_id, ShouldNotify::Notify)),
+            ),
+            (
+                format!("{NOTIFY_FLAG}:{app_id}:{IGNORE_TOKEN}"),
+                Ok(Callback::notify(app_id, ShouldNotify::Ignore)),
+            ),
+            (
+                format!("{NOTIFY_FLAG}:{strange_app_id}:{IGNORE_TOKEN}"),
+                Ok(Callback::notify(strange_app_id, ShouldNotify::Ignore)),
+            ),
+            (
+                format!("{SET_LANG_FLAG}:start:en"),
+                Ok(Callback::set_lang(LanguagesKeyboardToken::Start, "en")),
+            ),
+            (
+                format!("{SET_LANG_FLAG}:settings:en"),
+                Ok(Callback::set_lang(LanguagesKeyboardToken::Settings, "en")),
+            ),
+            (
+                format!("{SET_LANG_FLAG}:starta:en"),
+                Err(CallbackParseError::InvalidToken),
+            ),
+            (
+                format!("{NOTIFY_FLAG}:{app_id}:asdf"),
+                Err(CallbackParseError::InvalidToken),
+            ),
+            (
+                format!("{NOTIFY_FLAG}:{app_id}"),
+                Err(CallbackParseError::InvalidCallback),
+            ),
+            (
+                format!("{NOTIFY_FLAG}:{strange_app_id}"),
+                Err(CallbackParseError::InvalidToken),
+            ),
+        ];
+        for (input, expected) in table {
+            assert_eq!(Callback::try_from(&input), expected);
+        }
+    }
 }

@@ -30,3 +30,5 @@ pub fn admin_chat_id() -> Option<i64> {
 pub fn is_admin_chat_id(id: i64) -> bool {
     admin_chat_id().is_some_and(|i| i == id)
 }
+
+pub const NIXPKGS_PASS: &str = dotenv!("NIXPKGS_PASS");

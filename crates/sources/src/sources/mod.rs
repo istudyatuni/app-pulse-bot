@@ -6,6 +6,7 @@ use common::spawn_with_token;
 use crate::{UpdateSource, UpdatesList, start_list_update_loop};
 
 mod alexstranniklite;
+mod nixos;
 
 macro_rules! spawn_list_sources {
     () => {};
@@ -29,5 +30,8 @@ pub fn spawn_sources_update_jobs(
     token: CancellationToken,
     tx: Sender<UpdatesList>,
 ) {
-    spawn_list_sources![jobs, token, tx; alexstranniklite];
+    spawn_list_sources![
+        jobs, token, tx;
+        alexstranniklite,
+    ];
 }

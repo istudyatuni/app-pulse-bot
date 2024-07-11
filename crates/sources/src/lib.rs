@@ -59,6 +59,9 @@ pub trait UpdateSourceList: UpdateSource {
     }
 }
 
+/// Source that can be fetched for update by names of apps
+pub trait UpdateSourceByName {}
+
 /// Start update loop for UpdateSourceList
 pub async fn start_list_update_loop<S>(source: S, tx: Sender<UpdatesList>)
 where

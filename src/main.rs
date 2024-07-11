@@ -19,7 +19,7 @@ use bot_handlers::{
 };
 use common::{is_admin_chat_id, LogError};
 use db::DB;
-use sources::{start_update_loop, UpdateSource};
+use sources::{start_update_loop, UpdateSource, UpdatesList};
 
 use crate::{
     handlers::tg_logs::{start_tg_logs_job, LogMessage},
@@ -84,10 +84,7 @@ async fn main() -> Result<()> {
         cancel_token.clone(),
         start_bot(bot.clone(), db.clone()),
     ));
-    jobs.spawn(spawn_with_token(
-        cancel_token.clone(),
-        start_update_loop(sources::alexstranniklite::Source::new(), updates_chan.0),
-    ));
+    spawn_source_update_jobs(&mut jobs, cancel_token.clone(), updates_chan.0);
     jobs.spawn(spawn_with_token(
         cancel_token.clone(),
         run_collect_user_names_job(bot.clone(), db.clone()),
@@ -174,6 +171,17 @@ fn init_logger(sender: Sender<LogMessage>) {
         TgLogger::new(sender, tg_config),
     ])
     .expect("failed to init logger");
+}
+
+fn spawn_source_update_jobs(
+    jobs: &mut JoinSet<()>,
+    token: CancellationToken,
+    tx: Sender<UpdatesList>,
+) {
+    jobs.spawn(spawn_with_token(
+        token.clone(),
+        start_update_loop(sources::alexstranniklite::Source::new(), tx.clone()),
+    ));
 }
 
 async fn spawn_with_token<R>(token: CancellationToken, f: impl Future<Output = R>) {

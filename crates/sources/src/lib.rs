@@ -10,11 +10,14 @@ use common::UnixDateTime;
 pub mod alexstranniklite;
 
 mod extractor;
+mod timer;
 
-pub(crate) const TG_SOURCE_TIMEOUT: Duration = Duration::from_secs(60 * 60);
+pub(crate) const SOURCE_TIMEOUT: Duration = Duration::from_secs(60 * 60);
 
 #[async_trait]
 pub trait UpdateSource {
+    const SOURCE_TYPE: UpdateSourceType;
+
     /// Create source with default timeout
     fn new() -> Self;
 
@@ -43,6 +46,12 @@ pub trait UpdateSource {
         self.reset_timer();
         res
     }
+}
+
+#[derive(Debug)]
+pub enum UpdateSourceType {
+    /// Source send all updates
+    List,
 }
 
 #[derive(Debug, Default)]

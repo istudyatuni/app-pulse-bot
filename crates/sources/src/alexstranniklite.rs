@@ -1,9 +1,7 @@
-use std::{
-    sync::RwLock,
-    time::{Duration, Instant},
-};
+use std::time::Duration;
 
 use async_trait::async_trait;
+use timer::Timer;
 
 use crate::extractor::tg::{
     fetch_public_channel, Document, KeyboardButton, Media, Message, ReplyInlineMarkupRow,
@@ -14,46 +12,25 @@ use crate::*;
 const CHANNEL_NAME: &str = "alexstranniklite";
 
 pub struct Source {
-    timeout: Duration,
-    // probably RwLock is wrong
-    timer: RwLock<Instant>,
-}
-
-impl Source {
-    fn elapsed(&self) -> Duration {
-        self.timer
-            .read()
-            .expect("failed to read from timer: RwLock<Instant>")
-            .elapsed()
-    }
-    fn reset_timer(&self) {
-        let mut t = self
-            .timer
-            .write()
-            .expect("failed to write timer: RwLock<Instant>: already blocked");
-        *t = Instant::now()
-    }
+    timer: Timer,
 }
 
 #[async_trait]
 impl UpdateSource for Source {
+    const SOURCE_TYPE: UpdateSourceType = UpdateSourceType::List;
+
     fn new() -> Self {
-        Self::with_timeout(TG_SOURCE_TIMEOUT)
+        Self::with_timeout(SOURCE_TIMEOUT)
     }
 
     fn with_timeout(timeout: Duration) -> Self {
         Self {
-            timeout,
-            timer: RwLock::new(Instant::now() - timeout),
+            timer: Timer::new(timeout),
         }
     }
 
     fn wait_remains(&self) -> Option<Duration> {
-        if self.elapsed() < self.timeout {
-            Some(self.timeout - self.elapsed())
-        } else {
-            None
-        }
+        self.timer.elapsed_remains()
     }
 
     async fn get_updates(&self) -> super::UpdatesList {
@@ -106,12 +83,12 @@ impl UpdateSource for Source {
         }
         super::UpdatesList {
             updates,
-            last_update: last_update.unwrap_or(0),
+            last_update: last_update.unwrap_or_default(),
         }
     }
 
     fn reset_timer(&self) {
-        self.reset_timer()
+        self.timer.reset()
     }
 }
 

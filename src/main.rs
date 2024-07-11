@@ -103,6 +103,7 @@ async fn main() -> Result<()> {
 }
 
 fn db_path() -> String {
+    #[allow(clippy::const_is_empty)]
     if DB_FILE.is_empty() {
         panic!("DB_URL env variable is empty")
     }

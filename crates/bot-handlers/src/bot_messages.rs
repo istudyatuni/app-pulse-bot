@@ -154,12 +154,11 @@ mod tests {
 
     #[test]
     fn test_get_user_lang() {
-        assert!(["en", "ru"].iter().all(|lang| i18n::Localize::languages()
+        assert!(["en", "ru"]
             .iter()
-            .find(|&l| lang == l)
-            .is_some()));
+            .all(|lang| i18n::Localize::languages().iter().any(|l| lang == l)));
 
-        let table = vec![
+        let table = [
             (Some("en"), None, "en"),
             (Some("en"), Some("ru"), "en"),
             (None, Some("ru"), "ru"),

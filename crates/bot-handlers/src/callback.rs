@@ -1,8 +1,7 @@
 use anyhow::Result;
 
-use crate::{
-    keyboards::LanguagesKeyboardToken, IGNORE_TOKEN, NOTIFY_FLAG, NOTIFY_TOKEN, SET_LANG_FLAG,
-};
+use crate::keyboards::LanguagesKeyboardToken;
+use crate::{IGNORE_TOKEN, NOTIFY_FLAG, NOTIFY_TOKEN, SET_LANG_FLAG};
 
 use db::models::ShouldNotify;
 
@@ -60,7 +59,7 @@ impl TryFrom<&str> for Callback {
                 };
                 Callback::SetLang { lang, token }
             }
-            _ => return Err(CallbackParseError::UnknowkCallbackType),
+            _ => return Err(CallbackParseError::UnknownCallbackType),
         };
         Ok(res)
     }
@@ -79,7 +78,7 @@ impl TryFrom<&String> for Callback {
 pub(crate) enum CallbackParseError {
     InvalidCallback,
     InvalidToken,
-    UnknowkCallbackType,
+    UnknownCallbackType,
 }
 
 #[cfg(test)]

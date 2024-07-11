@@ -47,7 +47,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
                     log::error!("invalid token in callback: {data:?}");
                     tr!(something_wrong_invalid_callback, &lang)
                 }
-                CallbackParseError::UnknowkCallbackType => {
+                CallbackParseError::UnknownCallbackType => {
                     log::error!("unknown callback: {data:?}");
                     tr!(something_wrong_unknown_callback_type, &lang)
                 }

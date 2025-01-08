@@ -1,10 +1,12 @@
 use sqlx::{sqlite::SqliteRow, Row};
+use teloxide::utils::markdown::user_mention;
 
 use common::{DateTime, UnixDateTime};
 
-use crate::SOURCE_ID;
-
-use super::types::{Id, UserId};
+use crate::{
+    types::{Id, UserId},
+    SOURCE_ID,
+};
 
 #[derive(Debug, Default, sqlx::FromRow, bon::Builder)]
 pub struct User {
@@ -61,8 +63,8 @@ impl User {
         match (&self.username, &self.name) {
             (Some(username), Some(name)) => format!("@{username} ({name})"),
             (Some(username), None) => format!("@{username}"),
-            (None, Some(name)) => format!("[{name}](tg://user?id={})", self.user_id),
-            (None, None) => format!("[{id}](tg://user?id={id})", id = self.user_id),
+            (None, Some(name)) => user_mention(self.tg_user_id().into(), name),
+            (None, None) => user_mention(self.tg_user_id().into(), &self.user_id.to_string()),
         }
     }
 }

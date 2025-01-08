@@ -395,6 +395,8 @@ impl DB {
             blocked_users: self
                 .load_count(&format!("from {USER_TABLE} u where u.bot_blocked = true"))
                 .await?,
+            subscribed_users: 0,
+            unsubscribed_users: 0,
         })
     }
     async fn load_count(&self, sql_predicate: &str) -> Result<u32> {

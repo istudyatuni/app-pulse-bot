@@ -197,4 +197,6 @@ pub struct Stats {
     pub sources: u32,
     pub users: u32,
     pub blocked_users: u32,
+    pub subscribed_users: u32,
+    pub unsubscribed_users: u32,
 }

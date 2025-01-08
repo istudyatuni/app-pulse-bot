@@ -1,9 +1,7 @@
 use std::{future::Future, time::Duration};
 
 use anyhow::Result;
-use common::LogError;
 use dotenvy_macro::dotenv;
-use handlers::tg_logs::LogMessage;
 use reqwest::Client;
 use simplelog::LevelFilter;
 use teloxide::{prelude::*, types::BotCommandScope};
@@ -16,14 +14,17 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use bot_handlers::{
-    callback_handler, command_handler, message_handler, run_collect_user_names_job,
-    start_updates_notify_job, Command,
+    admin_command_handler, callback_handler, command_handler, message_handler,
+    run_collect_user_names_job, start_updates_notify_job, AdminCommand, Command,
 };
+use common::{admin_chat_id, LogError};
 use db::DB;
 use sources::{start_update_loop, UpdateSource};
 
-use crate::handlers::tg_logs::start_tg_logs_job;
-use crate::logger::TgLogger;
+use crate::{
+    handlers::tg_logs::{start_tg_logs_job, LogMessage},
+    logger::TgLogger,
+};
 
 mod handlers;
 mod logger;
@@ -191,6 +192,14 @@ async fn start_bot(bot: Bot, db: DB) {
                     dptree::entry()
                         .filter_command::<Command>()
                         .endpoint(command_handler),
+                )
+                .branch(
+                    dptree::entry()
+                        .filter_command::<AdminCommand>()
+                        .filter(|msg: Message| {
+                            admin_chat_id().is_some_and(|id| msg.chat.id.0 == id)
+                        })
+                        .endpoint(admin_command_handler),
                 )
                 .endpoint(message_handler),
         )

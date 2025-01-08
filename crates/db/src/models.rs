@@ -193,3 +193,11 @@ impl Source {
         self.last_updated_at
     }
 }
+
+#[derive(Debug)]
+pub struct Stats {
+    pub apps: u32,
+    pub sources: u32,
+    pub users: u32,
+    pub blocked_users: u32,
+}

@@ -385,6 +385,33 @@ impl DB {
     }
 }
 
+// Source
+impl DB {
+    pub async fn load_stats(&self) -> Result<models::Stats> {
+        Ok(models::Stats {
+            apps: self.load_count(&format!("from {APP_TABLE}")).await?,
+            sources: self.load_count(&format!("from {SOURCE_TABLE}")).await?,
+            users: self.load_count(&format!("from {USER_TABLE}")).await?,
+            blocked_users: self
+                .load_count(&format!("from {USER_TABLE} u where u.bot_blocked = true"))
+                .await?,
+        })
+    }
+    async fn load_count(&self, sql_predicate: &str) -> Result<u32> {
+        Ok(
+            sqlx::query_as::<_, FetchCount>(&format!("select count(*) as count {sql_predicate}"))
+                .fetch_one(&self.pool)
+                .await?
+                .count,
+        )
+    }
+}
+
+#[derive(sqlx::FromRow)]
+struct FetchCount {
+    count: u32,
+}
+
 #[cfg(test)]
 mod tests {
     use std::ops::RangeFrom;

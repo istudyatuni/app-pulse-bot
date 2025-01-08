@@ -44,7 +44,7 @@ notify-button = Notify
 ignore-button = Ignore
 see-update-button = See update
 
-## Other
+## Misc
 
 # https://emojipedia.org/flags
 lang-name = 🇺🇸 English
@@ -81,8 +81,16 @@ help-command = Display help
 
 # Admin commands
 
-admins-commands-header = *Commands for admin:*
+admin-commands-header = *Commands for admin:*
 stats-command = Statistics
+
+## Stats
+
+stats-header = *Statistics*
+stats-apps = Applications
+stats-sources = Sources
+stats-users = Total users
+stats-users-blocked = Users who have blocked the bot
 
 ## Changelog
 

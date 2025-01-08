@@ -44,7 +44,7 @@ notify-button = Уведомлять
 ignore-button = Игнорировать
 see-update-button = Посмотреть обновление
 
-## Other
+## Misc
 
 lang-name = 🇷🇺 Русский
 
@@ -80,8 +80,16 @@ help-command = Показать справку
 
 # Admin commands
 
-admins-commands-header = *Команды для админа:*
+admin-commands-header = *Команды для админа:*
 stats-command = Статистика
+
+## Stats
+
+stats-header = *Статистика*
+stats-apps = Приложений
+stats-sources = Источников
+stats-users = Всего пользователей
+stats-users-blocked = Пользователей, заблокировавших бота
 
 ## Changelog
 

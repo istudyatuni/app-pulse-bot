@@ -40,10 +40,7 @@ static HELP_CACHE: LazyLock<Mutex<HashMap<HelpCacheKey, String>>> =
 
 pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
     let user = db.select_user(msg.chat.id).await.ok().flatten();
-    let lang = get_user_lang(
-        user.as_ref(),
-        msg.from().and_then(|c| c.language_code.to_owned()),
-    );
+    let lang = get_user_lang(user.as_ref(), msg.from());
 
     if !msg.chat.is_private() && !cmd.allowed_in_public() {
         bot.send_message(msg.chat.id, tr!(command_not_available_in_public, &lang))
@@ -139,10 +136,7 @@ async fn handle_start_command(
 
 pub async fn message_handler(bot: Bot, msg: Message, db: DB) -> ResponseResult<()> {
     let user = db.select_user(msg.chat.id).await.ok().flatten();
-    let lang = get_user_lang(
-        user.as_ref(),
-        msg.from().and_then(|c| c.language_code.to_owned()),
-    );
+    let lang = get_user_lang(user.as_ref(), msg.from());
 
     bot.send_message(msg.chat.id, tr!(unknown_message, &lang))
         .await?;
@@ -183,7 +177,7 @@ fn make_help(lang: &str, admin: bool) -> String {
             // add it here because handler for generaral Command is invoked before AdminCommand
             [
                 "".to_string(),
-                tr!(admins_commands_header, lang),
+                tr!(admin_commands_header, lang),
                 "".to_string(),
                 build_commands(AdminCommand::bot_commands_translated(lang)),
                 "".to_string(),
@@ -204,23 +198,26 @@ async fn send_welcome_msg(bot: Bot, chat_id: ChatId, lang: &str) -> ResponseResu
     Ok(())
 }
 
-fn get_user_lang<S>(user: Option<&User>, tg_lang: Option<S>) -> String
-where
-    S: AsRef<str>,
-{
+pub(crate) fn get_user_lang(user: Option<&User>, from: Option<&teloxide::types::User>) -> String {
+    get_user_lang_impl(
+        user,
+        from.and_then(|c| c.language_code.to_owned()).as_deref(),
+    )
+}
+
+fn get_user_lang_impl(user: Option<&User>, from: Option<&str>) -> String {
     // 1. get lang from db
     // 2. get lang from msg.from.language_code and check, if it's available
     // 3. otherwise return DEFAULT_USER_LANG
-    user.map(|u| u.lang().to_owned()).unwrap_or(
-        tg_lang
-            .and_then(|lang| {
-                i18n::Localize::languages()
-                    .iter()
-                    .find(|&&l| lang.as_ref() == l)
-                    .map(|l| l.to_string())
-            })
-            .unwrap_or(DEFAULT_USER_LANG.to_string()),
-    )
+    user.map(|u| u.lang().to_owned()).unwrap_or_else(|| {
+        from.and_then(|lang| {
+            i18n::Localize::languages()
+                .iter()
+                .find(|&&l| lang == l)
+                .map(|l| l.to_string())
+        })
+        .unwrap_or(DEFAULT_USER_LANG.to_string())
+    })
 }
 
 #[cfg(test)]
@@ -247,7 +244,7 @@ mod tests {
                     .build()
             });
             assert_eq!(
-                get_user_lang(user.as_ref(), tg_lang),
+                get_user_lang_impl(user.as_ref(), tg_lang),
                 expected,
                 "test table[{i}]"
             );

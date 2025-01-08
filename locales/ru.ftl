@@ -76,7 +76,7 @@ unsubscribe-command = Отписаться
 changelog-command = Список изменений
 settings-command = Настройки
 about-command = Об этом боте
-help-command = Показать эту справку
+help-command = Показать справку
 
 ## Changelog
 

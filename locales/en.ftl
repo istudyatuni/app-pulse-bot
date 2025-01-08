@@ -77,7 +77,7 @@ unsubscribe-command = Unsubscribe
 changelog-command = Changelog
 settings-command = Configuration
 about-command = About this bot
-help-command = Display this help
+help-command = Display help
 
 ## Changelog
 

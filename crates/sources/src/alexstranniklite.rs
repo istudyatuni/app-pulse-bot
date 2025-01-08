@@ -68,7 +68,14 @@ impl UpdateSource for Source {
 
         let mut last_update = None;
 
-        // Seaching 2 messages: update, then description, only in this case saving update
+        // Seaching 2 messages: update, then maybe message with apk only, then
+        // description, only in this case saving update. Possible sequences:
+        //
+        // 1. update (apk) with name - description
+        // 2. update (apk) with name - apk - description
+        // 3. apk - update (apk) with name - description
+        //
+        // case 3 does not require special handling
         let channel_link = format!("https://t.me/{CHANNEL_NAME}/");
         let mut updates = vec![];
         let mut msg_with_update = None;
@@ -77,18 +84,22 @@ impl UpdateSource for Source {
                 msg_with_update = Some(msg);
                 continue;
             }
-            if let Some(upd) = &msg_with_update {
+            if let Some(update) = &msg_with_update {
                 if is_description(&msg) {
+                    // handle case 1
                     updates.push(
                         Update::builder()
-                            .app_id(get_app_id(upd))
+                            .app_id(get_app_id(update))
                             .description_link(&format!("{channel_link}{}", msg.id))
-                            .update_link(&format!("{channel_link}{}", upd.id))
-                            .update_time(upd.date)
+                            .update_link(&format!("{channel_link}{}", update.id))
+                            .update_time(update.date)
                             .build(),
                     );
 
-                    last_update = last_update.or(Some(upd.date));
+                    last_update = last_update.or(Some(update.date));
+                } else if has_apk_attachment(&msg) {
+                    // handle case 2
+                    continue;
                 }
                 msg_with_update = None;
             }
@@ -108,9 +119,9 @@ fn is_description(msg: &Message) -> bool {
     has_button(msg, "DOWNLOAD 🛡")
 }
 
-/// If this is a message with APK
+/// If this is a message with APK and has message (with app id)
 fn is_update(msg: &Message) -> bool {
-    has_discuss_button(msg) || has_apk_attachment(msg)
+    (has_discuss_button(msg) || has_apk_attachment(msg)) && !msg.message.is_empty()
 }
 
 fn has_discuss_button(msg: &Message) -> bool {

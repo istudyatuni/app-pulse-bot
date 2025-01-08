@@ -13,7 +13,7 @@ pub struct User {
     /// User ID
     user_id: Id,
 
-    /// User username
+    /// Username
     username: Option<String>,
 
     /// First name + last name
@@ -35,12 +35,7 @@ pub struct User {
 impl User {
     #[cfg(test)]
     pub fn new(user_id: UserId) -> Self {
-        Self {
-            user_id: user_id.into(),
-            lang: i18n::DEFAULT_USER_LANG.to_string(),
-            last_notified_at: DateTime::now(),
-            ..Default::default()
-        }
+        Self::builder().user_id(user_id.into()).build()
     }
     pub fn user_id(&self) -> Id {
         self.user_id

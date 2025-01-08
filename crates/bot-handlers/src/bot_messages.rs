@@ -68,7 +68,7 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                 let user = User::builder().user_id(id.into()).lang(lang.clone());
                 let user = if let ChatKind::Private(chat) = msg.chat.kind {
                     user.maybe_username(chat.username.clone())
-                        .maybe_name(get_chat_name(chat))
+                        .maybe_name(get_chat_name(&chat))
                         .build()
                 } else {
                     log::error!("handler for command /start called not in private chat");

@@ -122,12 +122,11 @@ fn make_help(lang: &str) -> String {
     [
         tr!(commands_list_header, lang),
         "".to_string(),
-        "/subscribe - ".to_string() + tr!(subscribe_command, lang).as_str(),
-        "/unsubscribe - ".to_string() + tr!(unsubscribe_command, lang).as_str(),
-        "/changelog - ".to_string() + tr!(changelog_command, lang).as_str(),
-        "/settings - ".to_string() + tr!(settings_command, lang).as_str(),
-        "/about - ".to_string() + tr!(about_command, lang).as_str(),
-        "/help - ".to_string() + tr!(help_command, lang).as_str(),
+        Command::bot_commands_translated(lang)
+            .into_iter()
+            .map(|c| format!("{} - {}", c.command, c.description))
+            .collect::<Vec<_>>()
+            .join("\n"),
         "".to_string(),
         tr!(how_to_use, lang),
     ]

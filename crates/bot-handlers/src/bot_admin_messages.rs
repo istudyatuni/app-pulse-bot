@@ -8,7 +8,11 @@ use teloxide::{
 use db::{models::Stats, DB};
 use i18n::{tr, tr_literal};
 
-use crate::{bot_messages::get_user_lang, commands::AdminCommand, utils::escape};
+use crate::{
+    bot_messages::{get_help, get_user_lang},
+    commands::AdminCommand,
+    utils::escape,
+};
 
 pub async fn admin_command_handler(
     bot: Bot,
@@ -28,6 +32,11 @@ pub async fn admin_command_handler(
             }
             Err(e) => log::error!("failed to get stats: {e}"),
         },
+        AdminCommand::Help => {
+            bot.send_message(msg.chat.id, escape(get_help(&lang, true)))
+                .parse_mode(teloxide::types::ParseMode::MarkdownV2)
+                .await?;
+        }
     }
 
     Ok(())

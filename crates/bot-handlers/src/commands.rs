@@ -40,6 +40,8 @@ impl Command {
 pub enum AdminCommand {
     #[command(description = "$stats-command")]
     Stats,
+    #[command(hide)]
+    Help,
 }
 
 impl AdminCommand {

@@ -190,16 +190,16 @@ async fn start_bot(bot: Bot, db: DB) {
             Update::filter_message()
                 .branch(
                     dptree::entry()
-                        .filter_command::<Command>()
-                        .endpoint(command_handler),
-                )
-                .branch(
-                    dptree::entry()
                         .filter_command::<AdminCommand>()
                         .filter(|msg: Message| {
                             admin_chat_id().is_some_and(|id| msg.chat.id.0 == id)
                         })
                         .endpoint(admin_command_handler),
+                )
+                .branch(
+                    dptree::entry()
+                        .filter_command::<Command>()
+                        .endpoint(command_handler),
                 )
                 .endpoint(message_handler),
         )

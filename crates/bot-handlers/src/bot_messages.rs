@@ -8,7 +8,6 @@ use teloxide::{
     types::{BotCommand, ChatKind},
 };
 
-use common::admin_chat_id;
 use db::{models::User, types, DB};
 
 use crate::{
@@ -81,12 +80,9 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                 .await?;
         }
         Command::Help => {
-            bot.send_message(
-                msg.chat.id,
-                escape(get_help(&lang, is_admin_chat(msg.chat.id))),
-            )
-            .parse_mode(teloxide::types::ParseMode::MarkdownV2)
-            .await?;
+            bot.send_message(msg.chat.id, escape(get_help(&lang, false)))
+                .parse_mode(teloxide::types::ParseMode::MarkdownV2)
+                .await?;
         }
     };
 
@@ -143,11 +139,7 @@ pub async fn message_handler(bot: Bot, msg: Message, db: DB) -> ResponseResult<(
     Ok(())
 }
 
-fn is_admin_chat(chat_id: ChatId) -> bool {
-    admin_chat_id().is_some_and(|id| id == chat_id.0)
-}
-
-fn get_help(lang: &str, admin: bool) -> String {
+pub(crate) fn get_help(lang: &str, admin: bool) -> String {
     let key = HelpCacheKey::new(lang, admin);
 
     log::debug!("sending help, admin = {admin}");
@@ -174,7 +166,6 @@ fn make_help(lang: &str, admin: bool) -> String {
         "".to_string(),
         build_commands(Command::bot_commands_translated(lang)),
         if admin {
-            // add it here because handler for generaral Command is invoked before AdminCommand
             [
                 "".to_string(),
                 tr!(admin_commands_header, lang),
@@ -184,9 +175,8 @@ fn make_help(lang: &str, admin: bool) -> String {
             ]
             .join("\n")
         } else {
-            "".to_string()
+            ["".to_string(), tr!(how_to_use, lang)].join("\n")
         },
-        tr!(how_to_use, lang),
     ]
     .join("\n")
 }

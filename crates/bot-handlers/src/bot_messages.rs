@@ -30,8 +30,8 @@ pub enum Command {
 }
 
 impl Command {
-    /// Check if command works in public chats
-    fn is_work_in_public(self) -> bool {
+    /// Check if command allowed in public chats
+    fn allowed_in_public(self) -> bool {
         match self {
             Self::Start | Self::Subscribe | Self::Unsubscribe => false,
             Self::Changelog | Self::Settings | Self::About | Self::Help => true,
@@ -46,7 +46,7 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
         msg.from().and_then(|c| c.language_code.to_owned()),
     );
 
-    if !msg.chat.is_private() && !cmd.is_work_in_public() {
+    if !msg.chat.is_private() && !cmd.allowed_in_public() {
         bot.send_message(msg.chat.id, tr!(command_not_available_in_public, &lang))
             .await?;
         return Ok(());

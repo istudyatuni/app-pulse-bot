@@ -6,7 +6,7 @@ use dotenvy_macro::dotenv;
 use handlers::tg_logs::LogMessage;
 use reqwest::Client;
 use simplelog::LevelFilter;
-use teloxide::prelude::*;
+use teloxide::{prelude::*, types::BotCommandScope};
 
 use tokio::{
     signal,
@@ -112,6 +112,7 @@ async fn set_bot_commands(bot: Bot) -> Result<()> {
     for lang in i18n::Localize::languages() {
         bot.set_my_commands(Command::bot_commands_translated(lang))
             .language_code(lang)
+            .scope(BotCommandScope::AllPrivateChats)
             .await?;
     }
 

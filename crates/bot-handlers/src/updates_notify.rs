@@ -103,7 +103,7 @@ async fn send_suggest_update(
             lang,
         ))
         .await
-        .map_error(chat_id)
+        .map_bot_blocked_error(chat_id)
 }
 
 async fn send_update(
@@ -128,7 +128,7 @@ async fn send_update(
             lang,
         ))
         .await
-        .map_error(chat_id)
+        .map_bot_blocked_error(chat_id)
 }
 
 async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
@@ -146,7 +146,7 @@ async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
             .send_message(chat_id, text)
             .parse_mode(teloxide::types::ParseMode::MarkdownV2)
             .await
-            .map_error(chat_id)
+            .map_bot_blocked_error(chat_id)
         {
             match e {
                 UpdateError::BotBlocked(chat_id) => {
@@ -186,12 +186,12 @@ enum UpdateError {
     RequestError(#[from] teloxide::RequestError),
 }
 
-trait MapError {
-    fn map_error(self, chat_id: ChatId) -> Result<(), UpdateError>;
+trait MapBotBlockedError {
+    fn map_bot_blocked_error(self, chat_id: ChatId) -> Result<(), UpdateError>;
 }
 
-impl<R> MapError for Result<R, teloxide::RequestError> {
-    fn map_error(self, chat_id: ChatId) -> Result<(), UpdateError> {
+impl<R> MapBotBlockedError for Result<R, teloxide::RequestError> {
+    fn map_bot_blocked_error(self, chat_id: ChatId) -> Result<(), UpdateError> {
         match self {
             Ok(_) => Ok(()),
             Err(e) => match e {

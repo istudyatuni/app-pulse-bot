@@ -35,7 +35,7 @@ shell:
 # Build for prod using cross
 [private]
 build-release:
-	# disabling sccache and clang linker
+	@# disabling sccache and clang linker
 	cross b --release \
 		--features=prod \
 		--target=x86_64-unknown-linux-musl \

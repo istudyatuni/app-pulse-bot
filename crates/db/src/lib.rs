@@ -43,8 +43,11 @@ impl DB {
         user_id: impl Into<UserId>,
         lang: impl Into<String>,
     ) -> Result<()> {
-        self.add_user_impl(models::User::new_with_lang(user_id.into(), lang))
-            .await
+        let user = models::User::builder()
+            .user_id(user_id.into().into())
+            .lang(lang.into())
+            .build();
+        self.add_user_impl(user).await
     }
     async fn add_user_impl(&self, user: models::User) -> Result<()> {
         log::debug!("saving user {}", user.user_id());

@@ -6,29 +6,32 @@ use crate::SOURCE_ID;
 
 use super::types::{Id, UserId};
 
-#[derive(Debug, Default, sqlx::FromRow)]
+#[derive(Debug, Default, sqlx::FromRow, bon::Builder)]
 pub struct User {
+    /// User ID
     user_id: Id,
+
+    /// Language, selected by user
+    #[builder(default = i18n::DEFAULT_USER_LANG.to_string())]
     lang: String,
+
+    /// When user was last notified
+    #[builder(default = DateTime::now())]
     last_notified_at: UnixDateTime,
+
+    /// Is bot blocked by user
+    #[builder(default)]
     bot_blocked: bool,
 }
 
 impl User {
+    #[cfg(test)]
     pub fn new(user_id: UserId) -> Self {
         Self {
             user_id: user_id.into(),
             lang: i18n::DEFAULT_USER_LANG.to_string(),
             last_notified_at: DateTime::now(),
-            bot_blocked: false,
-        }
-    }
-    pub fn new_with_lang(user_id: UserId, lang: impl Into<String>) -> Self {
-        Self {
-            user_id: user_id.into(),
-            lang: lang.into(),
-            last_notified_at: DateTime::now(),
-            bot_blocked: false,
+            ..Default::default()
         }
     }
     pub fn user_id(&self) -> Id {

@@ -181,7 +181,12 @@ mod tests {
             (None, None, DEFAULT_USER_LANG),
         ];
         for (i, &(db_lang, tg_lang, expected)) in table.iter().enumerate() {
-            let user = db_lang.map(|lang| User::new_with_lang(0.into(), lang));
+            let user = db_lang.map(|lang| {
+                User::builder()
+                    .user_id(0.into())
+                    .lang(lang.to_string())
+                    .build()
+            });
             assert_eq!(
                 get_user_lang(user.as_ref(), tg_lang),
                 expected,

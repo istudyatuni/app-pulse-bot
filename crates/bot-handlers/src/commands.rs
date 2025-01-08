@@ -1,7 +1,9 @@
 use i18n::tr_literal;
-use teloxide::{macros::BotCommands, types::BotCommand};
+use teloxide::{
+    macros::BotCommands as DeriveBotCommands, types::BotCommand, utils::command::BotCommands,
+};
 
-#[derive(BotCommands, Clone, Copy)]
+#[derive(DeriveBotCommands, Clone, Copy)]
 #[command(rename_rule = "lowercase")]
 pub enum Command {
     #[command(description = "off")]
@@ -22,18 +24,7 @@ pub enum Command {
 
 impl Command {
     pub fn bot_commands_translated(lang: &str) -> impl IntoIterator<Item = BotCommand> {
-        use teloxide::utils::command::BotCommands;
-
-        let lang = lang.to_owned();
-        Self::bot_commands().into_iter().map(move |c| {
-            if c.description.starts_with("$") {
-                let description = c.description.trim_start_matches('$');
-                let description = tr_literal!(description, lang.as_str());
-                c.description(description)
-            } else {
-                c
-            }
-        })
+        translate_bot_commands(Self::bot_commands(), lang)
     }
     /// Check if command allowed in public chats
     pub(crate) fn allowed_in_public(self) -> bool {
@@ -42,4 +33,33 @@ impl Command {
             Self::Changelog | Self::Settings | Self::About | Self::Help => true,
         }
     }
+}
+
+#[derive(BotCommands, Clone, Copy)]
+#[command(rename_rule = "lowercase")]
+pub enum AdminCommand {
+    #[command(description = "$stats-command")]
+    Stats,
+}
+
+impl AdminCommand {
+    pub fn bot_commands_translated(lang: &str) -> impl IntoIterator<Item = BotCommand> {
+        translate_bot_commands(Self::bot_commands(), lang)
+    }
+}
+
+fn translate_bot_commands(
+    commands: Vec<BotCommand>,
+    lang: &str,
+) -> impl IntoIterator<Item = BotCommand> {
+    let lang = lang.to_owned();
+    commands.into_iter().map(move |c| {
+        if c.description.starts_with("$") {
+            let description = c.description.trim_start_matches('$');
+            let description = tr_literal!(description, lang.as_str());
+            c.description(description)
+        } else {
+            c
+        }
+    })
 }

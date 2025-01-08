@@ -78,6 +78,11 @@ settings-command = Настройки
 about-command = Об этом боте
 help-command = Показать справку
 
+# Admin commands
+
+admins-commands-header = *Команды для админа:*
+stats-command = Статистика
+
 ## Changelog
 
 changelog-header = *Что нового:*

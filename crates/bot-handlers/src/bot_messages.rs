@@ -3,11 +3,16 @@ use std::{
     sync::{LazyLock, Mutex},
 };
 
-use teloxide::{prelude::*, types::ChatKind};
+use teloxide::{
+    prelude::*,
+    types::{BotCommand, ChatKind},
+};
 
+use common::admin_chat_id;
 use db::{models::User, types, DB};
 
 use crate::{
+    commands::AdminCommand,
     keyboards::{Keyboards, LanguagesKeyboardToken},
     tr,
     user::get_chat_name,
@@ -15,7 +20,22 @@ use crate::{
     Command, DEFAULT_USER_LANG,
 };
 
-static HELP_CACHE: LazyLock<Mutex<HashMap<String, String>>> =
+#[derive(Debug, PartialEq, Eq, Hash)]
+struct HelpCacheKey {
+    lang: String,
+    admin: bool,
+}
+
+impl HelpCacheKey {
+    fn new(lang: &str, admin: bool) -> Self {
+        Self {
+            lang: lang.to_owned(),
+            admin,
+        }
+    }
+}
+
+static HELP_CACHE: LazyLock<Mutex<HashMap<HelpCacheKey, String>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
@@ -64,9 +84,12 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                 .await?;
         }
         Command::Help => {
-            bot.send_message(msg.chat.id, escape(get_help(&lang)))
-                .parse_mode(teloxide::types::ParseMode::MarkdownV2)
-                .await?;
+            bot.send_message(
+                msg.chat.id,
+                escape(get_help(&lang, is_admin_chat(msg.chat.id))),
+            )
+            .parse_mode(teloxide::types::ParseMode::MarkdownV2)
+            .await?;
         }
     };
 
@@ -126,25 +149,49 @@ pub async fn message_handler(bot: Bot, msg: Message, db: DB) -> ResponseResult<(
     Ok(())
 }
 
-fn get_help(lang: &str) -> String {
+fn is_admin_chat(chat_id: ChatId) -> bool {
+    admin_chat_id().is_some_and(|id| id == chat_id.0)
+}
+
+fn get_help(lang: &str, admin: bool) -> String {
+    let key = HelpCacheKey::new(lang, admin);
+
+    log::debug!("sending help, admin = {admin}");
+
     HELP_CACHE
         .lock()
         .unwrap()
-        .entry(lang.to_owned())
-        .or_insert_with(|| make_help(lang))
+        .entry(key)
+        .or_insert_with(|| make_help(lang, admin))
         .to_owned()
 }
 
-fn make_help(lang: &str) -> String {
-    [
-        tr!(commands_list_header, lang),
-        "".to_string(),
-        Command::bot_commands_translated(lang)
+fn make_help(lang: &str, admin: bool) -> String {
+    fn build_commands(commands: impl IntoIterator<Item = BotCommand>) -> String {
+        commands
             .into_iter()
             .map(|c| format!("{} - {}", c.command, c.description))
             .collect::<Vec<_>>()
-            .join("\n"),
+            .join("\n")
+    }
+
+    [
+        tr!(commands_list_header, lang),
         "".to_string(),
+        build_commands(Command::bot_commands_translated(lang)),
+        if admin {
+            // add it here because handler for generaral Command is invoked before AdminCommand
+            [
+                "".to_string(),
+                tr!(admins_commands_header, lang),
+                "".to_string(),
+                build_commands(AdminCommand::bot_commands_translated(lang)),
+                "".to_string(),
+            ]
+            .join("\n")
+        } else {
+            "".to_string()
+        },
         tr!(how_to_use, lang),
     ]
     .join("\n")

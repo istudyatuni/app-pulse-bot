@@ -79,6 +79,11 @@ settings-command = Configuration
 about-command = About this bot
 help-command = Display help
 
+# Admin commands
+
+admins-commands-header = *Commands for admin:*
+stats-command = Statistics
+
 ## Changelog
 
 changelog-header = *What's new:*

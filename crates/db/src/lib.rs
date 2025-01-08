@@ -1,4 +1,3 @@
-use anyhow::Result;
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 
 pub mod models;
@@ -16,6 +15,16 @@ const SOURCE_TABLE: &str = "source";
 
 // Temporary, while there is only one source
 const SOURCE_ID: Id = 1;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Sqlx(#[from] sqlx::Error),
+    #[error(transparent)]
+    Migrate(#[from] sqlx::migrate::MigrateError)
+}
+
+type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug, Clone)]
 pub struct DB {

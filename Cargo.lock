@@ -420,13 +420,13 @@ dependencies = [
 name = "db"
 version = "0.3.0"
 dependencies = [
- "anyhow",
  "bon",
  "common",
  "i18n",
  "log",
  "sqlx",
  "teloxide",
+ "thiserror",
  "tokio",
 ]
 

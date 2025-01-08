@@ -18,7 +18,7 @@
           pkgs.mkShell {
             nativeBuildInputs = [
               just
-              # cargo-nextest
+              cargo-nextest
               sqlite
             ];
             buildInputs = [];

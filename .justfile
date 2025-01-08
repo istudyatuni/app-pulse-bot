@@ -10,7 +10,7 @@ check:
 
 # Run tests
 test what='--workspace':
-	cargo test {{what}}
+	cargo nextest run {{what}}
 
 build-deploy ssh ssh-path post-deploy-ssh-script: check
 	@just build-release

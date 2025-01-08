@@ -2,3 +2,4 @@
 /target
 *.sublime-workspace
 .env
+flake.drv*

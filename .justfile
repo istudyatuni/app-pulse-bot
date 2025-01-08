@@ -28,6 +28,10 @@ bump package bot:
 	tomato set 'package.metadata.bot.version' {{bot}} Cargo.toml
 	cargo c
 
+# enter shell with dependencies
+shell:
+    nix develop --profile flake.drv ".#"
+
 # Build for prod using cross
 [private]
 build-release:

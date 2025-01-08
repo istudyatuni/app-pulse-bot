@@ -28,6 +28,10 @@ pub fn admin_chat_id() -> Option<i64> {
     *ADMIN_CHAT_ID
 }
 
+pub fn is_admin_chat_id(id: i64) -> bool {
+    admin_chat_id().is_some_and(|i| i == id)
+}
+
 pub type UnixDateTime = i64;
 
 pub struct DateTime;

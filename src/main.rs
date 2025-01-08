@@ -17,7 +17,7 @@ use bot_handlers::{
     admin_command_handler, callback_handler, command_handler, message_handler,
     run_collect_user_names_job, start_updates_notify_job, AdminCommand, Command,
 };
-use common::{admin_chat_id, LogError};
+use common::{is_admin_chat_id, LogError};
 use db::DB;
 use sources::{start_update_loop, UpdateSource};
 
@@ -191,9 +191,7 @@ async fn start_bot(bot: Bot, db: DB) {
                 .branch(
                     dptree::entry()
                         .filter_command::<AdminCommand>()
-                        .filter(|msg: Message| {
-                            admin_chat_id().is_some_and(|id| msg.chat.id.0 == id)
-                        })
+                        .filter(|msg: Message| is_admin_chat_id(msg.chat.id.0))
                         .endpoint(admin_command_handler),
                 )
                 .branch(

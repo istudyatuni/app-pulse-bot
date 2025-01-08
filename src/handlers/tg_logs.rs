@@ -6,6 +6,7 @@ use teloxide::{
     payloads::SendMessageSetters,
     requests::Requester,
     types::{ChatId, ParseMode},
+    utils::markdown::code_block_with_lang,
     Bot,
 };
 use tokio::sync::mpsc::Receiver;
@@ -54,8 +55,8 @@ impl LogMessage {
 impl Display for LogMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LogMessage::Code(s) => write!(f, "```log\n{s}```"),
-            LogMessage::Markdown(s) => write!(f, "{s}"),
+            LogMessage::Code(s) => code_block_with_lang(s, "log").fmt(f),
+            LogMessage::Markdown(s) => s.fmt(f),
         }
     }
 }

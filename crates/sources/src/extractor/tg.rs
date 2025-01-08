@@ -5,7 +5,7 @@ use std::time::Duration;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use common::UnixDateTime;
+use common::{LogError, UnixDateTime};
 
 const API_URL: &str = "https://tg.i-c-a.su/json/";
 const API_LIMIT_MSGS: u32 = 10;
@@ -22,9 +22,7 @@ pub(crate) async fn fetch_public_channel(name: &str) -> Result<Vec<Message>> {
                 tokio::time::sleep(wait).await;
             }
             res => {
-                if let Err(ref e) = res {
-                    log::error!("failed to fetch: {e}");
-                }
+                res.log_error_with_msg("failed to fetch");
                 return res.map_err(Into::into);
             }
         }

@@ -2,7 +2,7 @@ use anyhow::Result;
 use teloxide::prelude::*;
 use tokio::sync::mpsc::Receiver;
 
-use common::DateTime;
+use common::{DateTime, LogError};
 use db::{models::ShouldNotify, DB};
 use sources::{Update, UpdatesList};
 
@@ -10,17 +10,17 @@ use crate::keyboards::{Keyboards, NewAppKeyboardKind};
 use crate::tr;
 
 pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<UpdatesList>) {
-    if let Err(e) = notify_bot_update(bot.clone(), db.clone()).await {
-        log::error!("failed to notify about bot update: {e}")
-    }
+    notify_bot_update(bot.clone(), db.clone())
+        .await
+        .log_error_with_msg("failed to notify about bot update");
 
     log::debug!("starting listen for updates");
     // todo: graceful shutdown for updates
     while let Some(updates) = rx.recv().await {
         log::debug!("got {} updates", updates.count());
-        if let Err(e) = db.save_source_updated_at(updates.last_update).await {
-            log::error!("failed to save source last_updated_at: {e}");
-        }
+        db.save_source_updated_at(updates.last_update)
+            .await
+            .log_error_with_msg("failed to save source last_updated_at");
 
         for update in updates.updates {
             let app_id = update.app_id();
@@ -73,9 +73,9 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
             }
         }
 
-        if let Err(e) = db.save_all_users_last_notified(DateTime::now()).await {
-            log::error!("failed to save all users last_notified_at: {e}");
-        }
+        db.save_all_users_last_notified(DateTime::now())
+            .await
+            .log_error_with_msg("failed to save all users last_notified_at");
     }
 }
 
@@ -207,7 +207,7 @@ impl<R> MapBotBlockedError for Result<R, teloxide::RequestError> {
 /// Save that user blocked bot
 async fn handle_bot_blocked(db: &DB, chat_id: ChatId) {
     log::info!(tg = true; "bot blocked by user {chat_id}");
-    if let Err(e) = db.save_user_bot_blocked(chat_id, true).await {
-        log::error!("failed to save user bot_blocked: {e}")
-    }
+    db.save_user_bot_blocked(chat_id, true)
+        .await
+        .log_error_with_msg("failed to save user bot_blocked");
 }

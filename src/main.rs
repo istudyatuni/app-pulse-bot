@@ -188,7 +188,7 @@ async fn start_bot(bot: Bot, db: DB) {
         .dependencies(dptree::deps![db])
         .default_handler(|update| async move { log::error!("unhandled update: {update:?}") })
         .error_handler(LoggingErrorHandler::with_custom_text("error in dispatcher"))
-        // .enable_ctrlc_handler()
+        .enable_ctrlc_handler()
         .build()
         .dispatch()
         .await;

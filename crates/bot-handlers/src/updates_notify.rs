@@ -182,7 +182,7 @@ enum UpdateError {
     #[error("bot blocked by user {0}")]
     BotBlocked(ChatId),
 
-    #[error("{0}")]
+    #[error(transparent)]
     RequestError(#[from] teloxide::RequestError),
 }
 

@@ -17,7 +17,7 @@ pub async fn admin_command_handler(
     db: DB,
 ) -> ResponseResult<()> {
     let user = db.select_user(msg.chat.id).await.ok().flatten();
-    let lang = get_user_lang(user.as_ref(), msg.from());
+    let lang = get_user_lang(user.as_ref(), msg.from.as_ref());
 
     match cmd {
         AdminCommand::Stats => match db.load_stats().await {

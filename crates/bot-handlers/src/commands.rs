@@ -6,7 +6,7 @@ use teloxide::{
 #[derive(DeriveBotCommands, Clone, Copy)]
 #[command(rename_rule = "lowercase")]
 pub enum Command {
-    #[command(description = "off")]
+    #[command(hide)]
     Start,
     #[command(description = "$subscribe-command")]
     Subscribe,

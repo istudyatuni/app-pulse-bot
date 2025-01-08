@@ -40,7 +40,7 @@ static HELP_CACHE: LazyLock<Mutex<HashMap<HelpCacheKey, String>>> =
 
 pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
     let user = db.select_user(msg.chat.id).await.ok().flatten();
-    let lang = get_user_lang(user.as_ref(), msg.from());
+    let lang = get_user_lang(user.as_ref(), msg.from.as_ref());
 
     if !msg.chat.is_private() && !cmd.allowed_in_public() {
         bot.send_message(msg.chat.id, tr!(command_not_available_in_public, &lang))
@@ -136,7 +136,7 @@ async fn handle_start_command(
 
 pub async fn message_handler(bot: Bot, msg: Message, db: DB) -> ResponseResult<()> {
     let user = db.select_user(msg.chat.id).await.ok().flatten();
-    let lang = get_user_lang(user.as_ref(), msg.from());
+    let lang = get_user_lang(user.as_ref(), msg.from.as_ref());
 
     bot.send_message(msg.chat.id, tr!(unknown_message, &lang))
         .await?;

@@ -2,7 +2,8 @@ use reqwest::Url;
 use teloxide::{
     prelude::*,
     types::{
-        CallbackQuery, InlineKeyboardButtonKind, InlineKeyboardMarkup, MessageCommon, MessageKind,
+        CallbackQuery, InlineKeyboardButtonKind, InlineKeyboardMarkup, MaybeInaccessibleMessage,
+        MessageCommon, MessageKind,
     },
 };
 
@@ -84,7 +85,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
                         Some(Keyboards::languages(token)),
                     ),
                 };
-                edit_msg_text(&q.message, bot, chat_id, text, markup).await?;
+                edit_msg_text(q.message, bot, chat_id, text, markup).await?;
             }
             Err(e) => {
                 answer_err.text(e).await?;
@@ -134,7 +135,7 @@ async fn handle_lang_callback(db: DB, chat_id: UserId, lang: &str) -> Result<Str
 }
 
 async fn edit_msg_text<S, M>(
-    msg: &Option<Message>,
+    msg: Option<MaybeInaccessibleMessage>,
     bot: Bot,
     chat_id: UserId,
     text: S,
@@ -144,8 +145,8 @@ where
     S: Into<String>,
     M: Into<InlineKeyboardMarkup>,
 {
-    if let Some(Message { id, .. }) = msg {
-        let mut e = bot.edit_message_text(chat_id, *id, text);
+    if let Some(Message { id, .. }) = msg.and_then(|m| m.regular_message().cloned()) {
+        let mut e = bot.edit_message_text(chat_id, id, text);
         if let Some(m) = markup {
             e = e.reply_markup(m.into());
         }
@@ -155,14 +156,14 @@ where
 }
 
 async fn edit_update_msg(
-    msg: Option<Message>,
+    msg: Option<MaybeInaccessibleMessage>,
     bot: Bot,
     chat_id: UserId,
     app_id: &str,
     keyboard_kind: NewAppKeyboardKind,
     lang: &str,
 ) -> ResponseResult<()> {
-    if let Some(Message { id, kind, .. }) = msg {
+    if let Some(Message { id, kind, .. }) = msg.and_then(|m| m.regular_message().cloned()) {
         bot.edit_message_reply_markup(chat_id, id)
             .reply_markup(
                 Keyboards::update(

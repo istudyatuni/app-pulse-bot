@@ -1,3 +1,8 @@
+use std::{
+    collections::HashMap,
+    sync::{LazyLock, Mutex},
+};
+
 use teloxide::{prelude::*, types::ChatKind};
 
 use db::{models::User, types, DB};
@@ -9,6 +14,9 @@ use crate::{
     utils::escape,
     Command, DEFAULT_USER_LANG,
 };
+
+static HELP_CACHE: LazyLock<Mutex<HashMap<String, String>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
     let user = db.select_user(msg.chat.id).await.ok().flatten();
@@ -56,7 +64,7 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                 .await?;
         }
         Command::Help => {
-            bot.send_message(msg.chat.id, escape(make_help(&lang)))
+            bot.send_message(msg.chat.id, escape(get_help(&lang)))
                 .parse_mode(teloxide::types::ParseMode::MarkdownV2)
                 .await?;
         }
@@ -116,6 +124,15 @@ pub async fn message_handler(bot: Bot, msg: Message, db: DB) -> ResponseResult<(
     bot.send_message(msg.chat.id, tr!(unknown_message, &lang))
         .await?;
     Ok(())
+}
+
+fn get_help(lang: &str) -> String {
+    HELP_CACHE
+        .lock()
+        .unwrap()
+        .entry(lang.to_owned())
+        .or_insert_with(|| make_help(lang))
+        .to_owned()
 }
 
 fn make_help(lang: &str) -> String {

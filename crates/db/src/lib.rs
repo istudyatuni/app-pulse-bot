@@ -21,7 +21,7 @@ pub enum Error {
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
-    Migrate(#[from] sqlx::migrate::MigrateError)
+    Migrate(#[from] sqlx::migrate::MigrateError),
 }
 
 type Result<T, E = Error> = std::result::Result<T, E>;
@@ -96,6 +96,15 @@ impl DB {
         .bind(app_id)
         .fetch_all(&self.pool)
         .await?)
+    }
+    /// Select all users
+    pub async fn select_all_users(&self) -> Result<Vec<models::User>> {
+        log::debug!("select all users");
+        Ok(
+            sqlx::query_as::<_, models::User>(&format!("select u.* from {USER_TABLE} u"))
+                .fetch_all(&self.pool)
+                .await?,
+        )
     }
     /// Select users, not yet notified about bot update
     pub async fn select_users_to_notify_about_bot_update(&self) -> Result<Vec<models::User>> {

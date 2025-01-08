@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use common::LogError;
 use log::Level;
 use teloxide::{
     payloads::SendMessageSetters,
@@ -11,19 +12,17 @@ use tokio::sync::mpsc::Receiver;
 
 pub(crate) async fn start_tg_logs_job(bot: Bot, chat_id: ChatId, mut rx: Receiver<LogMessage>) {
     while let Some(text) = rx.recv().await {
-        let msg = bot
-            .send_message(chat_id, text.to_string())
-            .parse_mode(ParseMode::MarkdownV2);
-        if let Err(e) = msg.await {
-            eprintln!("failed to send log: {e}");
-        }
+        bot.send_message(chat_id, text.to_string())
+            .parse_mode(ParseMode::MarkdownV2)
+            .await
+            .log_error_with_msg("failed to send log");
     }
 }
 
 #[derive(Debug)]
 pub(crate) enum LogMessage {
-    LogError(String),
-    Simple(String),
+    Code(String),
+    Markdown(String),
 }
 
 impl LogMessage {
@@ -40,23 +39,23 @@ impl LogMessage {
                 msg += &format!(":{line}");
             }
         }
-        Self::LogError(msg)
+        Self::Code(msg)
     }
     /// Message should respect telegram's markdown requirements
     pub(crate) fn simple(s: impl Into<String>) -> Self {
-        Self::Simple(s.into())
+        Self::Markdown(s.into())
     }
     /// Message should respect telegram's markdown requirements
     pub(crate) fn simple_with_level(s: impl Into<String>, level: Level) -> Self {
-        Self::Simple(format!("{}: {}", level_to_string(level), s.into()))
+        Self::Markdown(format!("{}: {}", level_to_string(level), s.into()))
     }
 }
 
 impl Display for LogMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LogMessage::LogError(s) => write!(f, "```log\n{s}```"),
-            LogMessage::Simple(s) => write!(f, "{s}"),
+            LogMessage::Code(s) => write!(f, "```log\n{s}```"),
+            LogMessage::Markdown(s) => write!(f, "{s}"),
         }
     }
 }

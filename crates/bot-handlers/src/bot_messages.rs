@@ -5,6 +5,7 @@ use db::{models::User, types, DB};
 use crate::{
     keyboards::{Keyboards, LanguagesKeyboardToken},
     tr,
+    user::get_chat_name,
     utils::escape,
     DEFAULT_USER_LANG,
 };
@@ -66,13 +67,9 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
                 let id: types::ChatId = msg.chat.id.into();
                 let user = User::builder().user_id(id.into()).lang(lang.clone());
                 let user = if let ChatKind::Private(chat) = msg.chat.kind {
-                    let name = match (chat.first_name, chat.last_name) {
-                        (Some(first), Some(last)) => Some(format!("{first} {last}")),
-                        (Some(name), None) | (None, Some(name)) => Some(name),
-                        (None, None) => None,
-                    };
-
-                    user.maybe_username(chat.username).maybe_name(name).build()
+                    user.maybe_username(chat.username.clone())
+                        .maybe_name(get_chat_name(chat))
+                        .build()
                 } else {
                     log::error!("handler for command /start called not in private chat");
                     user.build()

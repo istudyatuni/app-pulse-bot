@@ -1,6 +1,7 @@
 use std::{future::Future, time::Duration};
 
 use anyhow::Result;
+use common::LogError;
 use dotenvy_macro::dotenv;
 use handlers::tg_logs::LogMessage;
 use reqwest::Client;
@@ -15,7 +16,8 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use bot_handlers::{
-    callback_handler, command_handler, message_handler, start_updates_notify_job, Command,
+    callback_handler, command_handler, message_handler, run_collect_user_names_job,
+    start_updates_notify_job, Command,
 };
 use db::DB;
 use sources::{start_update_loop, UpdateSource};
@@ -87,13 +89,17 @@ async fn main() -> Result<()> {
     ));
     jobs.spawn(spawn_with_token(
         cancel_token.clone(),
+        run_collect_user_names_job(bot.clone(), db.clone()),
+    ));
+    jobs.spawn(spawn_with_token(
+        cancel_token.clone(),
         start_updates_notify_job(bot.clone(), db, updates_chan.1),
     ));
 
     jobs.spawn(async move {
-        if let Err(e) = signal::ctrl_c().await {
-            log::error!("failed to listen for SIGINT: {e}");
-        }
+        signal::ctrl_c()
+            .await
+            .log_error_with_msg("failed to listen for SIGINT");
         cancel_token.cancel();
     });
 

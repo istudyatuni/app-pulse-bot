@@ -1,4 +1,4 @@
-use std::thread;
+use std::{convert::identity, thread};
 
 use log::{kv::Key, Level, Metadata, Record};
 use simplelog::SharedLogger;
@@ -9,10 +9,19 @@ use crate::{handlers::tg_logs::LogMessage, TG_LOG_ENABLED};
 /// By default only error logs are sent. If [`crate::TG_LOG_ENABLED`] is
 /// false, do not send anything
 ///
-/// If called with "tg" key like `log::info!(tg = true; "..")`, will send not
-/// only ERROR log.
+/// If called with "tg" key like `log::info!(tg = true; "..")`, will also send
+/// WARN and INFO.
 ///
 /// - All error logs will be wrapped in markdown block with `[ERROR]` appended
+///
+/// You can use "code" to enable/disable code blocks. Default is `true` for
+/// error, `false` otherwise. When disabled for ERROR, only message will be
+/// sent
+///
+/// ```rust,ignore
+/// log::error!(code = false; "..")
+/// log::info!(code = true; "..")
+/// ```
 ///
 /// If "tg" is set to `true`:
 ///
@@ -39,11 +48,21 @@ impl log::Log for TgLogger {
     }
 
     fn log(&self, record: &Record) {
+        let level = record.metadata().level();
+
         // search key "tg"
         let should_always_send = record
             .key_values()
             .get(Key::from_str("tg"))
-            .is_some_and(|v| v.to_bool().is_some_and(|v| v));
+            .and_then(|v| v.to_bool())
+            .is_some_and(|v| v);
+
+        // search key "code". default is "true" for error, "false" otherwise
+        let wrap_in_code = record
+            .key_values()
+            .get(Key::from_str("code"))
+            .and_then(|v| v.to_bool())
+            .map_or_else(|| level <= Level::Error, identity);
 
         if self.enabled(record.metadata()) || should_always_send {
             let text = record.args().to_string();
@@ -51,9 +70,12 @@ impl log::Log for TgLogger {
                 return;
             }
 
-            let level = record.metadata().level();
             let msg = if level <= Level::Error {
-                LogMessage::log_error(text, record.target(), record.file(), record.line())
+                if wrap_in_code {
+                    LogMessage::log_error(text, record.target(), record.file(), record.line())
+                } else {
+                    LogMessage::simple_with_level(text, Level::Error)
+                }
             } else if should_always_send {
                 match level {
                     Level::Warn => LogMessage::simple_with_level(text, level),

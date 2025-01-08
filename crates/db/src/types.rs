@@ -1,4 +1,4 @@
-use teloxide::types::{ChatId as TgChatId, UserId as TgUserId};
+use teloxide::types::{ChatId as TgChatId, Recipient, UserId as TgUserId};
 
 pub type Id = i64;
 
@@ -23,6 +23,9 @@ cast!(
 
     ChatId => UserId: v => Self(v.0 as _),
     UserId => ChatId: v => Self(v.0 as _),
+
+    ChatId => Recipient: v => Recipient::Id(v.into()),
+    UserId => Recipient: v => Recipient::Id(v.into()),
 
     ChatId => TgChatId: v => Self(v.0),
     TgChatId => ChatId: v => Self(v.0),

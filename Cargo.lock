@@ -265,6 +265,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "lazy_static",
+ "log",
  "serde",
  "toml",
 ]

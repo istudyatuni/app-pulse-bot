@@ -43,6 +43,9 @@ impl User {
     pub fn user_id(&self) -> Id {
         self.user_id
     }
+    pub fn tg_user_id(&self) -> UserId {
+        self.user_id.into()
+    }
     pub fn lang(&self) -> &str {
         self.lang.as_str()
     }

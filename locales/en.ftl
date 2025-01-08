@@ -34,6 +34,8 @@ bot-updated = Bot has been updated!
 
     { changelog }
 
+command-not-available-in-public = This command is available only in private chat with bot
+
 unknown-message = Try /help
 
 ## Buttons messages

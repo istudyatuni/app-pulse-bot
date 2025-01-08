@@ -9,7 +9,7 @@ use crate::{
     DEFAULT_USER_LANG,
 };
 
-#[derive(BotCommands, Clone)]
+#[derive(BotCommands, Clone, Copy)]
 #[command(rename_rule = "lowercase")]
 pub enum Command {
     #[command(description = "off")]
@@ -28,12 +28,28 @@ pub enum Command {
     Help,
 }
 
+impl Command {
+    /// Check if command works in public chats
+    fn is_work_in_public(self) -> bool {
+        match self {
+            Self::Start | Self::Subscribe | Self::Unsubscribe => false,
+            Self::Changelog | Self::Settings | Self::About | Self::Help => true,
+        }
+    }
+}
+
 pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> ResponseResult<()> {
     let user = db.select_user(msg.chat.id).await.ok().flatten();
     let lang = get_user_lang(
         user.as_ref(),
         msg.from().and_then(|c| c.language_code.to_owned()),
     );
+
+    if !msg.chat.is_private() && !cmd.is_work_in_public() {
+        bot.send_message(msg.chat.id, tr!(command_not_available_in_public, &lang))
+            .await?;
+        return Ok(());
+    }
 
     match cmd {
         Command::Start => match user {

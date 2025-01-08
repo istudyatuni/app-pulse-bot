@@ -53,37 +53,7 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
     }
 
     match cmd {
-        Command::Start => match user {
-            Some(u) => {
-                if u.bot_blocked() {
-                    log::info!(tg = true; "User {} returned", u.display());
-                    if let Err(e) = db.save_user_bot_blocked(u.user_id(), false).await {
-                        log::error!("failed to save that user is returned: {e}")
-                    }
-                }
-                send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
-            }
-            None => {
-                let id: types::ChatId = msg.chat.id.into();
-                let user = User::builder().user_id(id.into()).lang(lang.clone());
-                let user = if let ChatKind::Private(chat) = msg.chat.kind {
-                    user.maybe_username(chat.username.clone())
-                        .maybe_name(get_chat_name(&chat))
-                        .build()
-                } else {
-                    log::error!("handler for command /start called not in private chat");
-                    user.build()
-                };
-
-                match db.add_user(user).await {
-                    Ok(()) => {
-                        send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
-                        log::debug!("user {} saved", msg.chat.id);
-                    }
-                    Err(e) => log::error!("failed to save user {}: {e}", msg.chat.id.0),
-                }
-            }
-        },
+        Command::Start => handle_start_command(bot.clone(), &db, user, &lang, msg).await?,
         Command::Subscribe => match db.save_user_subscribed(msg.chat.id, true).await {
             Ok(()) => {
                 bot.send_message(msg.chat.id, tr!(subscribed, &lang))
@@ -121,6 +91,47 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
         }
     };
 
+    Ok(())
+}
+
+async fn handle_start_command(
+    bot: Bot,
+    db: &DB,
+    user: Option<User>,
+    lang: &str,
+    msg: Message,
+) -> Result<(), teloxide::RequestError> {
+    match user {
+        Some(u) => {
+            if u.bot_blocked() {
+                log::info!(tg = true; "User {} returned", u.display());
+                if let Err(e) = db.save_user_bot_blocked(u.user_id(), false).await {
+                    log::error!("failed to save that user is returned: {e}")
+                }
+            }
+            send_welcome_msg(bot.clone(), msg.chat.id, lang).await?;
+        }
+        None => {
+            let id: types::ChatId = msg.chat.id.into();
+            let user = User::builder().user_id(id.into()).lang(lang.to_owned());
+            let user = if let ChatKind::Private(chat) = msg.chat.kind {
+                user.maybe_username(chat.username.clone())
+                    .maybe_name(get_chat_name(&chat))
+                    .build()
+            } else {
+                log::error!("handler for command /start called not in private chat");
+                user.build()
+            };
+
+            match db.add_user(user).await {
+                Ok(()) => {
+                    send_welcome_msg(bot.clone(), msg.chat.id, lang).await?;
+                    log::debug!("user {} saved", msg.chat.id);
+                }
+                Err(e) => log::error!("failed to save user {}: {e}", msg.chat.id.0),
+            }
+        }
+    };
     Ok(())
 }
 

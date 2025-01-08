@@ -11,11 +11,9 @@ use tokio::sync::mpsc::Receiver;
 
 pub(crate) async fn start_tg_logs_job(bot: Bot, chat_id: ChatId, mut rx: Receiver<LogMessage>) {
     while let Some(text) = rx.recv().await {
-        let mut msg = bot.send_message(chat_id, text.to_string());
-
-        if let LogMessage::LogError(_) = text {
-            msg = msg.parse_mode(ParseMode::MarkdownV2);
-        }
+        let msg = bot
+            .send_message(chat_id, text.to_string())
+            .parse_mode(ParseMode::MarkdownV2);
         if let Err(e) = msg.await {
             eprintln!("failed to send log: {e}");
         }

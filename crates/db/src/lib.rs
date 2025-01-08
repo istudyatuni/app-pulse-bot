@@ -38,18 +38,7 @@ impl DB {
 
 // User
 impl DB {
-    pub async fn add_user_with_lang(
-        &self,
-        user_id: impl Into<UserId>,
-        lang: impl Into<String>,
-    ) -> Result<()> {
-        let user = models::User::builder()
-            .user_id(user_id.into().into())
-            .lang(lang.into())
-            .build();
-        self.add_user_impl(user).await
-    }
-    async fn add_user_impl(&self, user: models::User) -> Result<()> {
+    pub async fn add_user(&self, user: models::User) -> Result<()> {
         log::debug!("saving user {}", user.user_id());
         sqlx::query(&format!(
             "insert into {USER_TABLE} (user_id, lang, last_version_notified) values (?, ?, ?)"
@@ -147,17 +136,36 @@ impl DB {
         Ok(())
     }
     pub async fn save_user_lang(&self, user_id: impl Into<UserId>, lang: &str) -> Result<()> {
+        self.save_user_string_table(user_id, "lang", lang).await
+    }
+    pub async fn save_user_username(
+        &self,
+        user_id: impl Into<UserId>,
+        username: &str,
+    ) -> Result<()> {
+        self.save_user_string_table(user_id, "username", username)
+            .await
+    }
+    pub async fn save_user_name(&self, user_id: impl Into<UserId>, name: &str) -> Result<()> {
+        self.save_user_string_table(user_id, "name", name).await
+    }
+    async fn save_user_string_table(
+        &self,
+        user_id: impl Into<UserId>,
+        user_table_column: &str,
+        value: &str,
+    ) -> Result<()> {
         let id: Id = user_id.into().into();
         sqlx::query(&format!(
             "update {USER_TABLE}
-             set lang = ?
+             set {user_table_column} = ?
              where user_id = ?"
         ))
-        .bind(lang)
+        .bind(value)
         .bind(id)
         .execute(&self.pool)
         .await?;
-        log::debug!("user lang updated");
+        log::debug!("user {user_table_column} updated");
         Ok(())
     }
     pub async fn save_user_subscribed(
@@ -204,43 +212,27 @@ impl DB {
         Ok(())
     }
     pub async fn save_user_version_notified(&self, user_id: impl Into<UserId>) -> Result<()> {
-        self.save_user_version_notified_impl(user_id, common::version())
-            .await
-    }
-    async fn save_user_version_notified_impl(
-        &self,
-        user_id: impl Into<UserId>,
-        version: u32,
-    ) -> Result<()> {
-        let user_id = user_id.into();
-        log::debug!("saving user {user_id} version notified");
-        let user = models::User::new(user_id);
-        sqlx::query(&format!(
-            "update {USER_TABLE}
-             set last_version_notified = ?
-             where user_id = ?"
-        ))
-        .bind(version)
-        .bind(user.user_id())
-        .execute(&self.pool)
-        .await?;
-        Ok(())
+        self.save_user_string_table(
+            user_id,
+            "last_version_notified",
+            &common::version().to_string(),
+        )
+        .await
     }
     pub async fn save_user_bot_blocked(
         &self,
         user_id: impl Into<UserId>,
         blocked: bool,
     ) -> Result<()> {
-        let user_id = user_id.into();
-        log::debug!("saving user {user_id} bot_blocked: {blocked}");
-        let user = models::User::new(user_id);
+        let id: Id = user_id.into().into();
+        log::debug!("saving user {id} bot_blocked: {blocked}");
         sqlx::query(&format!(
             "update {USER_TABLE}
              set bot_blocked = ?
              where user_id = ?"
         ))
         .bind(blocked)
-        .bind(user.user_id())
+        .bind(id)
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -250,9 +242,8 @@ impl DB {
         user_id: impl Into<UserId>,
         app_id: &str,
     ) -> Result<models::ShouldNotify> {
-        let user_id = user_id.into();
         log::debug!("getting user preference");
-        let id: Id = user_id.into();
+        let id: Id = user_id.into().into();
         let update = sqlx::query_as::<_, models::ShouldNotify>(&format!(
             "select should_notify
              from {USER_UPDATE_TABLE}
@@ -270,8 +261,8 @@ impl DB {
 
 #[cfg(test)]
 impl DB {
-    pub async fn add_user(&self, user_id: impl Into<UserId>) -> Result<()> {
-        self.add_user_impl(models::User::new(user_id.into())).await
+    pub async fn add_user_simple(&self, user_id: impl Into<UserId>) -> Result<()> {
+        self.add_user(models::User::new(user_id.into())).await
     }
     pub async fn save_user_last_notified(
         &self,
@@ -293,6 +284,23 @@ impl DB {
         .await?;
 
         log::debug!("user last_notified_at saved");
+        Ok(())
+    }
+    async fn save_user_version_notified_impl(
+        &self,
+        user_id: impl Into<UserId>,
+        version: u32,
+    ) -> Result<()> {
+        let user_id: Id = user_id.into().into();
+        sqlx::query(&format!(
+            "update {USER_TABLE}
+             set last_version_notified = ?
+             where user_id = ?"
+        ))
+        .bind(version)
+        .bind(user_id)
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
 }
@@ -406,7 +414,7 @@ mod tests {
 
         // there are 2 users
         for u in [1, 2] {
-            db.add_user(u).await?;
+            db.add_user_simple(u).await?;
             db.save_user_subscribed(u, true).await?;
         }
 
@@ -431,7 +439,7 @@ mod tests {
         db.add_or_update_app(APP_ID, "", timer.next()).await?;
 
         // there is one user
-        db.add_user(1).await?;
+        db.add_user_simple(1).await?;
         db.save_user_subscribed(1, true).await?;
 
         // source updated before user was notified
@@ -451,7 +459,7 @@ mod tests {
         timer.skip(1);
 
         // there is one user
-        db.add_user(1).await?;
+        db.add_user_simple(1).await?;
         db.save_user_version_notified_impl(1, 0).await?;
 
         for v in 1..20 {

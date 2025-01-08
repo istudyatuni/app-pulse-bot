@@ -1,6 +1,6 @@
-use teloxide::{prelude::*, utils::command::BotCommands};
+use teloxide::{prelude::*, types::ChatKind, utils::command::BotCommands};
 
-use db::{models::User, DB};
+use db::{models::User, types, DB};
 
 use crate::{
     keyboards::{Keyboards, LanguagesKeyboardToken},
@@ -55,20 +55,37 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
         Command::Start => match user {
             Some(u) => {
                 if u.bot_blocked() {
-                    log::info!(tg = true; "user {} returned", u.user_id());
+                    log::info!(tg = true; "User {} returned", u.display());
                     if let Err(e) = db.save_user_bot_blocked(u.user_id(), false).await {
                         log::error!("failed to save that user is returned: {e}")
                     }
                 }
                 send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
             }
-            None => match db.add_user_with_lang(msg.chat.id, &lang).await {
-                Ok(()) => {
-                    send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
-                    log::debug!("user {} saved", msg.chat.id);
+            None => {
+                let id: types::ChatId = msg.chat.id.into();
+                let user = User::builder().user_id(id.into()).lang(lang.clone());
+                let user = if let ChatKind::Private(chat) = msg.chat.kind {
+                    let name = match (chat.first_name, chat.last_name) {
+                        (Some(first), Some(last)) => Some(format!("{first} {last}")),
+                        (Some(name), None) | (None, Some(name)) => Some(name),
+                        (None, None) => None,
+                    };
+
+                    user.maybe_username(chat.username).maybe_name(name).build()
+                } else {
+                    log::error!("handler for command /start called not in private chat");
+                    user.build()
+                };
+
+                match db.add_user(user).await {
+                    Ok(()) => {
+                        send_welcome_msg(bot.clone(), msg.chat.id, &lang).await?;
+                        log::debug!("user {} saved", msg.chat.id);
+                    }
+                    Err(e) => log::error!("failed to save user {}: {e}", msg.chat.id.0),
                 }
-                Err(e) => log::error!("failed to save user {}: {e}", msg.chat.id.0),
-            },
+            }
         },
         Command::Subscribe => match db.save_user_subscribed(msg.chat.id, true).await {
             Ok(()) => {

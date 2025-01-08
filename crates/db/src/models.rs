@@ -11,6 +11,12 @@ pub struct User {
     /// User ID
     user_id: Id,
 
+    /// User username
+    username: Option<String>,
+
+    /// First name + last name
+    name: Option<String>,
+
     /// Language, selected by user
     #[builder(default = i18n::DEFAULT_USER_LANG.to_string())]
     lang: String,
@@ -45,6 +51,16 @@ impl User {
     }
     pub fn bot_blocked(&self) -> bool {
         self.bot_blocked
+    }
+    /// Display user name. Can contain link to user, which is only works
+    /// inside inline links, so message should be set to markdown
+    pub fn display(&self) -> String {
+        match (&self.username, &self.name) {
+            (Some(username), Some(name)) => format!("@{username} ({name})"),
+            (Some(username), None) => format!("@{username}"),
+            (None, Some(name)) => format!("[{name}](tg://user?id={})", self.user_id),
+            (None, None) => format!("[{id}](tg://user?id={id})", id = self.user_id),
+        }
     }
 }
 

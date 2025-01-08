@@ -5,7 +5,7 @@ use std::{
 
 use teloxide::{
     prelude::*,
-    types::{BotCommand, ChatKind},
+    types::{BotCommand, ChatKind, MessageKind},
 };
 
 use db::{models::User, types, DB};
@@ -131,6 +131,15 @@ async fn handle_start_command(
 }
 
 pub async fn message_handler(bot: Bot, msg: Message, db: DB) -> ResponseResult<()> {
+    if msg.text().is_some_and(|m| m.starts_with("/")) {
+        log::debug!("ignoring command sent to other bot");
+        return Ok(());
+    }
+    if !matches!(msg.kind, MessageKind::Common(_)) {
+        log::debug!("ignoring service message");
+        return Ok(());
+    }
+
     let user = db.select_user(msg.chat.id).await.ok().flatten();
     let lang = get_user_lang(user.as_ref(), msg.from.as_ref());
 

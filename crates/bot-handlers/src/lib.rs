@@ -1,6 +1,7 @@
 mod bot_callback;
 mod bot_messages;
 mod callback;
+mod commands;
 mod keyboards;
 mod updates_notify;
 mod user;
@@ -15,7 +16,8 @@ const IGNORE_TOKEN: &str = "ignore";
 const NOTIFY_TOKEN: &str = "notify";
 
 pub use bot_callback::callback_handler;
-pub use bot_messages::{command_handler, message_handler, Command};
+pub use bot_messages::{command_handler, message_handler};
+pub use commands::Command;
 pub use updates_notify::start_updates_notify_job;
 pub use user::run_collect_user_names_job;
 

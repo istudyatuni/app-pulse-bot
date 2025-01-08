@@ -27,9 +27,12 @@ const DEFAULT_FALLBACK_LOCALE: LanguageIdentifier = langid!("en");
 /// pub(crate) struct Localize;
 ///
 /// # fn main() {
-/// assert_eq!(tr!("hello-world", "en", "your name"), "Hello, your name!".to_string());
+/// assert_eq!(tr!(hello_world, "en", "your name"), "Hello, your name!".to_string());
+/// assert_eq!(tr_literal!("hello-world", "en"), "Hello, world!".to_string());
 /// # }
 /// ```
+///
+/// Arguments in `tr_literal!` currently not supported
 #[proc_macro_attribute]
 pub fn localize(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -146,7 +149,7 @@ fn localize_base(
 
                 #vis fn __format_msg(
                     &self,
-                    msg_id: &'static str,
+                    msg_id: &str,
                     lang: LANG,
                     args: Option<&FluentArgs<'_>>,
                 ) -> String {
@@ -199,6 +202,17 @@ fn localize_base(
             ($e:ident, $lang:expr, $($v:expr),*) => {
                 $crate::__interly::LOCALIZE.$e($lang, $($v),*)
             };
+        }
+
+        #[allow(unused)]
+        #[macro_export] // probably should be disabled if #vis != pub
+        macro_rules! tr_literal {
+            ($e:expr, $lang:expr) => {
+                $crate::__interly::LOCALIZE.__format_msg($e, $lang.into(), None)
+            };
+            /*($e:expr, $lang:expr, $($v:expr),*) => {
+                $crate::__interly::LOCALIZE.__format_msg($e, $lang, $($v),*)
+            };*/
         }
 
         // #vis use tr; // probably should be enabled if #vis != pub

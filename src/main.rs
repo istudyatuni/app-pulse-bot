@@ -6,7 +6,7 @@ use dotenvy_macro::dotenv;
 use handlers::tg_logs::LogMessage;
 use reqwest::Client;
 use simplelog::LevelFilter;
-use teloxide::{prelude::*, utils::command::BotCommands};
+use teloxide::prelude::*;
 
 use tokio::{
     signal,
@@ -65,7 +65,7 @@ async fn main() -> Result<()> {
         TG_BOT_TOKEN,
         Client::builder().timeout(BOT_REQUEST_TIMEOUT).build()?,
     );
-    bot.set_my_commands(Command::bot_commands()).await?;
+    set_bot_commands(bot.clone()).await?;
 
     let updates_chan = mpsc::channel(100);
     let cancel_token = CancellationToken::new();
@@ -104,6 +104,16 @@ async fn main() -> Result<()> {
     });
 
     while (jobs.join_next().await).is_some() {}
+
+    Ok(())
+}
+
+async fn set_bot_commands(bot: Bot) -> Result<()> {
+    for lang in i18n::Localize::languages() {
+        bot.set_my_commands(Command::bot_commands_translated(lang))
+            .language_code(lang)
+            .await?;
+    }
 
     Ok(())
 }

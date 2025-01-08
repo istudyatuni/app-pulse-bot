@@ -67,6 +67,7 @@ dependencies = [
  "common",
  "db",
  "dotenvy_macro",
+ "i18n",
  "log",
  "reqwest",
  "serde",

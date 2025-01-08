@@ -73,6 +73,7 @@ tokio-util.workspace = true
 bot-handlers.workspace = true
 common.workspace = true
 db.workspace = true
+i18n.workspace = true
 sources.workspace = true
 
 [profile.release]

@@ -91,6 +91,8 @@ stats-apps = Applications
 stats-sources = Sources
 stats-users = Total users
 stats-users-blocked = Users who have blocked the bot
+stats-users-subscribed = Subscribed users
+stats-users-unsubscribed = Unsubscribed users
 
 ## Changelog
 

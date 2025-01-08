@@ -90,6 +90,8 @@ stats-apps = Приложений
 stats-sources = Источников
 stats-users = Всего пользователей
 stats-users-blocked = Пользователей, заблокировавших бота
+stats-users-subscribed = Подписавшихся пользователей
+stats-users-unsubscribed = Отписавшихся пользователей
 
 ## Changelog
 

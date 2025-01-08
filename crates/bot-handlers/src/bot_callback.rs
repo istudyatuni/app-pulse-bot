@@ -151,6 +151,8 @@ where
             e = e.reply_markup(m.into());
         }
         e.await?;
+    } else {
+        log::error!("tried edit msg in chat {chat_id}, but it's not accessible")
     }
     Ok(())
 }
@@ -175,6 +177,8 @@ async fn edit_update_msg(
                 .into(),
             )
             .await?;
+    } else {
+        log::error!("tried edit update msg in chat {chat_id}, but it's not accessible")
     }
     Ok(())
 }

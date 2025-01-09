@@ -97,7 +97,7 @@ impl Keyboards {
         kind: NewAppKeyboardKind,
         lang: &str,
     ) -> KeyboardBuilder {
-        let mut keyboard = match kind {
+        let keyboard = match kind {
             NewAppKeyboardKind::Both => KeyboardBuilder::with_rows_capacity(2)
                 .row()
                 .callback(
@@ -118,9 +118,10 @@ impl Keyboards {
         };
 
         if let Some(url) = url {
-            keyboard = keyboard.url(tr!(see_update_button, lang), url.clone());
+            keyboard.url(tr!(see_update_button, lang), url.clone())
+        } else {
+            keyboard
         }
-        keyboard
     }
     pub(crate) fn languages(token: LanguagesKeyboardToken) -> KeyboardBuilder {
         const LANGS_IN_ROW: usize = 3;

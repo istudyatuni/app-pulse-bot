@@ -22,7 +22,7 @@ pub(crate) async fn fetch_public_channel(name: &str) -> Result<Vec<Message>> {
                 tokio::time::sleep(wait).await;
             }
             res => {
-                res.log_error_with_msg("failed to fetch");
+                res.log_error_msg("failed to fetch");
                 return res.map_err(Into::into);
             }
         }

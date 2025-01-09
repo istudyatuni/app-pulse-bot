@@ -16,7 +16,7 @@ pub(crate) async fn start_tg_logs_job(bot: Bot, chat_id: ChatId, mut rx: Receive
         bot.send_message(chat_id, text.to_string())
             .parse_mode(ParseMode::MarkdownV2)
             .await
-            .log_error_with_msg("failed to send log");
+            .log_error_msg("failed to send log");
     }
 }
 

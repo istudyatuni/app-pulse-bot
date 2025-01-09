@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 pub trait LogError {
     fn log_error(&self);
-    fn log_error_with_msg(&self, msg: &str);
+    fn log_error_msg(&self, msg: &str);
     fn eprint_error_with_msg(&self, msg: &str);
 }
 
@@ -15,7 +15,7 @@ where
             log::error!("{e}")
         }
     }
-    fn log_error_with_msg(&self, msg: &str) {
+    fn log_error_msg(&self, msg: &str) {
         if let Err(e) = self {
             log::error!("{msg}: {e}")
         }

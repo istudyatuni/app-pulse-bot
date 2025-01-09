@@ -97,7 +97,7 @@ async fn main() -> Result<()> {
     jobs.spawn(async move {
         signal::ctrl_c()
             .await
-            .log_error_with_msg("failed to listen for SIGINT");
+            .log_error_msg("failed to listen for SIGINT");
         cancel_token.cancel();
     });
 

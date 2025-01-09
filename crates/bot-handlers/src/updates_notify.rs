@@ -12,7 +12,7 @@ use crate::tr;
 pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<UpdatesList>) {
     notify_bot_update(bot.clone(), db.clone())
         .await
-        .log_error_with_msg("failed to notify about bot update");
+        .log_error_msg("failed to notify about bot update");
 
     log::debug!("starting listen for updates");
     // todo: graceful shutdown for updates
@@ -20,7 +20,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
         log::debug!("got {} updates", updates.count());
         db.save_source_updated_at(updates.last_update)
             .await
-            .log_error_with_msg("failed to save source last_updated_at");
+            .log_error_msg("failed to save source last_updated_at");
 
         for update in updates.updates {
             let app_id = update.app_id();
@@ -75,7 +75,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
 
         db.save_all_users_last_notified(DateTime::now())
             .await
-            .log_error_with_msg("failed to save all users last_notified_at");
+            .log_error_msg("failed to save all users last_notified_at");
     }
 }
 
@@ -209,5 +209,5 @@ async fn handle_bot_blocked(db: &DB, chat_id: ChatId) {
     log::info!(tg = true; "bot blocked by user {chat_id}");
     db.save_user_bot_blocked(chat_id, true)
         .await
-        .log_error_with_msg("failed to save user bot_blocked");
+        .log_error_msg("failed to save user bot_blocked");
 }

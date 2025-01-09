@@ -13,5 +13,6 @@ serde_json.workspace = true
 reqwest.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+tokio-util.workspace = true
 
 common.workspace = true

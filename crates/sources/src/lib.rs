@@ -7,9 +7,11 @@ use tokio::sync::mpsc::Sender;
 pub mod alexstranniklite;
 
 mod extractor;
+mod sources;
 mod timer;
 mod update;
 
+pub use sources::spawn_sources_update_jobs;
 pub use update::*;
 
 pub(crate) const SOURCE_TIMEOUT: Duration = Duration::from_secs(60 * 60);

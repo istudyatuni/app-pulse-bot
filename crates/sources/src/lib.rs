@@ -20,7 +20,12 @@ pub trait UpdateSource {
     const SOURCE_TYPE: UpdateSourceType;
 
     /// Create source with default timeout
-    fn new() -> Self;
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        Self::with_timeout(SOURCE_TIMEOUT)
+    }
 
     /// Create source with specific timeout
     fn with_timeout(timeout: Duration) -> Self;

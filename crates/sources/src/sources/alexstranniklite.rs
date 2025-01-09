@@ -19,10 +19,6 @@ pub struct Source {
 impl UpdateSource for Source {
     const SOURCE_TYPE: UpdateSourceType = UpdateSourceType::List;
 
-    fn new() -> Self {
-        Self::with_timeout(SOURCE_TIMEOUT)
-    }
-
     fn with_timeout(timeout: Duration) -> Self {
         Self {
             timer: Timer::new(timeout),

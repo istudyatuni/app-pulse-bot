@@ -101,7 +101,7 @@ impl DB {
     pub async fn select_all_users(&self) -> Result<Vec<models::User>> {
         log::debug!("select all users");
         Ok(
-            sqlx::query_as::<_, models::User>(&format!("select u.* from {USER_TABLE} u"))
+            sqlx::query_as::<_, models::User>(&format!("select u.* from {USER_TABLE}"))
                 .fetch_all(&self.pool)
                 .await?,
         )

@@ -209,13 +209,14 @@ fn get_user_lang_impl(user: Option<&User>, tg_lang: Option<&str>) -> String {
     // 2. get lang from msg.from.language_code and check, if it's available
     // 3. otherwise return DEFAULT_USER_LANG
     user.map(|u| u.lang().to_owned()).unwrap_or_else(|| {
-        tg_lang.and_then(|lang| {
-            i18n::Localize::languages()
-                .iter()
-                .find(|&&l| lang == l)
-                .map(|l| l.to_string())
-        })
-        .unwrap_or(DEFAULT_USER_LANG.to_string())
+        tg_lang
+            .and_then(|lang| {
+                i18n::Localize::languages()
+                    .iter()
+                    .find(|&&l| lang == l)
+                    .map(|l| l.to_string())
+            })
+            .unwrap_or(DEFAULT_USER_LANG.to_string())
     })
 }
 

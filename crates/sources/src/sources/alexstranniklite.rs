@@ -15,21 +15,8 @@ pub struct Source {
     timer: Timer,
 }
 
-#[async_trait]
-impl UpdateSource for Source {
-    const SOURCE_TYPE: UpdateSourceType = UpdateSourceType::List;
-
-    fn with_timeout(timeout: Duration) -> Self {
-        Self {
-            timer: Timer::new(timeout),
-        }
-    }
-
-    fn wait_remains(&self) -> Option<Duration> {
-        self.timer.elapsed_remains()
-    }
-
-    async fn get_updates(&self) -> super::UpdatesList {
+impl Source {
+    async fn get_updates_list(&self) -> super::UpdatesList {
         if self.wait_remains().is_some() {
             return super::UpdatesList::default();
         }
@@ -82,9 +69,29 @@ impl UpdateSource for Source {
             last_update: last_update.unwrap_or_default(),
         }
     }
+}
+
+#[async_trait]
+impl UpdateSource for Source {
+    fn with_timeout(timeout: Duration) -> Self {
+        Self {
+            timer: Timer::new(timeout),
+        }
+    }
+
+    fn wait_remains(&self) -> Option<Duration> {
+        self.timer.elapsed_remains()
+    }
 
     fn reset_timer(&self) {
         self.timer.reset()
+    }
+}
+
+#[async_trait]
+impl UpdateSourceList for Source {
+    async fn get_updates(&self) -> super::UpdatesList {
+        self.get_updates_list().await
     }
 }
 

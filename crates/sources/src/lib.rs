@@ -17,8 +17,6 @@ pub(crate) const SOURCE_TIMEOUT: Duration = Duration::from_secs(60 * 60);
 /// Source that can be fetched for update
 #[async_trait]
 pub trait UpdateSource {
-    const SOURCE_TYPE: UpdateSourceType;
-
     /// Create source with default timeout
     fn new() -> Self
     where
@@ -30,7 +28,7 @@ pub trait UpdateSource {
     /// Create source with specific timeout
     fn with_timeout(timeout: Duration) -> Self;
 
-    /// How long should wait until next fetch, None if could not wait
+    /// How long should wait until next fetch, None if should not wait
     fn wait_remains(&self) -> Option<Duration>;
 
     /// Wait until timeout end
@@ -40,13 +38,16 @@ pub trait UpdateSource {
         }
     }
 
+    fn reset_timer(&self);
+}
+
+#[async_trait]
+pub trait UpdateSourceList: UpdateSource {
     /// Fetch updates
     async fn get_updates(&self) -> UpdatesList;
 
-    fn reset_timer(&self);
-
     /// Sleep if timeout isn't end, then fetch updates
-    async fn get_updates_or_sleep(&self) -> UpdatesList {
+    async fn get_updates_after_sleep(&self) -> UpdatesList {
         self.sleep().await;
         let res = self.get_updates().await;
         self.reset_timer();
@@ -54,18 +55,13 @@ pub trait UpdateSource {
     }
 }
 
-#[derive(Debug)]
-pub enum UpdateSourceType {
-    /// Source that sends all updates
-    List,
-}
-
-pub async fn start_update_loop<S>(source: S, tx: Sender<UpdatesList>)
+/// Start update loop for UpdateSourceList
+pub async fn start_list_update_loop<S>(source: S, tx: Sender<UpdatesList>)
 where
-    S: UpdateSource + Send + Sync,
+    S: UpdateSourceList + Send + Sync,
 {
     loop {
-        let updates = source.get_updates_or_sleep().await;
+        let updates = source.get_updates_after_sleep().await;
         if updates.is_empty() {
             continue;
         }

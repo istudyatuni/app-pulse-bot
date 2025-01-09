@@ -10,57 +10,30 @@ const NO_BELL_MSG: &str = "🔕";
 
 #[derive(Debug, Default)]
 pub(crate) struct KeyboardBuilder {
-    keys: Vec<Vec<InlineKeyboardButton>>,
-    current_row: usize,
-    state: KeyboardBuilderState,
+    keys: Vec<InlineKeyboardButton>,
+    columns: usize,
 }
 
 impl KeyboardBuilder {
-    fn with_rows_capacity(cap: usize) -> Self {
+    fn with_layout(rows_capacity: usize, columns: usize) -> Self {
         Self {
-            keys: Vec::with_capacity(cap),
-            ..Self::default()
+            keys: Vec::with_capacity(rows_capacity * columns),
+            columns,
         }
-    }
-    fn row(mut self) -> Self {
-        if !self.keys.is_empty() {
-            self.current_row += 1;
-        }
-        self.keys.push(vec![]);
-        self
     }
     fn callback<T, D>(mut self, text: T, data: D) -> Self
     where
         T: Into<String>,
         D: Into<String>,
     {
-        if self.keys.len() <= self.current_row {
-            log::error!(
-                "index {} out of bounds for new callback ({}, {}) for keyboard",
-                self.current_row,
-                text.into(),
-                data.into(),
-            );
-            self.state = KeyboardBuilderState::Invalid;
-            return self;
-        }
-        self.keys[self.current_row].push(InlineKeyboardButton::callback(text, data));
+        self.keys.push(InlineKeyboardButton::callback(text, data));
         self
     }
     fn url<T>(mut self, text: T, url: Url) -> Self
     where
         T: Into<String>,
     {
-        if self.keys.len() <= self.current_row {
-            log::error!(
-                "index {} out of bounds for new url ({}, {url}) for keyboard",
-                self.current_row,
-                text.into(),
-            );
-            self.state = KeyboardBuilderState::Invalid;
-            return self;
-        }
-        self.keys[self.current_row].push(InlineKeyboardButton::url(text, url));
+        self.keys.push(InlineKeyboardButton::url(text, url));
         self
     }
 }
@@ -72,20 +45,9 @@ impl From<KeyboardBuilder> for ReplyMarkup {
 }
 
 impl From<KeyboardBuilder> for InlineKeyboardMarkup {
-    fn from(mut value: KeyboardBuilder) -> Self {
-        if let KeyboardBuilderState::Invalid = value.state {
-            log::error!("failed to build reply_inline_keyboard, dropping");
-            value.keys = vec![];
-        }
-        Self::new(value.keys)
+    fn from(value: KeyboardBuilder) -> Self {
+        Self::new(value.keys.chunks(value.columns).map(|row| row.to_owned()))
     }
-}
-
-#[derive(Debug, Default)]
-enum KeyboardBuilderState {
-    #[default]
-    Valid,
-    Invalid,
 }
 
 pub(crate) struct Keyboards;
@@ -98,8 +60,7 @@ impl Keyboards {
         lang: &str,
     ) -> KeyboardBuilder {
         let keyboard = match kind {
-            NewAppKeyboardKind::Both => KeyboardBuilder::with_rows_capacity(2)
-                .row()
+            NewAppKeyboardKind::Both => KeyboardBuilder::with_layout(2, 2)
                 .callback(
                     tr!(notify_button, lang),
                     notify_payload(app_id, NOTIFY_TOKEN),
@@ -107,13 +68,10 @@ impl Keyboards {
                 .callback(
                     tr!(ignore_button, lang),
                     notify_payload(app_id, IGNORE_TOKEN),
-                )
-                .row(),
-            NewAppKeyboardKind::NotifyEnabled => KeyboardBuilder::with_rows_capacity(1)
-                .row()
+                ),
+            NewAppKeyboardKind::NotifyEnabled => KeyboardBuilder::with_layout(1, 2)
                 .callback(BELL_MSG, notify_payload(app_id, IGNORE_TOKEN)),
-            NewAppKeyboardKind::NotifyDisabled => KeyboardBuilder::with_rows_capacity(1)
-                .row()
+            NewAppKeyboardKind::NotifyDisabled => KeyboardBuilder::with_layout(1, 2)
                 .callback(NO_BELL_MSG, notify_payload(app_id, NOTIFY_TOKEN)),
         };
 
@@ -126,12 +84,10 @@ impl Keyboards {
     pub(crate) fn languages(token: LanguagesKeyboardToken) -> KeyboardBuilder {
         const LANGS_IN_ROW: usize = 3;
         let langs: Vec<&'static str> = i18n::Localize::languages();
-        let mut keyboard = KeyboardBuilder::with_rows_capacity(langs.len() / LANGS_IN_ROW + 1);
-        for c in langs.chunks(LANGS_IN_ROW) {
-            keyboard = keyboard.row();
-            for &lang in c {
-                keyboard = keyboard.callback(tr!(lang_name, lang), lang_payload(lang, token));
-            }
+        let mut keyboard =
+            KeyboardBuilder::with_layout(langs.len() / LANGS_IN_ROW + 1, LANGS_IN_ROW);
+        for lang in langs {
+            keyboard = keyboard.callback(tr!(lang_name, lang), lang_payload(lang, token));
         }
 
         keyboard

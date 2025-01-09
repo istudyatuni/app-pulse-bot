@@ -5,12 +5,14 @@ use common::spawn_with_token;
 
 use crate::{start_update_loop, UpdateSource, UpdatesList};
 
+mod alexstranniklite;
+
 macro_rules! spawn_sources {
     () => {};
     ($jobs:ident, $token:ident,  $tx:ident, $($module:ident),* $(,)?) => {
         $($jobs.spawn(spawn_with_token(
             $token.clone(),
-            start_update_loop(super::$module::Source::new(), $tx.clone()),
+            start_update_loop($module::Source::new(), $tx.clone()),
         ));)*
     };
 }

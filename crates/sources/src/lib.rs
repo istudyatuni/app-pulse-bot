@@ -4,8 +4,6 @@ use std::time::Duration;
 use async_trait::async_trait;
 use tokio::sync::mpsc::Sender;
 
-pub mod alexstranniklite;
-
 mod extractor;
 mod sources;
 mod timer;
@@ -16,6 +14,7 @@ pub use update::*;
 
 pub(crate) const SOURCE_TIMEOUT: Duration = Duration::from_secs(60 * 60);
 
+/// Source that can be fetched for update
 #[async_trait]
 pub trait UpdateSource {
     const SOURCE_TYPE: UpdateSourceType;
@@ -52,7 +51,7 @@ pub trait UpdateSource {
 
 #[derive(Debug)]
 pub enum UpdateSourceType {
-    /// Source send all updates
+    /// Source that sends all updates
     List,
 }
 

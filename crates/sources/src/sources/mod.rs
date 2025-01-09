@@ -9,11 +9,18 @@ mod alexstranniklite;
 
 macro_rules! spawn_list_sources {
     () => {};
-    ($jobs:ident, $token:ident,  $tx:ident; $($module:ident),* $(,)?) => {
-        $($jobs.spawn(spawn_with_token(
-            $token.clone(),
-            start_list_update_loop($module::Source::new(), $tx.clone()),
-        ));)*
+    ($jobs:ident, $token:ident, $tx:ident; $($module:ident),* $(,)?) => {
+        $(
+            match $module::Source::new() {
+                Ok(source) => {
+                    $jobs.spawn(spawn_with_token(
+                        $token.clone(),
+                        start_list_update_loop(source, $tx.clone()),
+                    ));
+                },
+                Err(e) => log::error!("failed to start source {}: {e}", stringify!($module)),
+            }
+        )*
     };
 }
 

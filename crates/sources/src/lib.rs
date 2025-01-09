@@ -17,8 +17,10 @@ pub(crate) const SOURCE_TIMEOUT: Duration = Duration::from_secs(60 * 60);
 /// Source that can be fetched for update
 #[async_trait]
 pub trait UpdateSource {
+    type InitError;
+
     /// Create source with default timeout
-    fn new() -> Self
+    fn new() -> Result<Self, Self::InitError>
     where
         Self: Sized,
     {
@@ -26,7 +28,9 @@ pub trait UpdateSource {
     }
 
     /// Create source with specific timeout
-    fn with_timeout(timeout: Duration) -> Self;
+    fn with_timeout(timeout: Duration) -> Result<Self, Self::InitError>
+    where
+        Self: std::marker::Sized;
 
     /// How long should wait until next fetch, None if should not wait
     fn wait_remains(&self) -> Option<Duration>;

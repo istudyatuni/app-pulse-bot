@@ -8,6 +8,8 @@ publish.workspace = true
 chrono.workspace = true
 dotenvy_macro.workspace = true
 log.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
 
 [build-dependencies]
 anyhow.workspace = true

@@ -1,4 +1,4 @@
-use std::{future::Future, time::Duration};
+use std::time::Duration;
 
 use anyhow::Result;
 use dotenvy_macro::dotenv;
@@ -17,7 +17,7 @@ use bot_handlers::{
     admin_command_handler, callback_handler, command_handler, message_handler,
     run_collect_user_names_job, start_updates_notify_job, AdminCommand, Command,
 };
-use common::{is_admin_chat_id, LogError};
+use common::{is_admin_chat_id, spawn_with_token, LogError};
 use db::DB;
 use sources::{start_update_loop, UpdateSource, UpdatesList};
 
@@ -182,13 +182,6 @@ fn spawn_source_update_jobs(
         token.clone(),
         start_update_loop(sources::alexstranniklite::Source::new(), tx.clone()),
     ));
-}
-
-async fn spawn_with_token<R>(token: CancellationToken, f: impl Future<Output = R>) {
-    tokio::select! {
-        _ = token.cancelled() => {},
-        _ = f => {},
-    }
 }
 
 async fn start_bot(bot: Bot, db: DB) {

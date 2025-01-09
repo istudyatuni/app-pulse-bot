@@ -204,12 +204,12 @@ pub(crate) fn get_user_lang(user: Option<&User>, from: Option<&teloxide::types::
     )
 }
 
-fn get_user_lang_impl(user: Option<&User>, from: Option<&str>) -> String {
+fn get_user_lang_impl(user: Option<&User>, tg_lang: Option<&str>) -> String {
     // 1. get lang from db
     // 2. get lang from msg.from.language_code and check, if it's available
     // 3. otherwise return DEFAULT_USER_LANG
     user.map(|u| u.lang().to_owned()).unwrap_or_else(|| {
-        from.and_then(|lang| {
+        tg_lang.and_then(|lang| {
             i18n::Localize::languages()
                 .iter()
                 .find(|&&l| lang == l)

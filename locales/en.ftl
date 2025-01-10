@@ -56,6 +56,7 @@ lang-name = 🇺🇸 English
 something-wrong-empty-callback = { -something-went-wrong } (empty callback)
 something-wrong-invalid-callback = { -something-went-wrong } (invalid callback)
 something-wrong-unknown-callback-type = { -something-went-wrong } (unknown callback type)
+outdated-callback = This button can't be used anymore
 something-wrong-try-again = { -something-went-wrong }, please try again
 
 ## Notifications

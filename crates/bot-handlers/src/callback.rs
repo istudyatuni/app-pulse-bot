@@ -5,6 +5,8 @@ use crate::PayloadData;
 
 use db::models::ShouldNotify;
 
+const CALLBACK_VERSION: u8 = 1;
+
 // flags is at the start of message: {flag}:{payload}
 const NOTIFY_FLAG: &str = "notify";
 const SET_LANG_FLAG: &str = "lang";
@@ -34,14 +36,30 @@ impl PayloadData for Callback {
             Self::Notify {
                 app_id,
                 should_notify,
-            } => format!("{NOTIFY_FLAG}:{app_id}:{}", should_notify.to_payload()),
+            } => format!(
+                "{CALLBACK_VERSION}:{NOTIFY_FLAG}:{app_id}:{}",
+                should_notify.to_payload()
+            ),
             Self::SetLang { lang, kind } => {
-                format!("{SET_LANG_FLAG}:{}:{lang}", kind.to_payload())
+                format!(
+                    "{CALLBACK_VERSION}:{SET_LANG_FLAG}:{}:{lang}",
+                    kind.to_payload()
+                )
             }
         }
     }
     fn try_from_payload(value: &str) -> Result<Self, Self::Error> {
         let data: Vec<_> = value.split(':').collect();
+        if data.is_empty() {
+            return Err(CallbackParseError::InvalidCallback);
+        }
+
+        // handle old callbacks, without version
+        let version: Option<u8> = data[0].parse().ok();
+        if version.is_none_or(|v| v < CALLBACK_VERSION) {
+            return Err(CallbackParseError::OutdatedCallback);
+        }
+
         let res = match data[0] {
             NOTIFY_FLAG => {
                 if data.len() < 3 {
@@ -123,6 +141,7 @@ impl PayloadData for ShouldNotify {
 pub(crate) enum CallbackParseError {
     InvalidCallback,
     InvalidToken,
+    OutdatedCallback,
     UnknownCallbackType,
 }
 

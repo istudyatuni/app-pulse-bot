@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use db::models::ShouldNotify;
 use reqwest::Url;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup};
@@ -120,26 +118,22 @@ pub(crate) enum LanguagesKeyboardKind {
     Settings,
 }
 
-impl Display for LanguagesKeyboardKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Self::Start => "start",
-            Self::Settings => "settings",
-        };
-        s.fmt(f)
-    }
-}
-
-impl TryFrom<&str> for LanguagesKeyboardKind {
+impl PayloadData for LanguagesKeyboardKind {
     type Error = ();
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let s = match value {
-            "start" => Some(Self::Start),
-            "settings" => Some(Self::Settings),
-            _ => None,
-        };
-        s.ok_or(())
+    fn to_payload(&self) -> String {
+        match self {
+            Self::Start => "start".to_string(),
+            Self::Settings => "settings".to_string(),
+        }
+    }
+
+    fn try_from_payload(payload: &str) -> Result<Self, Self::Error> {
+        match payload {
+            "start" => Ok(Self::Start),
+            "settings" => Ok(Self::Settings),
+            _ => Err(()),
+        }
     }
 }
 

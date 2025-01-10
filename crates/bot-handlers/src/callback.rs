@@ -35,7 +35,9 @@ impl PayloadData for Callback {
                 app_id,
                 should_notify,
             } => format!("{NOTIFY_FLAG}:{app_id}:{}", should_notify.to_payload()),
-            Self::SetLang { lang, kind } => format!("{SET_LANG_FLAG}:{kind}:{lang}"),
+            Self::SetLang { lang, kind } => {
+                format!("{SET_LANG_FLAG}:{}:{lang}", kind.to_payload())
+            }
         }
     }
     fn try_from_payload(value: &str) -> Result<Self, Self::Error> {
@@ -63,7 +65,10 @@ impl PayloadData for Callback {
                     return Err(CallbackParseError::InvalidCallback);
                 }
 
-                let (kind, lang) = (data[1].try_into().ok(), data[2].to_string());
+                let (kind, lang) = (
+                    LanguagesKeyboardKind::try_from_payload(data[1]).ok(),
+                    data[2].to_string(),
+                );
                 let Some(kind) = kind else {
                     return Err(CallbackParseError::InvalidToken);
                 };

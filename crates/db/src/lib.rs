@@ -13,7 +13,6 @@ const USER_SUBSCRIBE_TABLE: &str = "user_subscribe";
 const APP_TABLE: &str = "app";
 const SOURCE_TABLE: &str = "source";
 
-// Temporary, while there is only one source
 const SOURCE_ID: Id = 1;
 
 #[derive(Debug, thiserror::Error)]
@@ -82,7 +81,11 @@ impl DB {
         }
     }
     /// Select subscribed and not yet notified users for specific source
-    pub async fn select_users_to_notify(&self, app_id: &str) -> Result<Vec<models::User>> {
+    pub async fn select_users_to_notify(
+        &self,
+        source_id: Id,
+        app_id: &str,
+    ) -> Result<Vec<models::User>> {
         log::debug!("select subscribed users");
         Ok(sqlx::query_as::<_, models::User>(&format!(
             "select u.*
@@ -96,7 +99,7 @@ impl DB {
                and a.app_id = ?
                and a.last_updated_at > u.last_notified_at",
         ))
-        .bind(SOURCE_ID)
+        .bind(source_id)
         .bind(app_id)
         .fetch_all(&self.pool)
         .await?)
@@ -216,7 +219,11 @@ impl DB {
         Ok(())
     }
     /// Set `last_notified_at` for all users, subscribed to source
-    pub async fn save_all_users_last_notified(&self, last_notified_at: UnixDateTime) -> Result<()> {
+    pub async fn save_all_users_last_notified(
+        &self,
+        source_id: Id,
+        last_notified_at: UnixDateTime,
+    ) -> Result<()> {
         log::debug!("saving all users last_notified_at: {last_notified_at}");
 
         sqlx::query(&format!(
@@ -227,7 +234,7 @@ impl DB {
                and us.subscribed = true",
         ))
         .bind(last_notified_at)
-        .bind(SOURCE_ID)
+        .bind(source_id)
         .execute(&self.pool)
         .await?;
 
@@ -262,6 +269,7 @@ impl DB {
     pub async fn should_notify_user(
         &self,
         user_id: impl Into<UserId>,
+        source_id: Id,
         app_id: &str,
     ) -> Result<Option<models::ShouldNotify>> {
         log::debug!("getting user preference");
@@ -272,7 +280,7 @@ impl DB {
              where user_id = ? and source_id = ? and app_id = ?"
         ))
         .bind(id)
-        .bind(SOURCE_ID)
+        .bind(source_id)
         .bind(app_id)
         .fetch_optional(&self.pool)
         .await?;
@@ -332,12 +340,13 @@ impl DB {
     /// (`app_id`, `source_id`), update `last_updated_at`
     pub async fn add_or_update_app(
         &self,
+        source_id: Id,
         app_id: &str,
         name: &str,
         last_updated_at: UnixDateTime,
     ) -> Result<()> {
         log::debug!("saving app {app_id}");
-        let app = models::App::new(app_id, SOURCE_ID, name, last_updated_at);
+        let app = models::App::new(app_id, source_id, name, last_updated_at);
         sqlx::query(&format!(
             "insert into {APP_TABLE}
              (app_id, source_id, name, last_updated_at)
@@ -370,14 +379,31 @@ impl DB {
         .await?;
         Ok(())
     }
-    pub async fn get_source_updated_at(&self) -> Result<UnixDateTime> {
+    pub async fn get_source_id_by_app(&self, app_id: impl Into<String>) -> Result<Option<Id>> {
+        let app_id = app_id.into();
+        log::debug!("select source_id from app {app_id}");
+        let res = sqlx::query_as::<_, models::fetch::FetchSourceId>(&format!(
+            "select source_id from {APP_TABLE}
+             where app_id = ?"
+        ))
+        .bind(app_id)
+        .fetch_one(&self.pool)
+        .await;
+
+        match res {
+            Ok(f) => Ok(Some(f.source_id)),
+            Err(sqlx::Error::RowNotFound) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+    pub async fn get_source_updated_at(&self, source_id: Id) -> Result<UnixDateTime> {
         log::debug!("select source last_updated_at");
         let res = sqlx::query_as::<_, models::Source>(&format!(
             "select last_updated_at
              from {SOURCE_TABLE}
              where source_id = ?"
         ))
-        .bind(SOURCE_ID)
+        .bind(source_id)
         .fetch_optional(&self.pool)
         .await?;
 
@@ -388,7 +414,7 @@ impl DB {
     }
 }
 
-// Source
+// Stats
 impl DB {
     pub async fn load_stats(&self) -> Result<models::Stats> {
         Ok(models::Stats {
@@ -401,18 +427,13 @@ impl DB {
         })
     }
     async fn load_count(&self, sql_predicate: &str) -> Result<u32> {
-        Ok(
-            sqlx::query_as::<_, FetchCount>(&format!("select count(*) as count {sql_predicate}"))
-                .fetch_one(&self.pool)
-                .await?
-                .count,
-        )
+        Ok(sqlx::query_as::<_, models::fetch::FetchCount>(&format!(
+            "select count(*) as count {sql_predicate}"
+        ))
+        .fetch_one(&self.pool)
+        .await?
+        .count)
     }
-}
-
-#[derive(sqlx::FromRow)]
-struct FetchCount {
-    count: u32,
 }
 
 #[cfg(test)]
@@ -452,6 +473,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_select_users_to_notify() -> Result<()> {
+        const SOURCE_ID: Id = 1;
         const APP_ID: &str = "test";
 
         let db = prepare_db_timer("test_select_users_to_notify").await?;
@@ -471,7 +493,7 @@ mod tests {
         db.save_source_updated_at(timer.next()).await?;
         db.save_user_last_notified(1, timer.next()).await?;
 
-        let users = db.select_users_to_notify(APP_ID).await?;
+        let users = db.select_users_to_notify(SOURCE_ID, APP_ID).await?;
         assert_eq!(users.len(), 1);
 
         Ok(())
@@ -479,6 +501,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_no_select_users_to_notify() -> Result<()> {
+        const SOURCE_ID: Id = 1;
         const APP_ID: &str = "test";
 
         let db = prepare_db_timer("test_no_select_users_to_notify").await?;
@@ -496,7 +519,7 @@ mod tests {
         db.save_source_updated_at(timer.next()).await?;
         db.save_user_last_notified(1, timer.next()).await?;
 
-        let users = db.select_users_to_notify(APP_ID).await?;
+        let users = db.select_users_to_notify(SOURCE_ID, APP_ID).await?;
         assert!(users.is_empty());
 
         Ok(())

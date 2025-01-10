@@ -1,3 +1,6 @@
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
+
 use anyhow::Result;
 use teloxide::prelude::*;
 use tokio::sync::mpsc::Receiver;
@@ -22,16 +25,41 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
             .await
             .log_error_msg("failed to save source last_updated_at");
 
+        let mut source_ids_map = HashMap::new();
         for update in updates.updates {
-            let app_id = update.app_id();
+            let app_id = update.app_id().to_owned();
             log::debug!("got update for app {}", app_id);
 
-            if let Err(e) = db.add_or_update_app(app_id, "", update.update_time()).await {
+            let source_id = match source_ids_map.entry(app_id.clone()) {
+                Entry::Occupied(e) => *e.get(),
+                Entry::Vacant(_) => {
+                    let id = match db.get_source_id_by_app(app_id.clone()).await {
+                        Ok(id) => {
+                            let Some(id) = id else {
+                                log::error!("source by app_id {app_id} not found");
+                                continue;
+                            };
+                            id
+                        }
+                        Err(e) => {
+                            log::error!("failed to get source_id by app_id {app_id}: {e}");
+                            continue;
+                        }
+                    };
+                    source_ids_map.insert(app_id.clone(), id);
+                    id
+                }
+            };
+
+            if let Err(e) = db
+                .add_or_update_app(source_id, &app_id, "", update.update_time())
+                .await
+            {
                 log::error!("failed to add app: {e}");
                 continue;
             }
 
-            let users = match db.select_users_to_notify(app_id).await {
+            let users = match db.select_users_to_notify(source_id, &app_id).await {
                 Ok(v) => v,
                 Err(e) => {
                     log::error!("failed to select users: {e}");
@@ -44,7 +72,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 let user_id = user.user_id();
                 let chat_id = ChatId(user_id);
                 let lang = user.lang();
-                let res = match db.should_notify_user(user_id, app_id).await {
+                let res = match db.should_notify_user(user_id, source_id, &app_id).await {
                     Ok(s) => match s {
                         None => send_suggest_update(bot.clone(), chat_id, &update, lang).await,
                         Some(ShouldNotify::Notify) => {
@@ -71,9 +99,13 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
             }
         }
 
-        db.save_all_users_last_notified(DateTime::now())
-            .await
-            .log_error_msg("failed to save all users last_notified_at");
+        for source_id in source_ids_map.values() {
+            db.save_all_users_last_notified(*source_id, DateTime::now())
+                .await
+                .log_error_msg_with(|| {
+                    format!("failed to save all users last_notified_at for source {source_id}")
+                });
+        }
     }
 }
 

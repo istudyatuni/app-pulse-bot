@@ -58,6 +58,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
         }
     };
 
+    // todo: update callbacks to include source_id
     match callback {
         Callback::Notify {
             app_id,
@@ -103,6 +104,7 @@ async fn handle_update_callback(
     app_id: &str,
     lang: &str,
 ) -> Result<(String, NewAppKeyboardKind), Option<String>> {
+    // todo: pass source_id
     db.save_should_notify_user(chat_id, app_id, should_notify)
         .await
         .map_err(|e| {

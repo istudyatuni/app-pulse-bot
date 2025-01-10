@@ -98,7 +98,6 @@ impl PayloadData for ShouldNotify {
         match self {
             Self::Notify => NOTIFY_TOKEN.to_string(),
             Self::Ignore => IGNORE_TOKEN.to_string(),
-            Self::Unspecified => unreachable!(),
         }
     }
 

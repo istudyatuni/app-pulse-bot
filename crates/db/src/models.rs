@@ -70,11 +70,11 @@ pub struct UserUpdate {
     #[allow(unused)]
     source_id: Id,
     app_id: String,
-    should_notify: ShouldNotify,
+    should_notify: Option<ShouldNotify>,
 }
 
 impl UserUpdate {
-    pub fn new(user_id: Id, app_id: &str, should_notify: ShouldNotify) -> Self {
+    pub fn new(user_id: Id, app_id: &str, should_notify: Option<ShouldNotify>) -> Self {
         Self {
             user_id,
             source_id: SOURCE_ID,
@@ -88,26 +88,22 @@ impl UserUpdate {
     pub fn app_id(&self) -> &str {
         self.app_id.as_str()
     }
-    pub fn should_notify(&self) -> ShouldNotify {
+    pub fn should_notify(&self) -> Option<ShouldNotify> {
         self.should_notify
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShouldNotify {
-    // todo: remove this variant
-    #[default]
-    Unspecified,
     Notify,
     Ignore,
 }
 
 impl ShouldNotify {
-    pub fn to_db(&self) -> Option<bool> {
+    pub fn to_db(&self) -> bool {
         match self {
-            Self::Unspecified => None,
-            Self::Notify => Some(true),
-            Self::Ignore => Some(false),
+            Self::Notify => true,
+            Self::Ignore => false,
         }
     }
 }

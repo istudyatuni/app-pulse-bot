@@ -119,10 +119,6 @@ async fn handle_update_callback(
             tr!(notifications_disabled, lang),
             NewAppKeyboardKind::NotifyDisabled,
         ),
-        _ => {
-            log::error!("unreachable: ShouldNotify::Unspecified");
-            return Err(None);
-        }
     };
     Ok((popup_msg, keyboard_kind))
 }

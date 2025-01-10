@@ -195,3 +195,18 @@ pub struct Stats {
     pub users: u32,
     pub blocked_users: u32,
 }
+
+/// Struct helpers for extracting partial structs
+pub mod fetch {
+    use crate::types::Id;
+
+    #[derive(sqlx::FromRow)]
+    pub(crate) struct FetchSourceId {
+        pub source_id: Id,
+    }
+
+    #[derive(sqlx::FromRow)]
+    pub(crate) struct FetchCount {
+        pub count: u32,
+    }
+}

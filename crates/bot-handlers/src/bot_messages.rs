@@ -47,6 +47,7 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
         return Ok(());
     }
 
+    // todo: rework how subsribe work with multiple sources
     match cmd {
         Command::Start => handle_start_command(bot.clone(), &db, user, &lang, msg).await?,
         Command::Subscribe => match db.save_user_subscribed(msg.chat.id, true).await {

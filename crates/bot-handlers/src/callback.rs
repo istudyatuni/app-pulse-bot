@@ -1,11 +1,11 @@
 use anyhow::Result;
 
-use crate::keyboards::LanguagesKeyboardKind;
-use crate::PayloadData;
-
 use db::models::ShouldNotify;
 
-const CALLBACK_VERSION: u8 = 1;
+use crate::{
+    keyboards::LanguagesKeyboardKind, PayloadData, PayloadLayout, PayloadParseError,
+    CALLBACK_VERSION,
+};
 
 // flags is at the start of message: {flag}:{payload}
 const NOTIFY_FLAG: &str = "notify";
@@ -14,6 +14,9 @@ const SET_LANG_FLAG: &str = "lang";
 // payload tokens: {notify-flag}:{app-id}:{token}
 const IGNORE_TOKEN: &str = "ignore";
 const NOTIFY_TOKEN: &str = "notify";
+
+const NOTIFY_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(3, Some(1));
+const SETLANG_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(3, None);
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
@@ -31,21 +34,24 @@ pub(crate) enum Callback {
 impl PayloadData for Callback {
     type Error = CallbackParseError;
 
+    // todo: cache
     fn to_payload(&self) -> String {
         match self {
             Self::Notify {
                 app_id,
                 should_notify,
-            } => format!(
-                "{CALLBACK_VERSION}:{NOTIFY_FLAG}:{app_id}:{}",
-                should_notify.to_payload()
-            ),
-            Self::SetLang { lang, kind } => {
-                format!(
-                    "{CALLBACK_VERSION}:{SET_LANG_FLAG}:{}:{lang}",
-                    kind.to_payload()
-                )
-            }
+            } => NOTIFY_CALLBACK_LAYOUT
+                .make_payload(vec![
+                    NOTIFY_FLAG,
+                    app_id,
+                    should_notify.to_payload().as_str(),
+                ])
+                .inspect_err(|e| log::error!("invalid notify callback is created: {e}"))
+                .unwrap_or_default(),
+            Self::SetLang { lang, kind } => SETLANG_CALLBACK_LAYOUT
+                .make_payload(vec![SET_LANG_FLAG, kind.to_payload().as_str(), lang])
+                .inspect_err(|e| log::error!("invalid notify callback is created: {e}"))
+                .unwrap_or_default(),
         }
     }
     fn try_from_payload(value: &str) -> Result<Self, Self::Error> {
@@ -60,37 +66,24 @@ impl PayloadData for Callback {
             return Err(CallbackParseError::OutdatedCallback);
         }
 
-        let res = match data[0] {
+        // todo: probably do not hardcode this?
+        let res = match data[1] {
             NOTIFY_FLAG => {
-                if data.len() < 3 {
-                    return Err(CallbackParseError::InvalidCallback);
-                }
-
-                let (app_id, should_notify) = if data.len() == 3 {
-                    (data[1].to_string(), data[2])
-                } else {
-                    // if data[1] contains ':'
-                    (data[1..data.len() - 1].join(":"), data[data.len() - 1])
-                };
-
+                let data = NOTIFY_CALLBACK_LAYOUT.parse_payload(value)?;
                 Callback::Notify {
-                    app_id,
-                    should_notify: ShouldNotify::try_from_payload(should_notify)?,
+                    app_id: data[1].clone(),
+                    should_notify: ShouldNotify::try_from_payload(&data[2])?,
                 }
             }
             SET_LANG_FLAG => {
-                if data.len() != 3 {
-                    return Err(CallbackParseError::InvalidCallback);
-                }
-
-                let (kind, lang) = (
-                    LanguagesKeyboardKind::try_from_payload(data[1]).ok(),
-                    data[2].to_string(),
-                );
-                let Some(kind) = kind else {
+                let data = SETLANG_CALLBACK_LAYOUT.parse_payload(value)?;
+                let Some(kind) = LanguagesKeyboardKind::try_from_payload(&data[1]).ok() else {
                     return Err(CallbackParseError::InvalidToken);
                 };
-                Callback::SetLang { lang, kind }
+                Callback::SetLang {
+                    lang: data[2].to_string(),
+                    kind,
+                }
             }
             _ => return Err(CallbackParseError::UnknownCallbackType),
         };
@@ -145,6 +138,14 @@ pub(crate) enum CallbackParseError {
     UnknownCallbackType,
 }
 
+impl From<PayloadParseError> for CallbackParseError {
+    fn from(value: PayloadParseError) -> Self {
+        match value {
+            PayloadParseError::InvalidSize => Self::InvalidCallback,
+        }
+    }
+}
+
 impl Callback {
     pub(crate) fn notify(app_id: &str, should_notify: ShouldNotify) -> Self {
         Self::Notify {
@@ -166,48 +167,55 @@ mod tests {
 
     #[test]
     fn test_callback_from_str() {
+        const V: u8 = CALLBACK_VERSION;
         let app_id = "some-app";
         let strange_app_id = "some-app:name";
+
         let table = vec![
             (
-                format!("{NOTIFY_FLAG}:{app_id}:{NOTIFY_TOKEN}"),
+                format!("{V}:{NOTIFY_FLAG}:{app_id}:{NOTIFY_TOKEN}"),
                 Ok(Callback::notify(app_id, ShouldNotify::Notify)),
             ),
             (
-                format!("{NOTIFY_FLAG}:{app_id}:{IGNORE_TOKEN}"),
+                format!("{V}:{NOTIFY_FLAG}:{app_id}:{IGNORE_TOKEN}"),
                 Ok(Callback::notify(app_id, ShouldNotify::Ignore)),
             ),
             (
-                format!("{NOTIFY_FLAG}:{strange_app_id}:{IGNORE_TOKEN}"),
+                format!("{V}:{NOTIFY_FLAG}:{strange_app_id}:{IGNORE_TOKEN}"),
                 Ok(Callback::notify(strange_app_id, ShouldNotify::Ignore)),
             ),
             (
-                format!("{SET_LANG_FLAG}:start:en"),
+                format!("{V}:{SET_LANG_FLAG}:start:en"),
                 Ok(Callback::set_lang(LanguagesKeyboardKind::Start, "en")),
             ),
             (
-                format!("{SET_LANG_FLAG}:settings:en"),
+                format!("{V}:{SET_LANG_FLAG}:settings:en"),
                 Ok(Callback::set_lang(LanguagesKeyboardKind::Settings, "en")),
             ),
             (
-                format!("{SET_LANG_FLAG}:starta:en"),
+                format!("{V}:{SET_LANG_FLAG}:starta:en"),
                 Err(CallbackParseError::InvalidToken),
             ),
             (
-                format!("{NOTIFY_FLAG}:{app_id}:asdf"),
+                format!("{V}:{NOTIFY_FLAG}:{app_id}:asdf"),
                 Err(CallbackParseError::InvalidToken),
             ),
             (
-                format!("{NOTIFY_FLAG}:{app_id}"),
+                format!("{V}:{NOTIFY_FLAG}:{app_id}"),
                 Err(CallbackParseError::InvalidCallback),
             ),
             (
-                format!("{NOTIFY_FLAG}:{strange_app_id}"),
+                format!("{V}:{NOTIFY_FLAG}:{strange_app_id}"),
                 Err(CallbackParseError::InvalidToken),
+            ),
+            (
+                format!("{NOTIFY_FLAG}:{app_id}:{NOTIFY_TOKEN}"),
+                Err(CallbackParseError::OutdatedCallback),
             ),
         ];
         for (input, expected) in table {
-            assert_eq!(Callback::try_from(&input), expected);
+            let res = Callback::try_from(&input);
+            assert_eq!(res, expected, "Callback::try_from({input})");
         }
     }
 }

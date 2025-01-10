@@ -143,6 +143,8 @@ mod tests {
         InlineKeyboardButton as Btn, InlineKeyboardMarkup as Markup, ReplyMarkup as Reply,
     };
 
+    use crate::CALLBACK_VERSION;
+
     use super::NewAppKeyboardKind as Kind;
     use super::*;
 
@@ -155,15 +157,18 @@ mod tests {
 
     #[test]
     fn test_new_app_keyboard() {
+        let cb = |s| format!("{CALLBACK_VERSION}:{s}");
+
         let url = Url::parse("http://example.com/update").unwrap();
         let update_btn = Btn::url(SEE_UPDATE_MSG, url.clone());
+
         let table = vec![
             (
                 Keyboards::update(APP_ID, Some(url.clone()), Kind::Both, USER_LANG),
                 vec![
                     vec![
-                        Btn::callback(NOTIFY_MSG, "notify:test:notify"),
-                        Btn::callback(IGNORE_MSG, "notify:test:ignore"),
+                        Btn::callback(NOTIFY_MSG, cb("notify:test:notify")),
+                        Btn::callback(IGNORE_MSG, cb("notify:test:ignore")),
                     ],
                     vec![update_btn.clone()],
                 ],
@@ -171,14 +176,14 @@ mod tests {
             (
                 Keyboards::update(APP_ID, Some(url.clone()), Kind::NotifyEnabled, USER_LANG),
                 vec![vec![
-                    Btn::callback(BELL_MSG, "notify:test:ignore"),
+                    Btn::callback(BELL_MSG, cb("notify:test:ignore")),
                     update_btn.clone(),
                 ]],
             ),
             (
                 Keyboards::update(APP_ID, Some(url.clone()), Kind::NotifyDisabled, USER_LANG),
                 vec![vec![
-                    Btn::callback(NO_BELL_MSG, "notify:test:notify"),
+                    Btn::callback(NO_BELL_MSG, cb("notify:test:notify")),
                     update_btn.clone(),
                 ]],
             ),

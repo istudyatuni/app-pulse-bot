@@ -4,6 +4,7 @@ mod bot_messages;
 mod callback;
 mod commands;
 mod keyboards;
+mod payload;
 mod updates_notify;
 mod user;
 mod utils;
@@ -17,11 +18,4 @@ pub use user::run_collect_user_names_job;
 
 pub(crate) use i18n::{tr, DEFAULT_USER_LANG};
 
-pub(crate) trait PayloadData {
-    type Error;
-
-    fn to_payload(&self) -> String;
-    fn try_from_payload(payload: &str) -> Result<Self, Self::Error>
-    where
-        Self: Sized;
-}
+pub use payload::*;

@@ -1,9 +1,10 @@
 use std::fmt::Display;
 
+use db::models::ShouldNotify;
 use reqwest::Url;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup};
 
-use crate::{tr, IGNORE_TOKEN, NOTIFY_FLAG, NOTIFY_TOKEN, SET_LANG_FLAG};
+use crate::{callback::Callback, tr, PayloadData};
 
 const BELL_MSG: &str = "🔔";
 const NO_BELL_MSG: &str = "🔕";
@@ -63,16 +64,20 @@ impl Keyboards {
             NewAppKeyboardKind::Both => KeyboardBuilder::with_layout(2, 2)
                 .callback(
                     tr!(notify_button, lang),
-                    notify_payload(app_id, NOTIFY_TOKEN),
+                    Callback::notify(app_id, ShouldNotify::Notify).to_payload(),
                 )
                 .callback(
                     tr!(ignore_button, lang),
-                    notify_payload(app_id, IGNORE_TOKEN),
+                    Callback::notify(app_id, ShouldNotify::Ignore).to_payload(),
                 ),
-            NewAppKeyboardKind::NotifyEnabled => KeyboardBuilder::with_layout(1, 2)
-                .callback(BELL_MSG, notify_payload(app_id, IGNORE_TOKEN)),
-            NewAppKeyboardKind::NotifyDisabled => KeyboardBuilder::with_layout(1, 2)
-                .callback(NO_BELL_MSG, notify_payload(app_id, NOTIFY_TOKEN)),
+            NewAppKeyboardKind::NotifyEnabled => KeyboardBuilder::with_layout(1, 2).callback(
+                BELL_MSG,
+                Callback::notify(app_id, ShouldNotify::Ignore).to_payload(),
+            ),
+            NewAppKeyboardKind::NotifyDisabled => KeyboardBuilder::with_layout(1, 2).callback(
+                NO_BELL_MSG,
+                Callback::notify(app_id, ShouldNotify::Notify).to_payload(),
+            ),
         };
 
         if let Some(url) = url {
@@ -81,13 +86,16 @@ impl Keyboards {
             keyboard
         }
     }
-    pub(crate) fn languages(token: LanguagesKeyboardToken) -> KeyboardBuilder {
+    pub(crate) fn languages(kind: LanguagesKeyboardKind) -> KeyboardBuilder {
         const LANGS_IN_ROW: usize = 3;
         let langs: Vec<&'static str> = i18n::Localize::languages();
         let mut keyboard =
             KeyboardBuilder::with_layout(langs.len() / LANGS_IN_ROW + 1, LANGS_IN_ROW);
         for lang in langs {
-            keyboard = keyboard.callback(tr!(lang_name, lang), lang_payload(lang, token));
+            keyboard = keyboard.callback(
+                tr!(lang_name, lang),
+                Callback::set_lang(kind, lang).to_payload(),
+            );
         }
 
         keyboard
@@ -105,14 +113,14 @@ pub(crate) enum NewAppKeyboardKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum LanguagesKeyboardToken {
+pub(crate) enum LanguagesKeyboardKind {
     /// Keyboard was requested when user pressed /start
     Start,
     /// Keyboard was requested when user pressed /settings
     Settings,
 }
 
-impl Display for LanguagesKeyboardToken {
+impl Display for LanguagesKeyboardKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::Start => "start",
@@ -122,7 +130,7 @@ impl Display for LanguagesKeyboardToken {
     }
 }
 
-impl TryFrom<&str> for LanguagesKeyboardToken {
+impl TryFrom<&str> for LanguagesKeyboardKind {
     type Error = ();
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -133,14 +141,6 @@ impl TryFrom<&str> for LanguagesKeyboardToken {
         };
         s.ok_or(())
     }
-}
-
-fn notify_payload(app_id: &str, token: &str) -> String {
-    format!("{NOTIFY_FLAG}:{app_id}:{token}")
-}
-
-fn lang_payload(lang: &str, token: LanguagesKeyboardToken) -> String {
-    format!("{SET_LANG_FLAG}:{token}:{lang}")
 }
 
 #[cfg(test)]

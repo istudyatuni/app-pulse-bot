@@ -459,7 +459,8 @@ mod tests {
         let mut timer = Timer::new();
         timer.skip(1);
 
-        db.add_or_update_app(APP_ID, "", timer.next()).await?;
+        db.add_or_update_app(SOURCE_ID, APP_ID, "", timer.next())
+            .await?;
 
         // there are 2 users
         for u in [1, 2] {
@@ -485,7 +486,8 @@ mod tests {
         let mut timer = Timer::new();
         timer.skip(1);
 
-        db.add_or_update_app(APP_ID, "", timer.next()).await?;
+        db.add_or_update_app(SOURCE_ID, APP_ID, "", timer.next())
+            .await?;
 
         // there is one user
         db.add_user_simple(1).await?;

@@ -1,9 +1,17 @@
 use anyhow::Result;
 
-use crate::keyboards::LanguagesKeyboardToken;
-use crate::{IGNORE_TOKEN, NOTIFY_FLAG, NOTIFY_TOKEN, SET_LANG_FLAG};
+use crate::keyboards::LanguagesKeyboardKind;
+use crate::PayloadData;
 
 use db::models::ShouldNotify;
+
+// flags is at the start of message: {flag}:{payload}
+const NOTIFY_FLAG: &str = "notify";
+const SET_LANG_FLAG: &str = "lang";
+
+// payload tokens: {notify-flag}:{app-id}:{token}
+const IGNORE_TOKEN: &str = "ignore";
+const NOTIFY_TOKEN: &str = "notify";
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
@@ -14,14 +22,23 @@ pub(crate) enum Callback {
     },
     SetLang {
         lang: String,
-        token: LanguagesKeyboardToken,
+        kind: LanguagesKeyboardKind,
     },
 }
 
-impl TryFrom<&str> for Callback {
+impl PayloadData for Callback {
     type Error = CallbackParseError;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    fn to_payload(&self) -> String {
+        match self {
+            Self::Notify {
+                app_id,
+                should_notify,
+            } => format!("{NOTIFY_FLAG}:{app_id}:{}", should_notify.to_payload()),
+            Self::SetLang { lang, kind } => format!("{SET_LANG_FLAG}:{kind}:{lang}"),
+        }
+    }
+    fn try_from_payload(value: &str) -> Result<Self, Self::Error> {
         let data: Vec<_> = value.split(':').collect();
         let res = match data[0] {
             NOTIFY_FLAG => {
@@ -36,16 +53,9 @@ impl TryFrom<&str> for Callback {
                     (data[1..data.len() - 1].join(":"), data[data.len() - 1])
                 };
 
-                let should_notify = match should_notify {
-                    NOTIFY_TOKEN => ShouldNotify::Notify,
-                    IGNORE_TOKEN => ShouldNotify::Ignore,
-                    _ => {
-                        return Err(CallbackParseError::InvalidToken);
-                    }
-                };
                 Callback::Notify {
                     app_id,
-                    should_notify,
+                    should_notify: ShouldNotify::try_from_payload(should_notify)?,
                 }
             }
             SET_LANG_FLAG => {
@@ -53,11 +63,11 @@ impl TryFrom<&str> for Callback {
                     return Err(CallbackParseError::InvalidCallback);
                 }
 
-                let (token, lang) = (data[1].try_into().ok(), data[2].to_string());
-                let Some(token) = token else {
+                let (kind, lang) = (data[1].try_into().ok(), data[2].to_string());
+                let Some(kind) = kind else {
                     return Err(CallbackParseError::InvalidToken);
                 };
-                Callback::SetLang { lang, token }
+                Callback::SetLang { lang, kind }
             }
             _ => return Err(CallbackParseError::UnknownCallbackType),
         };
@@ -65,11 +75,42 @@ impl TryFrom<&str> for Callback {
     }
 }
 
+impl TryFrom<&str> for Callback {
+    type Error = CallbackParseError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::try_from_payload(value)
+    }
+}
+
 impl TryFrom<&String> for Callback {
     type Error = CallbackParseError;
 
     fn try_from(value: &String) -> Result<Self, Self::Error> {
-        Self::try_from(value.as_str())
+        Self::try_from_payload(value.as_str())
+    }
+}
+
+impl PayloadData for ShouldNotify {
+    type Error = CallbackParseError;
+
+    fn to_payload(&self) -> String {
+        match self {
+            Self::Notify => NOTIFY_TOKEN.to_string(),
+            Self::Ignore => IGNORE_TOKEN.to_string(),
+            Self::Unspecified => unreachable!(),
+        }
+    }
+
+    fn try_from_payload(payload: &str) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        match payload {
+            NOTIFY_TOKEN => Ok(Self::Notify),
+            IGNORE_TOKEN => Ok(Self::Ignore),
+            _ => Err(CallbackParseError::InvalidToken),
+        }
     }
 }
 
@@ -81,18 +122,17 @@ pub(crate) enum CallbackParseError {
     UnknownCallbackType,
 }
 
-#[cfg(test)]
 impl Callback {
-    fn notify(app_id: &str, should_notify: ShouldNotify) -> Self {
+    pub(crate) fn notify(app_id: &str, should_notify: ShouldNotify) -> Self {
         Self::Notify {
             app_id: app_id.to_string(),
             should_notify,
         }
     }
-    fn set_lang(token: LanguagesKeyboardToken, lang: &str) -> Self {
+    pub(crate) fn set_lang(kind: LanguagesKeyboardKind, lang: &str) -> Self {
         Self::SetLang {
             lang: lang.to_string(),
-            token,
+            kind,
         }
     }
 }
@@ -120,11 +160,11 @@ mod tests {
             ),
             (
                 format!("{SET_LANG_FLAG}:start:en"),
-                Ok(Callback::set_lang(LanguagesKeyboardToken::Start, "en")),
+                Ok(Callback::set_lang(LanguagesKeyboardKind::Start, "en")),
             ),
             (
                 format!("{SET_LANG_FLAG}:settings:en"),
-                Ok(Callback::set_lang(LanguagesKeyboardToken::Settings, "en")),
+                Ok(Callback::set_lang(LanguagesKeyboardKind::Settings, "en")),
             ),
             (
                 format!("{SET_LANG_FLAG}:starta:en"),

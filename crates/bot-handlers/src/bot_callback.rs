@@ -11,7 +11,7 @@ use db::{models::ShouldNotify, DB};
 
 use crate::{
     callback::{Callback, CallbackParseError},
-    keyboards::{Keyboards, LanguagesKeyboardToken, NewAppKeyboardKind},
+    keyboards::{Keyboards, LanguagesKeyboardKind, NewAppKeyboardKind},
     tr, DEFAULT_USER_LANG,
 };
 
@@ -75,14 +75,14 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
                 _ => (),
             }
         }
-        Callback::SetLang { lang, token } => match handle_lang_callback(db, chat_id, &lang).await {
+        Callback::SetLang { lang, kind } => match handle_lang_callback(db, chat_id, &lang).await {
             Ok(popup_msg) => {
                 bot.answer_callback_query(&q.id).text(popup_msg).await?;
-                let (text, markup) = match token {
-                    LanguagesKeyboardToken::Start => (tr!(welcome_suggest_subscribe, &lang), None),
-                    LanguagesKeyboardToken::Settings => (
+                let (text, markup) = match kind {
+                    LanguagesKeyboardKind::Start => (tr!(welcome_suggest_subscribe, &lang), None),
+                    LanguagesKeyboardKind::Settings => (
                         tr!(choose_language, &lang),
-                        Some(Keyboards::languages(token)),
+                        Some(Keyboards::languages(kind)),
                     ),
                 };
                 edit_msg_text(q.message, bot, chat_id, text, markup).await?;

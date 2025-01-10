@@ -12,7 +12,7 @@ use db::{models::User, types, DB};
 
 use crate::{
     commands::AdminCommand,
-    keyboards::{Keyboards, LanguagesKeyboardToken},
+    keyboards::{Keyboards, LanguagesKeyboardKind},
     tr,
     user::get_chat_name,
     utils::escape,
@@ -72,7 +72,7 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
         }
         Command::Settings => {
             bot.send_message(msg.chat.id, tr!(choose_language, &lang))
-                .reply_markup(Keyboards::languages(LanguagesKeyboardToken::Settings))
+                .reply_markup(Keyboards::languages(LanguagesKeyboardKind::Settings))
                 .await?;
         }
         Command::About => {
@@ -192,7 +192,7 @@ fn make_help(lang: &str, admin: bool) -> String {
 
 async fn send_welcome_msg(bot: Bot, chat_id: ChatId, lang: &str) -> ResponseResult<()> {
     bot.send_message(chat_id, tr!(welcome_choose_language, lang))
-        .reply_markup(Keyboards::languages(LanguagesKeyboardToken::Start))
+        .reply_markup(Keyboards::languages(LanguagesKeyboardKind::Start))
         .await?;
     Ok(())
 }

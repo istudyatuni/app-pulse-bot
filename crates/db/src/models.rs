@@ -95,6 +95,7 @@ impl UserUpdate {
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum ShouldNotify {
+    // todo: remove this variant
     #[default]
     Unspecified,
     Notify,

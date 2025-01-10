@@ -46,13 +46,11 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 let lang = user.lang();
                 let res = match db.should_notify_user(user_id, app_id).await {
                     Ok(s) => match s {
-                        ShouldNotify::Unspecified => {
-                            send_suggest_update(bot.clone(), chat_id, &update, lang).await
-                        }
-                        ShouldNotify::Notify => {
+                        None => send_suggest_update(bot.clone(), chat_id, &update, lang).await,
+                        Some(ShouldNotify::Notify) => {
                             send_update(bot.clone(), chat_id, &update, lang).await
                         }
-                        ShouldNotify::Ignore => {
+                        Some(ShouldNotify::Ignore) => {
                             log::debug!("ignoring update {app_id} for user {user_id}");
                             continue;
                         }

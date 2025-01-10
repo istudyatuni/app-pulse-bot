@@ -138,7 +138,7 @@ impl DB {
     ) -> Result<()> {
         let user_id = user_id.into();
         log::debug!("saving user {user_id} should_notify: {should_notify:?}");
-        let update = models::UserUpdate::new(user_id.into(), app_id, should_notify);
+        let update = models::UserUpdate::new(user_id.into(), app_id, Some(should_notify));
 
         sqlx::query(&format!(
             "insert into {USER_UPDATE_TABLE}
@@ -150,7 +150,7 @@ impl DB {
         .bind(update.user_id())
         .bind(SOURCE_ID)
         .bind(update.app_id())
-        .bind(update.should_notify().to_db())
+        .bind(update.should_notify().map(|notify| notify.to_db()))
         .execute(&self.pool)
         .await?;
 
@@ -263,7 +263,7 @@ impl DB {
         &self,
         user_id: impl Into<UserId>,
         app_id: &str,
-    ) -> Result<models::ShouldNotify> {
+    ) -> Result<Option<models::ShouldNotify>> {
         log::debug!("getting user preference");
         let id: Id = user_id.into().into();
         let update = sqlx::query_as::<_, models::ShouldNotify>(&format!(
@@ -275,8 +275,7 @@ impl DB {
         .bind(SOURCE_ID)
         .bind(app_id)
         .fetch_optional(&self.pool)
-        .await?
-        .unwrap_or_default();
+        .await?;
         Ok(update)
     }
 }

@@ -19,9 +19,9 @@ const SOURCE_ID: Id = 1;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(transparent)]
+    #[error("failed to run query: {0}")]
     Sqlx(#[from] sqlx::Error),
-    #[error(transparent)]
+    #[error("failed to run migrations: {0}")]
     Migrate(#[from] sqlx_migrator::Error),
 }
 

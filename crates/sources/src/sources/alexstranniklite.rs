@@ -75,7 +75,7 @@ impl UpdateSource for Source {
     // such type to use log_error when creating source
     type InitError = &'static str;
 
-    fn name() ->  &'static str {
+    fn name() -> &'static str {
         "tg@alexstranniklite"
     }
 

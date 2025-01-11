@@ -129,7 +129,7 @@ fn make_exact_query_body(name: &str) -> impl serde::Serialize {
 impl UpdateSource for Source {
     type InitError = ClientInitError;
 
-    fn name() ->  &'static str {
+    fn name() -> &'static str {
         "nixpkgs"
     }
 

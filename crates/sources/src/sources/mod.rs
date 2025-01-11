@@ -1,8 +1,8 @@
 use tokio::{sync::mpsc::Sender, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 
-use db::DB;
 use common::spawn_with_token;
+use db::DB;
 
 use crate::{start_list_update_loop, UpdateSource, UpdatesList};
 

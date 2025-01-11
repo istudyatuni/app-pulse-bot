@@ -1,11 +1,13 @@
-use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
-
-pub mod models;
-pub mod types;
+use sqlx::{pool::PoolConnection, sqlite::SqliteConnectOptions, Sqlite, SqlitePool};
+use sqlx_migrator::{Migrate, Migrator, Plan};
 
 use common::UnixDateTime;
 
 use types::{Id, UserId};
+
+mod migrations;
+pub mod models;
+pub mod types;
 
 const USER_TABLE: &str = "user";
 const USER_UPDATE_TABLE: &str = "user_update";
@@ -20,7 +22,7 @@ pub enum Error {
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
-    Migrate(#[from] sqlx::migrate::MigrateError),
+    Migrate(#[from] sqlx_migrator::Error),
 }
 
 type Result<T, E = Error> = std::result::Result<T, E>;
@@ -38,13 +40,29 @@ impl DB {
                 .create_if_missing(true),
         )
         .await?;
-        sqlx::migrate!("../../migrations").run(&pool).await?;
+
+        Self::migrate(pool.acquire().await?).await?;
 
         sqlx::query("PRAGMA foreign_keys = ON")
             .execute(&pool)
             .await?;
 
         Ok(Self { pool })
+    }
+    async fn migrate(mut conn: PoolConnection<Sqlite>) -> Result<()> {
+        // run old migrations
+        let mut migrator = Migrator::default();
+        migrations::register_fake_migrations(&mut migrator);
+        let plan = Plan::apply_all().fake(true);
+        migrator.run(&mut conn, &plan).await?;
+
+        // run migrations
+        let mut migrator = Migrator::default();
+        migrations::register_migrations(&mut migrator);
+        let plan = Plan::apply_all();
+        migrator.run(&mut conn, &plan).await?;
+
+        Ok(())
     }
 }
 

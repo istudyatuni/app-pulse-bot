@@ -19,6 +19,8 @@ pub(crate) const SOURCE_TIMEOUT: Duration = Duration::from_secs(60 * 60);
 pub trait UpdateSource {
     type InitError;
 
+    fn name() -> &'static str;
+
     /// Create source with default timeout
     fn new() -> Result<Self, Self::InitError>
     where

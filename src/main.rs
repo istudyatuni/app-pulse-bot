@@ -65,12 +65,7 @@ async fn main() -> Result<()> {
 
     let tg_logs_chan = mpsc::channel(100);
     let log_chat_id = LOG_CHAT_ID.parse().ok().map(ChatId);
-
     init_logger(tg_logs_chan.0);
-
-    if IS_PROD {
-        log::info!(tg = true; "Bot started");
-    }
 
     let db = DB::init(&db_path()).await?;
 
@@ -79,6 +74,8 @@ async fn main() -> Result<()> {
         Client::builder().timeout(BOT_REQUEST_TIMEOUT).build()?,
     );
     set_bot_commands(bot.clone()).await?;
+
+    log::info!(tg = IS_PROD; "Bot started");
 
     let updates_chan = mpsc::channel(100);
     let cancel_token = CancellationToken::new();

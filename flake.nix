@@ -20,6 +20,7 @@
               just
               cargo-nextest
               sqlite
+              sqlx-cli
             ];
             buildInputs = [];
             CROSS_ROOTLESS_CONTAINER_ENGINE = 1;

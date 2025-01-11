@@ -126,9 +126,12 @@ fn make_exact_query_body(name: &str) -> impl serde::Serialize {
     })
 }
 
-#[async_trait]
 impl UpdateSource for Source {
     type InitError = ClientInitError;
+
+    fn name() ->  &'static str {
+        "nixpkgs"
+    }
 
     fn with_timeout(timeout: Duration) -> Result<Self, Self::InitError> {
         Ok(Self {

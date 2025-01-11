@@ -71,10 +71,13 @@ impl Source {
     }
 }
 
-#[async_trait]
 impl UpdateSource for Source {
     // such type to use log_error when creating source
     type InitError = &'static str;
+
+    fn name() ->  &'static str {
+        "tg@alexstranniklite"
+    }
 
     fn with_timeout(timeout: Duration) -> Result<Self, Self::InitError> {
         Ok(Self {

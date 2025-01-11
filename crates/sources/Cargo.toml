@@ -17,3 +17,4 @@ tokio.workspace = true
 tokio-util.workspace = true
 
 common.workspace = true
+db.workspace = true

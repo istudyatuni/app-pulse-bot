@@ -366,6 +366,31 @@ impl DB {
 
 // Source
 impl DB {
+    pub async fn add_source_or_ignore(&self, name: &str) -> Result<()> {
+        // used to check failed constraint
+        const SOURCE_NAME_UNIQ_ERR: &str = "UNIQUE constraint failed: source.name";
+
+        log::debug!("adding source {name}");
+        let res = sqlx::query(&format!(
+            "insert into {SOURCE_TABLE} (source_id, name)
+             values ((select max(source_id) from {SOURCE_TABLE}) + 1, ?)"
+        ))
+        .bind(name)
+        .execute(&self.pool)
+        .await;
+
+        match res {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                if let Some(e) = e.as_database_error() {
+                    if e.is_unique_violation() && e.message() == SOURCE_NAME_UNIQ_ERR {
+                        return Ok(());
+                    }
+                }
+                Err(e.into())
+            }
+        }
+    }
     pub async fn save_source_updated_at(&self, last_updated_at: UnixDateTime) -> Result<()> {
         log::debug!("save source last_updated_at: {last_updated_at}");
         sqlx::query(&format!(

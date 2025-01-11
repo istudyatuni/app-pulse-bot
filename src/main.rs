@@ -81,7 +81,7 @@ async fn main() -> Result<()> {
         cancel_token.clone(),
         start_bot(bot.clone(), db.clone()),
     ));
-    spawn_sources_update_jobs(&mut jobs, cancel_token.clone(), updates_chan.0);
+    spawn_sources_update_jobs(db.clone(), &mut jobs, cancel_token.clone(), updates_chan.0).await;
     jobs.spawn(spawn_with_token(
         cancel_token.clone(),
         run_collect_user_names_job(bot.clone(), db.clone()),

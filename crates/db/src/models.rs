@@ -69,6 +69,7 @@ pub struct UserUpdate {
     user_id: Id,
     #[allow(unused)]
     source_id: Id,
+    // todo: change to Id
     app_id: String,
     should_notify: Option<ShouldNotify>,
 }
@@ -114,7 +115,7 @@ impl sqlx::FromRow<'_, SqliteRow> for ShouldNotify {
 #[derive(Debug, Default)]
 pub struct UserSubscribe {
     user_id: Id,
-    #[allow(unused)]
+    #[expect(unused)]
     source_id: Id,
     subscribed: bool,
 }
@@ -137,6 +138,7 @@ impl UserSubscribe {
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct App {
+    // todo: change to Id
     app_id: String,
     source_id: Id,
     name: String,

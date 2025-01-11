@@ -1,5 +1,7 @@
 use macros::build_migrations;
 
+mod op9_app_int_id;
+
 // Provided example [1] for migrating from sqlx doesn't work, see [2]
 //
 // [1]: https://github.com/iamsauravsharma/sqlx_migrator#migrate-from-sqlx-default-sql-based-migration
@@ -19,5 +21,6 @@ build_migrations!(
         6: "0006_bot-blocked",
         7: "0007_user-info",
         8: "0008_source-name-unique",
+        9: "0009_app-int-id" => op9_app_int_id::Operation9AppIntId,
     ],
 );

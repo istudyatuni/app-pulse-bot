@@ -570,11 +570,14 @@ dependencies = [
 name = "db"
 version = "0.3.0"
 dependencies = [
+ "async-trait",
  "bon",
  "common",
  "i18n",
  "log",
+ "paste",
  "sqlx",
+ "sqlx_migrator",
  "teloxide",
  "thiserror",
  "tokio",
@@ -1775,6 +1778,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "paste"
+version = "1.0.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+
+[[package]]
 name = "pem-rfc7468"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2837,6 +2846,19 @@ dependencies = [
  "thiserror",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "sqlx_migrator"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f640b957a779c0807fa02e62e8e7d522061c1f962264a9466722fce050b12ec4"
+dependencies = [
+ "async-trait",
+ "clap",
+ "sqlx",
+ "thiserror",
+ "tracing",
 ]
 
 [[package]]

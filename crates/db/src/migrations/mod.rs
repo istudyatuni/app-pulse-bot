@@ -25,12 +25,29 @@ macro_rules! make_migration {
             );
         }
     };
+    ($num:literal : $name:ident) => {
+        paste! {
+            #[allow(dead_code)]
+            pub(crate) struct [<Operation $num>];
+
+            sqlite_migration! (
+                [<Operation $num>],
+                "main", // name of app
+                $name,
+                vec_box![],
+                vec_box![(
+                    include_str!(concat!("../../../../migrations/", $name, ".up.sql")),
+                    include_str!(concat!("../../../../migrations/", $name, ".down.sql")),
+                )]
+            );
+        }
+    };
 }
 
 macro_rules! make_migrations {
     () => {};
-    ($register:ident; $($num:literal : $name:literal),* $(,)?) => {
-        $(make_migration!($num : $name);)*
+    ($register:ident; $($num:literal : $st:ident, $name:literal),* $(,)?) => {
+        // $(make_migration!($num : $name);)*
 
         paste! {
             #[allow(unused)]
@@ -43,8 +60,20 @@ macro_rules! make_migrations {
     };
 }
 
+macro_rules! raw {
+    () => {};
+    ($num:literal : $name:literal) => {};
+}
+
+macro_rules! rust {
+    () => {};
+    ($num:literal : $st:ident) => {};
+}
+
+struct TestOp;
+
 // original migrations
-make_migrations!(
+/*make_migrations!(
     register_fake_migrations;
     1: "0001_schema",
     2: "0002_source-seed",
@@ -54,7 +83,8 @@ make_migrations!(
     6: "0006_bot-blocked",
     7: "0007_user-info",
     8: "0008_source-name-unique",
-);
+    // 9: TestOp,
+);*/
 
 // new migrations
 make_migrations!(

@@ -559,6 +559,7 @@ dependencies = [
  "common",
  "i18n",
  "log",
+ "macros",
  "paste",
  "sqlx",
  "sqlx_migrator",
@@ -1564,6 +1565,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d6ea2a48c204030ee31a7d7fc72c93294c92fe87ecb1789881c9543516e1a0d"
 dependencies = [
  "value-bag",
+]
+
+[[package]]
+name = "macros"
+version = "0.3.0"
+dependencies = [
+ "camino",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
 ]
 
 [[package]]

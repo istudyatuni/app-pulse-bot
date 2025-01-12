@@ -58,6 +58,7 @@ db = { path = "crates/db" }
 i18n = { path = "crates/i18n" }
 interly = { path = "crates/interly" }
 interly-macros = { path = "crates/interly-macros" }
+macros = { path = "crates/macros" }
 sources = { path = "crates/sources" }
 
 [dependencies]

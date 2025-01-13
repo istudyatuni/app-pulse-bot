@@ -6,7 +6,7 @@ use macros::build_migrations;
 // [2]: https://github.com/iamsauravsharma/sqlx_migrator/issues/39
 build_migrations!(
     app: "main",
-    folder: "../../../../migrations",
+    folder: "./migrations",
     fake: 8,
     register_fake_fn: register_fake_migrations,
     register_fn: register_migrations,

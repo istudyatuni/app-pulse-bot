@@ -42,7 +42,7 @@ serde_json = "1.0.149"
 simplelog = "0.12.2"
 sqlx = { version = "0.8.6", features = [ "macros", "migrate", "runtime-tokio", "sqlite", "tls-rustls" ] }
 sqlx_migrator = { version = "0.16.2", features = ["sqlite"] }
-syn = "2"
+syn = { version = "2", features = ["printing"] }
 teloxide = { version = "0.17.0", default-features = false, features = ["macros", "ctrlc_handler", "rustls"] }
 thiserror = "2.0.18"
 time = { version = "0.3.47", features = [ "formatting" ] }

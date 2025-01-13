@@ -12,6 +12,11 @@ check:
 test what='--workspace':
 	cargo nextest run {{what}}
 
+doc args="":
+	cargo doc --document-private-items --all-features --workspace {{args}}
+
+doc-open: (doc "--open")
+
 build-deploy ssh ssh-path post-deploy-ssh-script: check
 	@just build-release
 	@just deploy '{{ssh}}:{{ssh-path}}'

@@ -1,6 +1,6 @@
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
@@ -158,52 +158,82 @@ pub fn build_migrations(input: Migrations) -> TokenStream {
     let operation_struct = |i| Ident::new(&format!("Operation{i}"), Span::call_site());
     let migration_struct = |i| Ident::new(&format!("Migration{i}"), Span::mixed_site());
 
-    let app = &input.app;
+    let up_path = |folder: &Utf8Path, name| folder.join(format!("{name}.up.sql"));
+    let down_path = |folder: &Utf8Path, name| folder.join(format!("{name}.down.sql"));
 
-    let structs_defs = input.migrations.iter().map(|(i, m)| {
+    let sql = |ty, text: &str| format!("#### {ty} migration\n```sql\n{}\n```", text.trim());
+
+    let app = &input.app;
+    let path = Utf8PathBuf::from(input.folder);
+
+    let defs = input.migrations.iter().map(|(i, m)| {
         let migration_ident = migration_struct(i);
-        let op = match m {
-            Migration::Raw(_) => {
+        let operation = match m {
+            Migration::Raw(name) => {
                 let op_ident = operation_struct(i);
-                quote! { pub struct #op_ident; }
+
+                let cur = std::env::current_dir().unwrap();
+                let up = up_path(&path, name);
+                let down = down_path(&path, name);
+                let up = std::fs::read_to_string(&up)
+                    .unwrap_or_else(|e| format!("-- failed to read {}/{up}: {e}", cur.display()));
+                let down = std::fs::read_to_string(&down)
+                    .unwrap_or_else(|e| format!("-- failed to read {}/{down}: {e}", cur.display()));
+                let op_doc = format!(
+                    "Operation for `{name}`\n{}\n{}",
+                    sql("Up", &up),
+                    sql("Down", &down)
+                );
+
+                quote! {
+                    #[doc = #op_doc]
+                    pub struct #op_ident;
+
+                    ::sqlx_migrator::sqlite_migration! (
+                        #migration_ident,
+                        #app,
+                        #name,
+                        ::sqlx_migrator::vec_box![],
+                        ::sqlx_migrator::vec_box![(#up, #down)]
+                    );
+                }
             }
             Migration::Rust(_, _) => quote! {},
         };
+        let migration = match m {
+            Migration::Raw(_) => {
+                quote! {}
+            }
+            Migration::Rust(name, op_type) => {
+                quote! {
+                    ::sqlx_migrator::sqlite_migration! (
+                        #migration_ident,
+                        #app,
+                        #name,
+                        ::sqlx_migrator::vec_box![],
+                        ::sqlx_migrator::vec_box![super::#op_type]
+                    );
+                }
+            }
+        };
+        let doc = match m {
+            Migration::Raw(name) => {
+                let op_ident = operation_struct(i);
+                format!(
+                    "Migration for `{name}`\n\nSee [`super::__migrations::{}`]",
+                    op_ident.to_token_stream().to_string().replace(' ', "")
+                )
+            }
+            Migration::Rust(name, ty) => format!(
+                "Migration `{name}`\n\nSee [`super::{}`]",
+                ty.to_token_stream().to_string().replace(' ', "")
+            ),
+        };
         quote! {
+            #[doc = #doc]
             pub struct #migration_ident;
-            #op
-        }
-    });
-
-    let path = Utf8PathBuf::from(input.folder);
-    let migrations = input.migrations.iter().map(|(i, m)| match m {
-        Migration::Raw(name) => {
-            let ident = migration_struct(i);
-            let path_prefix = path.join(name).to_string();
-            quote! {
-                ::sqlx_migrator::sqlite_migration! (
-                    #ident,
-                    #app,
-                    #name,
-                    ::sqlx_migrator::vec_box![],
-                    ::sqlx_migrator::vec_box![(
-                        include_str!(concat!(#path_prefix, ".up.sql")),
-                        include_str!(concat!(#path_prefix, ".down.sql")),
-                    )]
-                );
-            }
-        }
-        Migration::Rust(name, op_type) => {
-            let migration_ident = migration_struct(i);
-            quote! {
-                ::sqlx_migrator::sqlite_migration! (
-                    #migration_ident,
-                    #app,
-                    #name,
-                    ::sqlx_migrator::vec_box![],
-                    ::sqlx_migrator::vec_box![#op_type]
-                );
-            }
+            #operation
+            #migration
         }
     });
 
@@ -213,13 +243,14 @@ pub fn build_migrations(input: Migrations) -> TokenStream {
         .map(|(i, _)| migration_struct(i))
         .collect();
     let fake_fn = match (input.register_fake_fn, input.fake) {
-        (Some(ident), Some(fake)) => {
+        (Some(fake_ident), Some(fake)) => {
             let migrations_idents = migrations_idents.iter().take(fake);
             quote! {
-                pub fn #ident(migrator: &mut ::sqlx_migrator::Migrator<::sqlx::Sqlite>) {
+                /// Register fake migrations
+                pub fn #fake_ident(migrator: &mut ::sqlx_migrator::Migrator<::sqlx::Sqlite>) {
                     use ::sqlx_migrator::Info;
 
-                    #(migrator.add_migration(Box::new(#migrations_idents));)*
+                    #(migrator.add_migration(Box::new(__migrations::#migrations_idents));)*
                 }
             }
         }
@@ -230,16 +261,19 @@ pub fn build_migrations(input: Migrations) -> TokenStream {
     let migrations_idents = migrations_idents.iter().skip(input.fake.unwrap_or(0));
     let register_ident = input.register_fn;
     let register_fn = quote! {
+        /// Register migrations
         pub fn #register_ident(migrator: &mut ::sqlx_migrator::Migrator<::sqlx::Sqlite>) {
             use ::sqlx_migrator::Info;
 
-            #(migrator.add_migration(Box::new(#migrations_idents));)*
+            #(migrator.add_migration(Box::new(__migrations::#migrations_idents));)*
         }
     };
 
     quote! {
-        #(#structs_defs)*
-        #(#migrations)*
+        /// Module with generated operations and migrations
+        mod __migrations {
+            #(#defs)*
+        }
         #fake_fn
         #register_fn
     }

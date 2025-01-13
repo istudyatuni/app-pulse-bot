@@ -27,12 +27,13 @@ mod migrations;
 ///
 /// #### Arguments
 ///
-/// - `folder`: folder with migrations written in SQL, using sqlx file names: {name}.{up/down}.sql
+/// - `folder`: folder with migrations written in SQL, using sqlx file names:
+///   {name}.{up/down}.sql. Relative to project's Cargo.toml
 /// - `fake`: number of fake migrations at the start
 /// - `register_fake_fn`: name of function that will register fake migrations
-/// - register_fn``: name of function that will register normal migrations
+/// - `register_fn`: name of function that will register normal migrations
 ///
-/// `fake` and `register_fake_fn` is optional
+/// `fake` and `register_fake_fn` are optional
 ///
 /// #### Defining operations
 ///

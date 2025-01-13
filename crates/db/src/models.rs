@@ -93,19 +93,11 @@ impl UserUpdate {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[repr(u8)]
 pub enum ShouldNotify {
+    Ignore = 0,
     Notify,
-    Ignore,
-}
-
-impl ShouldNotify {
-    pub fn to_db(&self) -> bool {
-        match self {
-            Self::Notify => true,
-            Self::Ignore => false,
-        }
-    }
 }
 
 impl sqlx::FromRow<'_, SqliteRow> for ShouldNotify {

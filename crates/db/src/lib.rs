@@ -171,7 +171,7 @@ impl DB {
         .bind(update.user_id())
         .bind(SOURCE_ID)
         .bind(update.app_id())
-        .bind(update.should_notify().map(|notify| notify.to_db()))
+        .bind(update.should_notify())
         .execute(&self.pool)
         .await?;
 

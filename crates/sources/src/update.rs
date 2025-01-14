@@ -1,3 +1,4 @@
+use db::types::Id;
 use reqwest::Url;
 
 use common::UnixDateTime;
@@ -22,18 +23,20 @@ pub struct Update {
     description: Option<String>,
     description_link: Option<Url>,
     update_link: Option<Url>,
-    app_id: String,
+    app_id: Id,
+    name: String,
     update_time: UnixDateTime,
 }
 
 impl Update {
+    // todo: use bon
     pub(crate) fn builder() -> UpdateBuilder {
         UpdateBuilder {
             update: Update::default(),
         }
     }
-    pub fn app_id(&self) -> &str {
-        &self.app_id
+    pub fn app_id(&self) -> Id {
+        self.app_id
     }
     pub fn description(&self) -> Option<&str> {
         self.description.as_deref()
@@ -76,8 +79,8 @@ impl UpdateBuilder {
         self.update.update_link = Some(url);
         self
     }
-    pub(crate) fn app_id<S: Into<String>>(mut self, app_id: S) -> Self {
-        self.update.app_id = app_id.into();
+    pub(crate) fn app_id(mut self, name: Id) -> Self {
+        self.update.app_id = name;
         self
     }
     pub(crate) fn update_time(mut self, update_time: UnixDateTime) -> Self {

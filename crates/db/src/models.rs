@@ -69,25 +69,24 @@ pub struct UserUpdate {
     user_id: Id,
     #[allow(unused)]
     source_id: Id,
-    // todo: change to Id
-    app_id: String,
+    app_id: Id,
     should_notify: Option<ShouldNotify>,
 }
 
 impl UserUpdate {
-    pub fn new(user_id: Id, app_id: &str, should_notify: Option<ShouldNotify>) -> Self {
+    pub fn new(user_id: Id, app_id: Id, should_notify: Option<ShouldNotify>) -> Self {
         Self {
             user_id,
             source_id: SOURCE_ID,
-            app_id: app_id.to_string(),
+            app_id,
             should_notify,
         }
     }
     pub fn user_id(&self) -> Id {
         self.user_id
     }
-    pub fn app_id(&self) -> &str {
-        self.app_id.as_str()
+    pub fn app_id(&self) -> Id {
+        self.app_id
     }
     pub fn should_notify(&self) -> Option<ShouldNotify> {
         self.should_notify
@@ -138,24 +137,23 @@ impl UserSubscribe {
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct App {
-    // todo: change to Id
-    app_id: String,
+    app_id: Id,
     source_id: Id,
     name: String,
     last_updated_at: UnixDateTime,
 }
 
 impl App {
-    pub fn new(app_id: &str, source_id: Id, name: &str, last_updated_at: UnixDateTime) -> Self {
+    pub fn new(app_id: Id, source_id: Id, name: &str, last_updated_at: UnixDateTime) -> Self {
         Self {
-            app_id: app_id.to_string(),
+            app_id,
             source_id,
             name: name.to_string(),
             last_updated_at,
         }
     }
-    pub fn app_id(&self) -> &str {
-        &self.app_id
+    pub fn app_id(&self) -> Id {
+        self.app_id
     }
     pub fn source_id(&self) -> Id {
         self.source_id
@@ -197,6 +195,16 @@ pub mod fetch {
     #[derive(sqlx::FromRow)]
     pub(crate) struct FetchSourceId {
         pub source_id: Id,
+    }
+
+    #[derive(sqlx::FromRow)]
+    pub(crate) struct FetchAppId {
+        pub app_id: Id,
+    }
+
+    #[derive(sqlx::FromRow)]
+    pub(crate) struct FetchName {
+        pub name: String,
     }
 
     #[derive(sqlx::FromRow)]

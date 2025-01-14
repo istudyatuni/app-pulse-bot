@@ -1,18 +1,21 @@
 use std::time::Duration;
 
 use async_trait::async_trait;
-use timer::Timer;
+
+use db::DB;
 
 use crate::extractor::tg::{
     Document, KeyboardButton, Media, Message, ReplyInlineMarkupRow, ReplyMarkup,
     fetch_public_channel,
 };
 use crate::*;
+use timer::Timer;
 
 const CHANNEL_NAME: &str = "alexstranniklite";
 
 pub struct Source {
     timer: Timer,
+    db: DB,
 }
 
 impl Source {
@@ -47,9 +50,24 @@ impl Source {
             if let Some(update) = &msg_with_update {
                 if is_description(&msg) {
                     // handle case 1
+                    let app_name = get_app_id(update);
+                    let app_id = match self.db.get_app_id_by_app_name(&app_name).await {
+                        Ok(Some(id)) => id,
+                        Ok(None) => {
+                            log::error!("app by app_name ({app_name}) not found");
+                            msg_with_update.take();
+                            continue;
+                        }
+                        Err(e) => {
+                            log::error!("failed to get app_id by app_name ({app_name}): {e}");
+                            msg_with_update.take();
+                            continue;
+                        }
+                    };
+
                     updates.push(
                         Update::builder()
-                            .app_id(get_app_id(update))
+                            .app_id(app_id)
                             .description_link(&format!("{channel_link}{}", msg.id))
                             .update_link(&format!("{channel_link}{}", update.id))
                             .update_time(update.date)
@@ -61,7 +79,7 @@ impl Source {
                     // handle case 2
                     continue;
                 }
-                msg_with_update = None;
+                msg_with_update.take();
             }
         }
         super::UpdatesList {
@@ -79,9 +97,10 @@ impl UpdateSource for Source {
         "tg@alexstranniklite"
     }
 
-    fn with_timeout(timeout: Duration) -> Result<Self, Self::InitError> {
+    fn with_timeout(timeout: Duration, db: DB) -> Result<Self, Self::InitError> {
         Ok(Self {
             timer: Timer::new(timeout),
+            db,
         })
     }
 

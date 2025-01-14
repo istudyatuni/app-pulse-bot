@@ -13,7 +13,7 @@ macro_rules! spawn_list_sources {
     () => {};
     ($db:ident, $jobs:ident, $token:ident, $tx:ident; $($module:ident),* $(,)?) => {
         $(
-            match $module::Source::new() {
+            match $module::Source::new($db.clone()) {
                 Ok(source) => {
                     match $db.add_source_or_ignore($module::Source::name()).await {
                         Ok(()) => {

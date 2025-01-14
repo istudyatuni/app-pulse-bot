@@ -50,10 +50,16 @@ impl DB {
         Ok(Self { pool })
     }
     async fn migrate(mut conn: PoolConnection<Sqlite>) -> Result<()> {
+        // actually run fake migrations in tests
+        #[cfg(not(test))]
+        const FAKE_AS_FAKE: bool = true;
+        #[cfg(test)]
+        const FAKE_AS_FAKE: bool = false;
+
         // run old migrations
         let mut migrator = Migrator::default();
         migrations::register_fake_migrations(&mut migrator);
-        let plan = Plan::apply_all().fake(true);
+        let plan = Plan::apply_all().fake(FAKE_AS_FAKE);
         migrator.run(&mut conn, &plan).await?;
 
         // run migrations

@@ -1,4 +1,4 @@
-use db::models::ShouldNotify;
+use db::{models::ShouldNotify, types::Id};
 use reqwest::Url;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup};
 
@@ -53,7 +53,7 @@ pub(crate) struct Keyboards;
 
 impl Keyboards {
     pub(crate) fn update(
-        app_id: &str,
+        app_id: Id,
         url: Option<Url>,
         kind: NewAppKeyboardKind,
         lang: &str,
@@ -152,7 +152,7 @@ mod tests {
     const IGNORE_MSG: &str = "Ignore";
     const SEE_UPDATE_MSG: &str = "See update";
 
-    const APP_ID: &str = "test";
+    const APP_ID: Id = 1;
     const USER_LANG: &str = "en";
 
     #[test]
@@ -167,8 +167,8 @@ mod tests {
                 Keyboards::update(APP_ID, Some(url.clone()), Kind::Both, USER_LANG),
                 vec![
                     vec![
-                        Btn::callback(NOTIFY_MSG, cb("notify:test:notify")),
-                        Btn::callback(IGNORE_MSG, cb("notify:test:ignore")),
+                        Btn::callback(NOTIFY_MSG, cb("notify:1:notify")),
+                        Btn::callback(IGNORE_MSG, cb("notify:1:ignore")),
                     ],
                     vec![update_btn.clone()],
                 ],
@@ -176,14 +176,14 @@ mod tests {
             (
                 Keyboards::update(APP_ID, Some(url.clone()), Kind::NotifyEnabled, USER_LANG),
                 vec![vec![
-                    Btn::callback(BELL_MSG, cb("notify:test:ignore")),
+                    Btn::callback(BELL_MSG, cb("notify:1:ignore")),
                     update_btn.clone(),
                 ]],
             ),
             (
                 Keyboards::update(APP_ID, Some(url.clone()), Kind::NotifyDisabled, USER_LANG),
                 vec![vec![
-                    Btn::callback(NO_BELL_MSG, cb("notify:test:notify")),
+                    Btn::callback(NO_BELL_MSG, cb("notify:1:notify")),
                     update_btn.clone(),
                 ]],
             ),

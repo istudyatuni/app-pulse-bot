@@ -15,6 +15,8 @@ use opensearch::{
 };
 use serde_json::json;
 
+use db::DB;
+
 use crate::{timer::Timer, UpdateSource, SOURCE_TIMEOUT};
 
 const BACKEND_URL: &str = "https://search.nixos.org/backend";
@@ -133,7 +135,7 @@ impl UpdateSource for Source {
         "nixpkgs"
     }
 
-    fn with_timeout(timeout: Duration) -> Result<Self, Self::InitError> {
+    fn with_timeout(timeout: Duration, db: DB) -> Result<Self, Self::InitError> {
         Ok(Self {
             timer: Timer::new(timeout),
             client: init_nixos_search_client()?,

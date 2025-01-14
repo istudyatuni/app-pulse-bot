@@ -108,7 +108,7 @@ impl DB {
     pub async fn select_users_to_notify(
         &self,
         source_id: Id,
-        app_id: &str,
+        app_id: Id,
     ) -> Result<Vec<models::User>> {
         log::debug!("select subscribed users");
         Ok(sqlx::query_as::<_, models::User>(&format!(
@@ -160,7 +160,7 @@ impl DB {
     pub async fn save_should_notify_user(
         &self,
         user_id: impl Into<UserId>,
-        app_id: &str,
+        app_id: Id,
         should_notify: models::ShouldNotify,
     ) -> Result<()> {
         let user_id = user_id.into();
@@ -294,7 +294,7 @@ impl DB {
         &self,
         user_id: impl Into<UserId>,
         source_id: Id,
-        app_id: &str,
+        app_id: Id,
     ) -> Result<Option<models::ShouldNotify>> {
         log::debug!("getting user preference");
         let id: Id = user_id.into().into();
@@ -365,7 +365,7 @@ impl DB {
     pub async fn add_or_update_app(
         &self,
         source_id: Id,
-        app_id: &str,
+        app_id: Id,
         name: &str,
         last_updated_at: UnixDateTime,
     ) -> Result<()> {
@@ -385,6 +385,38 @@ impl DB {
         .execute(&self.pool)
         .await?;
         Ok(())
+    }
+    pub async fn get_app_name_by_app_id(&self, app_id: Id) -> Result<Option<String>> {
+        log::debug!("select app_name from app {app_id}");
+        let res = sqlx::query_as::<_, models::fetch::FetchName>(&format!(
+            "select name from {APP_TABLE}
+             where app_id = ?"
+        ))
+        .bind(app_id)
+        .fetch_one(&self.pool)
+        .await;
+
+        match res {
+            Ok(f) => Ok(Some(f.name)),
+            Err(sqlx::Error::RowNotFound) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+    pub async fn get_app_id_by_app_name(&self, app_name: &str) -> Result<Option<Id>> {
+        log::debug!("select app_name from app {app_name}");
+        let res = sqlx::query_as::<_, models::fetch::FetchAppId>(&format!(
+            "select app_id from {APP_TABLE}
+             where name = ?"
+        ))
+        .bind(app_name)
+        .fetch_one(&self.pool)
+        .await;
+
+        match res {
+            Ok(f) => Ok(Some(f.app_id)),
+            Err(sqlx::Error::RowNotFound) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
     }
 }
 
@@ -428,9 +460,8 @@ impl DB {
         .await?;
         Ok(())
     }
-    pub async fn get_source_id_by_app(&self, app_id: impl Into<String>) -> Result<Option<Id>> {
-        let app_id = app_id.into();
-        log::debug!("select source_id from app {app_id}");
+    pub async fn get_source_id_by_app_id(&self, app_id: Id) -> Result<Option<Id>> {
+        log::debug!("select source_id from app by app_id {app_id}");
         let res = sqlx::query_as::<_, models::fetch::FetchSourceId>(&format!(
             "select source_id from {APP_TABLE}
              where app_id = ?"
@@ -523,7 +554,7 @@ mod tests {
     #[tokio::test]
     async fn test_select_users_to_notify() -> Result<()> {
         const SOURCE_ID: Id = 1;
-        const APP_ID: &str = "test";
+        const APP_ID: Id = 1;
 
         let db = prepare_db_timer("test_select_users_to_notify").await?;
         let mut timer = Timer::new();
@@ -551,7 +582,7 @@ mod tests {
     #[tokio::test]
     async fn test_no_select_users_to_notify() -> Result<()> {
         const SOURCE_ID: Id = 1;
-        const APP_ID: &str = "test";
+        const APP_ID: Id = 1;
 
         let db = prepare_db_timer("test_no_select_users_to_notify").await?;
         let mut timer = Timer::new();

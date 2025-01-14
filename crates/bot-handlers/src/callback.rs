@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use db::models::ShouldNotify;
+use db::{models::ShouldNotify, types::Id};
 
 use crate::{
     keyboards::LanguagesKeyboardKind, PayloadData, PayloadLayout, PayloadParseError,
@@ -15,14 +15,14 @@ const SET_LANG_FLAG: &str = "lang";
 const IGNORE_TOKEN: &str = "ignore";
 const NOTIFY_TOKEN: &str = "notify";
 
-const NOTIFY_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(3, Some(1));
+const NOTIFY_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(3, None);
 const SETLANG_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(3, None);
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub(crate) enum Callback {
     Notify {
-        app_id: String,
+        app_id: Id,
         should_notify: ShouldNotify,
     },
     SetLang {
@@ -43,7 +43,7 @@ impl PayloadData for Callback {
             } => NOTIFY_CALLBACK_LAYOUT
                 .make_payload(vec![
                     NOTIFY_FLAG,
-                    app_id,
+                    &app_id.to_string(),
                     should_notify.to_payload().as_str(),
                 ])
                 .inspect_err(|e| log::error!("invalid notify callback is created: {e}"))
@@ -71,7 +71,10 @@ impl PayloadData for Callback {
             NOTIFY_FLAG => {
                 let data = NOTIFY_CALLBACK_LAYOUT.parse_payload(value)?;
                 Callback::Notify {
-                    app_id: data[1].clone(),
+                    app_id: data[1]
+                        .parse()
+                        .inspect_err(|e| log::error!("failed to parse app_id in callback: {e}"))
+                        .map_err(|_| CallbackParseError::InvalidCallback)?,
                     should_notify: ShouldNotify::try_from_payload(&data[2])?,
                 }
             }
@@ -147,9 +150,9 @@ impl From<PayloadParseError> for CallbackParseError {
 }
 
 impl Callback {
-    pub(crate) fn notify(app_id: &str, should_notify: ShouldNotify) -> Self {
+    pub(crate) fn notify(app_id: Id, should_notify: ShouldNotify) -> Self {
         Self::Notify {
-            app_id: app_id.to_string(),
+            app_id,
             should_notify,
         }
     }
@@ -168,8 +171,7 @@ mod tests {
     #[test]
     fn test_callback_from_str() {
         const V: u8 = CALLBACK_VERSION;
-        let app_id = "some-app";
-        let strange_app_id = "some-app:name";
+        let app_id = 1;
 
         let table = vec![
             (
@@ -179,10 +181,6 @@ mod tests {
             (
                 format!("{V}:{NOTIFY_FLAG}:{app_id}:{IGNORE_TOKEN}"),
                 Ok(Callback::notify(app_id, ShouldNotify::Ignore)),
-            ),
-            (
-                format!("{V}:{NOTIFY_FLAG}:{strange_app_id}:{IGNORE_TOKEN}"),
-                Ok(Callback::notify(strange_app_id, ShouldNotify::Ignore)),
             ),
             (
                 format!("{V}:{SET_LANG_FLAG}:start:en"),
@@ -203,10 +201,6 @@ mod tests {
             (
                 format!("{V}:{NOTIFY_FLAG}:{app_id}"),
                 Err(CallbackParseError::InvalidCallback),
-            ),
-            (
-                format!("{V}:{NOTIFY_FLAG}:{strange_app_id}"),
-                Err(CallbackParseError::InvalidToken),
             ),
             (
                 format!("{NOTIFY_FLAG}:{app_id}:{NOTIFY_TOKEN}"),

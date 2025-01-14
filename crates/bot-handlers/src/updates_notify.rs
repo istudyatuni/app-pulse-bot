@@ -30,10 +30,10 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
             let app_id = update.app_id().to_owned();
             log::debug!("got update for app {}", app_id);
 
-            let source_id = match source_ids_map.entry(app_id.clone()) {
+            let source_id = match source_ids_map.entry(app_id) {
                 Entry::Occupied(e) => *e.get(),
                 Entry::Vacant(_) => {
-                    let id = match db.get_source_id_by_app(app_id.clone()).await {
+                    let id = match db.get_source_id_by_app_id(app_id).await {
                         Ok(id) => {
                             let Some(id) = id else {
                                 log::error!("source by app_id {app_id} not found");
@@ -46,20 +46,20 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                             continue;
                         }
                     };
-                    source_ids_map.insert(app_id.clone(), id);
+                    source_ids_map.insert(app_id, id);
                     id
                 }
             };
 
             if let Err(e) = db
-                .add_or_update_app(source_id, &app_id, "", update.update_time())
+                .add_or_update_app(source_id, app_id, "", update.update_time())
                 .await
             {
                 log::error!("failed to add app: {e}");
                 continue;
             }
 
-            let users = match db.select_users_to_notify(source_id, &app_id).await {
+            let users = match db.select_users_to_notify(source_id, app_id).await {
                 Ok(v) => v,
                 Err(e) => {
                     log::error!("failed to select users: {e}");
@@ -72,11 +72,11 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 let user_id = user.user_id();
                 let chat_id = ChatId(user_id);
                 let lang = user.lang();
-                let res = match db.should_notify_user(user_id, source_id, &app_id).await {
+                let res = match db.should_notify_user(user_id, source_id, app_id).await {
                     Ok(s) => match s {
                         None => send_suggest_update(bot.clone(), chat_id, &update, lang).await,
                         Some(ShouldNotify::Notify) => {
-                            send_update(bot.clone(), chat_id, &update, lang).await
+                            send_update(bot.clone(), db.clone(), chat_id, &update, lang).await
                         }
                         Some(ShouldNotify::Ignore) => {
                             log::debug!("ignoring update {app_id} for user {user_id}");
@@ -91,7 +91,10 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 if let Err(e) = res {
                     match e {
                         UpdateError::BotBlocked(chat_id) => handle_bot_blocked(&db, chat_id).await,
-                        UpdateError::RequestError(ref e) => {
+                        UpdateError::RequestError(e) => {
+                            log::error!("error from update notifier: {e}")
+                        }
+                        UpdateError::Db(e) => {
                             log::error!("error from update notifier: {e}")
                         }
                     }
@@ -138,12 +141,21 @@ async fn send_suggest_update(
 
 async fn send_update(
     bot: Bot,
+    db: DB,
     chat_id: ChatId,
     update: &Update,
     lang: &str,
 ) -> Result<(), UpdateError> {
     let app_id = update.app_id();
-    let mut text = vec![tr!(new_update_msg, lang, app_id) + "\n"];
+    let app_name = match db.get_app_name_by_app_id(app_id).await? {
+        Some(n) => n,
+        None => {
+            log::error!("app by app_id {app_id} not found");
+            // todo: probably move to locales?
+            "-_-".to_string()
+        }
+    };
+    let mut text = vec![tr!(new_update_msg, lang, &app_name) + "\n"];
     if let Some(url) = update.update_link() {
         text.push(url.to_string());
     } else if let Some(url) = update.description_link() {
@@ -186,6 +198,10 @@ async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
                     failed.0 += 1;
                     errors.push(e.to_string());
                 }
+                UpdateError::Db(e) => {
+                    failed.0 += 1;
+                    errors.push(e.to_string());
+                }
             }
         } else if let Err(e) = db.save_user_version_notified(user_id).await {
             log::error!("failed to save user {user_id} notified: {e}");
@@ -214,6 +230,9 @@ enum UpdateError {
 
     #[error(transparent)]
     RequestError(#[from] teloxide::RequestError),
+
+    #[error(transparent)]
+    Db(#[from] db::Error),
 }
 
 trait MapBotBlockedError {

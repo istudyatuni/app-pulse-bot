@@ -383,7 +383,7 @@ impl DB {
     /// Returns id of new app. `Ok(None)` means app already exists
     pub async fn add_app(&self, source_id: Id, name: &str) -> Result<Id> {
         log::debug!("adding app {name} from source {source_id}");
-        let res = sqlx::query_as::<_, models::fetch::FetchAppId>(&format!(
+        let res = sqlx::query_as::<_, models::fetch::AppId>(&format!(
             "insert or ignore into {APP_TABLE}
              (app_id, source_id, name)
              values ((select coalesce(max(app_id), 0) from {APP_TABLE}) + 1, ?, ?)
@@ -397,7 +397,7 @@ impl DB {
     }
     pub async fn get_app_name_by_app_id(&self, app_id: Id) -> Result<Option<String>> {
         log::debug!("select app_name from app {app_id}");
-        let res = sqlx::query_as::<_, models::fetch::FetchName>(&format!(
+        let res = sqlx::query_as::<_, models::fetch::Name>(&format!(
             "select name from {APP_TABLE}
              where app_id = ?"
         ))
@@ -413,7 +413,7 @@ impl DB {
     }
     pub async fn get_app_id_by_app_name(&self, app_name: &str) -> Result<Option<Id>> {
         log::debug!("select app_id from app {app_name}");
-        let res = sqlx::query_as::<_, models::fetch::FetchAppId>(&format!(
+        let res = sqlx::query_as::<_, models::fetch::AppId>(&format!(
             "select app_id from {APP_TABLE}
              where name = ?"
         ))
@@ -475,7 +475,7 @@ impl DB {
     }
     pub async fn get_source_id_by_app_id(&self, app_id: Id) -> Result<Option<Id>> {
         log::debug!("select source_id from app by app_id {app_id}");
-        let res = sqlx::query_as::<_, models::fetch::FetchSourceId>(&format!(
+        let res = sqlx::query_as::<_, models::fetch::SourceId>(&format!(
             "select source_id from {APP_TABLE}
              where app_id = ?"
         ))
@@ -491,7 +491,7 @@ impl DB {
     }
     pub async fn get_source_id_by_source_name(&self, source_name: &str) -> Result<Option<Id>> {
         log::debug!("select source_id source name {source_name}");
-        let res = sqlx::query_as::<_, models::fetch::FetchSourceId>(&format!(
+        let res = sqlx::query_as::<_, models::fetch::SourceId>(&format!(
             "select source_id from {SOURCE_TABLE}
              where name = ?"
         ))
@@ -536,7 +536,7 @@ impl DB {
         })
     }
     async fn load_count(&self, sql_predicate: &str) -> Result<u32> {
-        Ok(sqlx::query_as::<_, models::fetch::FetchCount>(&format!(
+        Ok(sqlx::query_as::<_, models::fetch::Count>(&format!(
             "select count(*) as count {sql_predicate}"
         ))
         .fetch_one(&self.pool)

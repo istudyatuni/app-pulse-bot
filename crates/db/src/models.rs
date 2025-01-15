@@ -193,22 +193,22 @@ pub mod fetch {
     use crate::types::Id;
 
     #[derive(sqlx::FromRow)]
-    pub(crate) struct FetchSourceId {
+    pub(crate) struct SourceId {
         pub source_id: Id,
     }
 
     #[derive(sqlx::FromRow)]
-    pub(crate) struct FetchAppId {
+    pub(crate) struct AppId {
         pub app_id: Id,
     }
 
     #[derive(sqlx::FromRow)]
-    pub(crate) struct FetchName {
+    pub(crate) struct Name {
         pub name: String,
     }
 
     #[derive(sqlx::FromRow)]
-    pub(crate) struct FetchCount {
+    pub(crate) struct Count {
         pub count: u32,
     }
 }

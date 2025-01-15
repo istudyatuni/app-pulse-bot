@@ -362,29 +362,37 @@ impl DB {
 impl DB {
     /// Add new app, if there is already exists app with
     /// (`app_id`, `source_id`), update `last_updated_at`
-    pub async fn add_or_update_app(
+    pub async fn save_app_last_updated_at(
         &self,
-        source_id: Id,
         app_id: Id,
-        name: &str,
         last_updated_at: UnixDateTime,
     ) -> Result<()> {
         log::debug!("saving app {app_id}");
-        let app = models::App::new(app_id, source_id, name, last_updated_at);
         sqlx::query(&format!(
-            "insert into {APP_TABLE}
-             (app_id, source_id, name, last_updated_at)
-             values (?, ?, ?, ?)
-             on conflict(app_id, source_id)
-             do update set last_updated_at=excluded.last_updated_at"
+            "update {APP_TABLE}
+             set last_updated_at = ?
+             where app_id = ?"
         ))
-        .bind(app.app_id())
-        .bind(app.source_id())
-        .bind(app.name())
-        .bind(app.last_updated_at())
+        .bind(last_updated_at)
+        .bind(app_id)
         .execute(&self.pool)
         .await?;
         Ok(())
+    }
+    /// Returns id of new app. `Ok(None)` means app already exists
+    pub async fn add_app(&self, source_id: Id, name: &str) -> Result<Id> {
+        log::debug!("adding app {name} from source {source_id}");
+        let res = sqlx::query_as::<_, models::fetch::FetchAppId>(&format!(
+            "insert or ignore into {APP_TABLE}
+             (app_id, source_id, name)
+             values ((select max(app_id) from {APP_TABLE}) + 1, ?, ?)
+             returning app_id"
+        ))
+        .bind(source_id)
+        .bind(name)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(res.app_id)
     }
     pub async fn get_app_name_by_app_id(&self, app_id: Id) -> Result<Option<String>> {
         log::debug!("select app_name from app {app_id}");
@@ -403,7 +411,7 @@ impl DB {
         }
     }
     pub async fn get_app_id_by_app_name(&self, app_name: &str) -> Result<Option<Id>> {
-        log::debug!("select app_name from app {app_name}");
+        log::debug!("select app_id from app {app_name}");
         let res = sqlx::query_as::<_, models::fetch::FetchAppId>(&format!(
             "select app_id from {APP_TABLE}
              where name = ?"
@@ -447,6 +455,7 @@ impl DB {
             }
         }
     }
+    // todo: pass source_id
     pub async fn save_source_updated_at(&self, last_updated_at: UnixDateTime) -> Result<()> {
         log::debug!("save source last_updated_at: {last_updated_at}");
         sqlx::query(&format!(
@@ -576,8 +585,7 @@ mod tests {
         let mut timer = Timer::new();
         timer.skip(1);
 
-        db.add_or_update_app(SOURCE_ID, APP_ID, "", timer.next())
-            .await?;
+        db.save_app_last_updated_at(APP_ID, timer.next()).await?;
 
         // there are 2 users
         for u in [1, 2] {
@@ -604,8 +612,7 @@ mod tests {
         let mut timer = Timer::new();
         timer.skip(1);
 
-        db.add_or_update_app(SOURCE_ID, APP_ID, "", timer.next())
-            .await?;
+        db.save_app_last_updated_at(APP_ID, timer.next()).await?;
 
         // there is one user
         db.add_user_simple(1).await?;

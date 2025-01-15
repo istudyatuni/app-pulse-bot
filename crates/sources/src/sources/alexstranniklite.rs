@@ -53,11 +53,11 @@ impl Source {
                     // handle case 1
                     let app_name = get_app_name(update);
                     let app_id = match self.db.get_app_id_by_app_name(&app_name).await {
-                        Ok(Some(id)) => id,
-                        Ok(None) => {
-                            log::error!("app by app_name ({app_name}) not found");
-                            msg_with_update.take();
-                            continue;
+                        Ok(id) => {
+                            if id.is_none() {
+                                log::warn!("app by name {app_name} not found in db");
+                            }
+                            id
                         }
                         Err(e) => {
                             log::error!("failed to get app_id by app_name ({app_name}): {e}");
@@ -68,7 +68,9 @@ impl Source {
 
                     updates.push(
                         Update::builder()
-                            .app_id(app_id)
+                            .maybe_app_id(app_id)
+                            .source_id(self.id)
+                            .name(app_name)
                             .description_link(
                                 format!("{channel_link}{}", msg.id)
                                     .parse()

@@ -1,12 +1,11 @@
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
+use std::collections::HashSet;
 
 use anyhow::Result;
 use teloxide::prelude::*;
 use tokio::sync::mpsc::Receiver;
 
 use common::{DateTime, LogError};
-use db::{models::ShouldNotify, DB};
+use db::{models::ShouldNotify, types::Id, DB};
 use sources::{Update, UpdatesList};
 
 use crate::keyboards::{Keyboards, NewAppKeyboardKind};
@@ -25,37 +24,25 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
             .await
             .log_error_msg("failed to save source last_updated_at");
 
-        let mut source_ids_map = HashMap::new();
-        for update in updates.updates {
-            let app_id = update.app_id().to_owned();
+        for update in &updates.updates {
+            let source_id = update.source_id();
+            let app_id = match update.app_id() {
+                Some(id) => id,
+                None => match db.add_app(source_id, update.name()).await {
+                    Ok(app_id) => app_id,
+                    Err(e) => {
+                        log::error!("failed to add app when got update: {e}");
+                        continue;
+                    }
+                },
+            };
             log::debug!("got update for app {}", app_id);
 
-            let source_id = match source_ids_map.entry(app_id) {
-                Entry::Occupied(e) => *e.get(),
-                Entry::Vacant(_) => {
-                    let id = match db.get_source_id_by_app_id(app_id).await {
-                        Ok(id) => {
-                            let Some(id) = id else {
-                                log::error!("source by app_id {app_id} not found");
-                                continue;
-                            };
-                            id
-                        }
-                        Err(e) => {
-                            log::error!("failed to get source_id by app_id {app_id}: {e}");
-                            continue;
-                        }
-                    };
-                    source_ids_map.insert(app_id, id);
-                    id
-                }
-            };
-
             if let Err(e) = db
-                .add_or_update_app(source_id, app_id, "", update.update_time())
+                .save_app_last_updated_at(app_id, update.update_time())
                 .await
             {
-                log::error!("failed to add app: {e}");
+                log::error!("failed to update app last_updated_at: {e}");
                 continue;
             }
 
@@ -74,9 +61,12 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 let lang = user.lang();
                 let res = match db.should_notify_user(user_id, source_id, app_id).await {
                     Ok(s) => match s {
-                        None => send_suggest_update(bot.clone(), chat_id, &update, lang).await,
+                        None => {
+                            send_suggest_update(bot.clone(), chat_id, app_id, update, lang).await
+                        }
                         Some(ShouldNotify::Notify) => {
-                            send_update(bot.clone(), db.clone(), chat_id, &update, lang).await
+                            send_update(bot.clone(), db.clone(), chat_id, app_id, update, lang)
+                                .await
                         }
                         Some(ShouldNotify::Ignore) => {
                             log::debug!("ignoring update {app_id} for user {user_id}");
@@ -102,8 +92,13 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
             }
         }
 
-        for source_id in source_ids_map.values() {
-            db.save_all_users_last_notified(*source_id, DateTime::now())
+        for source_id in updates
+            .updates
+            .iter()
+            .map(|u| u.source_id())
+            .collect::<HashSet<_>>()
+        {
+            db.save_all_users_last_notified(source_id, DateTime::now())
                 .await
                 .log_error_msg_with(|| {
                     format!("failed to save all users last_notified_at for source {source_id}")
@@ -115,6 +110,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
 async fn send_suggest_update(
     bot: Bot,
     chat_id: ChatId,
+    app_id: Id,
     update: &Update,
     lang: &str,
 ) -> Result<(), UpdateError> {
@@ -130,7 +126,7 @@ async fn send_suggest_update(
 
     bot.send_message(chat_id, text.join(""))
         .reply_markup(Keyboards::update(
-            update.app_id(),
+            app_id,
             update.update_link().clone(),
             NewAppKeyboardKind::Both,
             lang,
@@ -143,10 +139,10 @@ async fn send_update(
     bot: Bot,
     db: DB,
     chat_id: ChatId,
+    app_id: Id,
     update: &Update,
     lang: &str,
 ) -> Result<(), UpdateError> {
-    let app_id = update.app_id();
     let app_name = match db.get_app_name_by_app_id(app_id).await? {
         Some(n) => n,
         None => {

@@ -98,11 +98,7 @@ impl DB {
         .fetch_one(&self.pool)
         .await;
 
-        match res {
-            Ok(u) => Ok(Some(u)),
-            Err(sqlx::Error::RowNotFound) => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        Ok(res.ignore_not_found()?)
     }
     /// Select subscribed and not yet notified users for specific source
     pub async fn select_users_to_notify(
@@ -405,11 +401,7 @@ impl DB {
         .fetch_one(&self.pool)
         .await;
 
-        match res {
-            Ok(f) => Ok(Some(f.name)),
-            Err(sqlx::Error::RowNotFound) => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        Ok(res.ignore_not_found()?.map(|r| r.name))
     }
     pub async fn get_app_id_by_app_name(&self, app_name: &str) -> Result<Option<Id>> {
         log::debug!("select app_id from app {app_name}");
@@ -421,11 +413,7 @@ impl DB {
         .fetch_one(&self.pool)
         .await;
 
-        match res {
-            Ok(f) => Ok(Some(f.app_id)),
-            Err(sqlx::Error::RowNotFound) => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        Ok(res.ignore_not_found()?.map(|r| r.app_id))
     }
 }
 
@@ -483,11 +471,7 @@ impl DB {
         .fetch_one(&self.pool)
         .await;
 
-        match res {
-            Ok(f) => Ok(Some(f.source_id)),
-            Err(sqlx::Error::RowNotFound) => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        Ok(res.ignore_not_found()?.map(|r| r.source_id))
     }
     pub async fn get_source_id_by_source_name(&self, source_name: &str) -> Result<Option<Id>> {
         log::debug!("select source_id source name {source_name}");
@@ -499,11 +483,7 @@ impl DB {
         .fetch_one(&self.pool)
         .await;
 
-        match res {
-            Ok(f) => Ok(Some(f.source_id)),
-            Err(sqlx::Error::RowNotFound) => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        Ok(res.ignore_not_found()?.map(|r| r.source_id))
     }
     pub async fn get_source_updated_at(&self, source_id: Id) -> Result<UnixDateTime> {
         log::debug!("select source last_updated_at");
@@ -542,6 +522,24 @@ impl DB {
         .fetch_one(&self.pool)
         .await?
         .count)
+    }
+}
+
+trait IgnoreNotFound<T> {
+    type Error;
+
+    fn ignore_not_found(self) -> Result<Option<T>, Self::Error>;
+}
+
+impl<T> IgnoreNotFound<T> for std::result::Result<T, sqlx::Error> {
+    type Error = sqlx::Error;
+
+    fn ignore_not_found(self) -> std::result::Result<Option<T>, Self::Error> {
+        match self {
+            Ok(value) => Ok(Some(value)),
+            Err(sqlx::Error::RowNotFound) => Ok(None),
+            Err(e) => Err(e),
+        }
     }
 }
 

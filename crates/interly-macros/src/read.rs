@@ -1,5 +1,6 @@
-use camino::Utf8PathBuf as PathBuf;
 use std::fs;
+
+use camino::Utf8PathBuf as PathBuf;
 
 pub(crate) fn read_files(dir: &str) -> Result<Vec<(PathBuf, String)>, String> {
     let files = fs::read_dir(dir).map_err(|e| e.to_string())?;

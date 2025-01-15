@@ -1,7 +1,8 @@
-use i18n::tr_literal;
 use teloxide::{
     macros::BotCommands as DeriveBotCommands, types::BotCommand, utils::command::BotCommands,
 };
+
+use i18n::tr_literal;
 
 #[derive(DeriveBotCommands, Clone, Copy)]
 #[command(rename_rule = "lowercase")]

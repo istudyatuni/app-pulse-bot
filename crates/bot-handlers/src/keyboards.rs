@@ -1,6 +1,7 @@
-use db::{models::ShouldNotify, types::Id};
 use reqwest::Url;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup};
+
+use db::{models::ShouldNotify, types::Id};
 
 use crate::{callback::Callback, tr, PayloadData};
 

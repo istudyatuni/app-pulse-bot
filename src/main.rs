@@ -5,7 +5,6 @@ use dotenvy_macro::dotenv;
 use reqwest::Client;
 use simplelog::LevelFilter;
 use teloxide::{prelude::*, types::BotCommandScope};
-
 use tokio::{
     signal,
     sync::mpsc::{self, Sender},

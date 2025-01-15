@@ -5,15 +5,12 @@ use quote::{quote, quote_spanned};
 use syn::{parse_macro_input, Data, DeriveInput, Ident, Visibility};
 use unic_langid::{langid, LanguageIdentifier};
 
-use prepare::make_init;
-
 mod locales;
 mod prepare;
 mod read;
 
 use locales::{extract_messages, LangInfo};
-
-use crate::prepare::make_messages_methods;
+use prepare::{make_init, make_messages_methods};
 
 const DEFAULT_PATH: &str = "locales";
 const DEFAULT_FALLBACK_LOCALE: LanguageIdentifier = langid!("en");

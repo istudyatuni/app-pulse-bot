@@ -1,7 +1,7 @@
-use db::types::Id;
 use reqwest::Url;
 
 use common::UnixDateTime;
+use db::types::Id;
 
 #[derive(Debug, Default)]
 pub struct UpdatesList {

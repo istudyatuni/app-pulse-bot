@@ -1,8 +1,8 @@
 use sqlx::{Row, sqlite::SqliteRow};
-use teloxide::utils::markdown::user_mention;
 
 use common::{
     DateTime, UnixDateTime,
+    markdown::user_mention,
     types::{Id, UserId},
 };
 

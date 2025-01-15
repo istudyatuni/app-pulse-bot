@@ -14,3 +14,5 @@ pub use tokio::*;
 
 #[cfg(feature = "test")]
 pub use test_logger::*;
+
+pub use teloxide::utils::markdown;

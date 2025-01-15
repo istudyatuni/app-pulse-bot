@@ -605,7 +605,6 @@ dependencies = [
  "paste",
  "sqlx",
  "sqlx_migrator",
- "teloxide",
  "thiserror",
  "tokio",
 ]

@@ -476,6 +476,22 @@ impl DB {
             Err(e) => Err(e.into()),
         }
     }
+    pub async fn get_source_id_by_source_name(&self, source_name: &str) -> Result<Option<Id>> {
+        log::debug!("select source_id source name {source_name}");
+        let res = sqlx::query_as::<_, models::fetch::FetchSourceId>(&format!(
+            "select source_id from {SOURCE_TABLE}
+             where name = ?"
+        ))
+        .bind(source_name)
+        .fetch_one(&self.pool)
+        .await;
+
+        match res {
+            Ok(f) => Ok(Some(f.source_id)),
+            Err(sqlx::Error::RowNotFound) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
     pub async fn get_source_updated_at(&self, source_id: Id) -> Result<UnixDateTime> {
         log::debug!("select source last_updated_at");
         let res = sqlx::query_as::<_, models::Source>(&format!(

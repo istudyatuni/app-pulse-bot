@@ -4,7 +4,7 @@ use std::time::Duration;
 use async_trait::async_trait;
 use tokio::sync::mpsc::Sender;
 
-use db::DB;
+use db::{types::Id, DB};
 
 pub use sources::spawn_sources_update_jobs;
 pub use update::*;
@@ -24,17 +24,9 @@ pub trait UpdateSource {
     fn name() -> &'static str;
 
     /// Create source with default timeout
-    fn new(db: DB) -> Result<Self, Self::InitError>
+    fn new(db: DB, timeout: Duration, source_id: Id) -> Result<Self, Self::InitError>
     where
-        Self: Sized,
-    {
-        Self::with_timeout(SOURCE_TIMEOUT, db)
-    }
-
-    /// Create source with specific timeout
-    fn with_timeout(timeout: Duration, db: DB) -> Result<Self, Self::InitError>
-    where
-        Self: std::marker::Sized;
+        Self: Sized;
 
     /// How long should wait until next fetch, None if should not wait
     fn wait_remains(&self) -> Option<Duration>;

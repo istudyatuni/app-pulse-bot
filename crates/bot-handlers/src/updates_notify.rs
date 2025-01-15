@@ -2,8 +2,8 @@ use anyhow::Result;
 use teloxide::prelude::*;
 use tokio::sync::mpsc::Receiver;
 
-use common::{DateTime, LogError};
-use db::{models::ShouldNotify, types::Id, DB};
+use common::{types::Id, DateTime, LogError};
+use db::{models::ShouldNotify, DB};
 use sources::{Update, UpdatesList};
 
 use crate::keyboards::{Keyboards, NewAppKeyboardKind};

@@ -1,13 +1,13 @@
 use sqlx::{pool::PoolConnection, sqlite::SqliteConnectOptions, Sqlite, SqlitePool};
 use sqlx_migrator::{Migrate, Migrator, Plan};
 
-use common::UnixDateTime;
-
-use types::{Id, UserId};
+use common::{
+    types::{Id, UserId},
+    UnixDateTime,
+};
 
 mod migrations;
 pub mod models;
-pub mod types;
 
 const USER_TABLE: &str = "user";
 const USER_UPDATE_TABLE: &str = "user_update";

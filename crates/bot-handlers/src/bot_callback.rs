@@ -7,7 +7,8 @@ use teloxide::{
     },
 };
 
-use db::{models::ShouldNotify, types::Id, DB};
+use common::types::Id;
+use db::{models::ShouldNotify, DB};
 
 use crate::{
     callback::{Callback, CallbackParseError},

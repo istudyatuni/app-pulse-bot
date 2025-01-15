@@ -8,7 +8,8 @@ use teloxide::{
     types::{BotCommand, ChatKind, MessageKind},
 };
 
-use db::{models::User, types, DB};
+use common::types;
+use db::{models::User, DB};
 
 use crate::{
     commands::AdminCommand,

@@ -4,7 +4,8 @@ use std::time::Duration;
 use async_trait::async_trait;
 use tokio::sync::mpsc::Sender;
 
-use db::{types::Id, DB};
+use common::types::Id;
+use db::DB;
 
 pub use sources::spawn_sources_update_jobs;
 pub use update::*;

@@ -1,6 +1,7 @@
 use anyhow::Result;
 
-use db::{models::ShouldNotify, types::Id};
+use common::types::Id;
+use db::models::ShouldNotify;
 
 use crate::{
     keyboards::LanguagesKeyboardKind, PayloadData, PayloadLayout, PayloadParseError,

@@ -15,7 +15,8 @@ use opensearch::{
 };
 use serde_json::json;
 
-use db::{types::Id, DB};
+use common::types::Id;
+use db::DB;
 
 use crate::{timer::Timer, UpdateSource, SOURCE_TIMEOUT};
 

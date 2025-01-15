@@ -393,6 +393,7 @@ dependencies = [
  "log",
  "serde",
  "simplelog",
+ "teloxide",
  "tokio",
  "tokio-util",
  "toml",

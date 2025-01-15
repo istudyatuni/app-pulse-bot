@@ -1,7 +1,6 @@
 use reqwest::Url;
 
-use common::UnixDateTime;
-use db::types::Id;
+use common::{types::Id, UnixDateTime};
 
 #[derive(Debug, Default)]
 pub struct UpdatesList {

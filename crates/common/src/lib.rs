@@ -2,6 +2,7 @@ mod datetime;
 mod env;
 mod log;
 mod tokio;
+pub mod types;
 
 #[cfg(feature = "test")]
 mod test_logger;

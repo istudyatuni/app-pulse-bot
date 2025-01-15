@@ -9,7 +9,7 @@ mod op9_app_int_id;
 build_migrations!(
     app: "main",
     folder: "./migrations",
-    fake: 8,
+    fake: 7,
     register_fake_fn: register_fake_migrations,
     register_fn: register_migrations,
     migrations: [

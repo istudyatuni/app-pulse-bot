@@ -11,7 +11,6 @@ log.workspace = true
 paste.workspace = true
 sqlx.workspace = true
 sqlx_migrator.workspace = true
-teloxide.workspace = true
 thiserror.workspace = true
 
 common.workspace = true

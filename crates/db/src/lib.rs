@@ -427,13 +427,15 @@ impl DB {
         Ok(sqlx::query_as::<_, models::App>(&format!(
             "select * from {APP_TABLE} a
              join {USER_SUBSCRIBE_TABLE} us on us.source_id = a.source_id
+             join {USER_TABLE} u on us.user_id = u.user_id
              where a.app_id in (
                select app_id from {USER_UPDATE_TABLE}
                where source_id = ?
                  and should_notify = true
              )
              and a.source_id = ?
-             and us.subscribed = true"
+             and us.subscribed = true
+             and u.bot_blocked = false"
         ))
         .bind(source_id)
         .bind(source_id)
@@ -699,8 +701,33 @@ mod tests {
         let app_id = db.add_app(SOURCE_ID, "").await?;
 
         // there is one user
-        db.add_user_simple(1).await?;
-        db.save_user_subscribed(1, false).await?;
+        db.add_user_simple(USER_ID).await?;
+        db.save_user_subscribed(USER_ID, false).await?;
+        db.save_should_notify_user(USER_ID, SOURCE_ID, app_id, ShouldNotify::Notify)
+            .await?;
+
+        let apps = db.get_apps_to_check_updates(SOURCE_ID).await?;
+        assert!(apps.is_empty());
+
+        Ok(())
+    }
+
+
+    #[tokio::test]
+    async fn test_select_apps_to_check_updates_empty_user_blocked() -> Result<()> {
+        const SOURCE_ID: Id = 1;
+        const USER_ID: Id = 1;
+
+        let db = prepare("test_select_apps_to_check_updates_empty_user_blocked").await?;
+        let mut timer = Timer::new();
+        timer.skip(1);
+
+        let app_id = db.add_app(SOURCE_ID, "").await?;
+
+        // there is one user
+        db.add_user_simple(USER_ID).await?;
+        db.save_user_bot_blocked(USER_ID, true).await?;
+        db.save_user_subscribed(USER_ID, true).await?;
         db.save_should_notify_user(USER_ID, SOURCE_ID, app_id, ShouldNotify::Notify)
             .await?;
 
@@ -720,8 +747,8 @@ mod tests {
         timer.skip(1);
 
         // there is one user
-        db.add_user_simple(1).await?;
-        db.save_user_subscribed(1, true).await?;
+        db.add_user_simple(USER_ID).await?;
+        db.save_user_subscribed(USER_ID, true).await?;
 
         let app_id = db.add_app(SOURCE_ID, "").await?;
         db.save_should_notify_user(USER_ID, SOURCE_ID, app_id, ShouldNotify::Notify)

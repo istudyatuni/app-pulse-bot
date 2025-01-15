@@ -385,7 +385,7 @@ impl DB {
         let res = sqlx::query_as::<_, models::fetch::FetchAppId>(&format!(
             "insert or ignore into {APP_TABLE}
              (app_id, source_id, name)
-             values ((select max(app_id) from {APP_TABLE}) + 1, ?, ?)
+             values ((select coalesce(max(app_id), 0) from {APP_TABLE}) + 1, ?, ?)
              returning app_id"
         ))
         .bind(source_id)
@@ -578,14 +578,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_select_users_to_notify() -> Result<()> {
+        common::init_logger();
+
         const SOURCE_ID: Id = 1;
-        const APP_ID: Id = 1;
 
         let db = prepare_db_timer("test_select_users_to_notify").await?;
         let mut timer = Timer::new();
         timer.skip(1);
 
-        db.save_app_last_updated_at(APP_ID, timer.next()).await?;
+        let app_id = db.add_app(SOURCE_ID, "").await?;
+        db.save_app_last_updated_at(app_id, timer.next()).await?;
 
         // there are 2 users
         for u in [1, 2] {
@@ -597,7 +599,7 @@ mod tests {
         db.save_source_updated_at(timer.next()).await?;
         db.save_user_last_notified(1, timer.next()).await?;
 
-        let users = db.select_users_to_notify(SOURCE_ID, APP_ID).await?;
+        let users = db.select_users_to_notify(SOURCE_ID, app_id).await?;
         assert_eq!(users.len(), 1);
 
         Ok(())

@@ -380,6 +380,7 @@ dependencies = [
  "dotenvy_macro",
  "log",
  "serde",
+ "simplelog",
  "tokio",
  "tokio-util",
  "toml",

@@ -84,6 +84,7 @@ impl DB {
         .bind(common::version())
         .execute(&self.pool)
         .await?;
+
         Ok(())
     }
     pub async fn select_user(&self, user_id: impl Into<UserId>) -> Result<Option<models::User>> {
@@ -211,6 +212,7 @@ impl DB {
         .bind(id)
         .execute(&self.pool)
         .await?;
+
         log::debug!("user {user_table_column} updated");
         Ok(())
     }
@@ -287,6 +289,7 @@ impl DB {
         .bind(id)
         .execute(&self.pool)
         .await?;
+
         Ok(())
     }
     pub async fn should_notify_user(
@@ -307,6 +310,7 @@ impl DB {
         .bind(app_id)
         .fetch_optional(&self.pool)
         .await?;
+
         Ok(update)
     }
 }
@@ -353,6 +357,7 @@ impl DB {
         .bind(user_id)
         .execute(&self.pool)
         .await?;
+
         Ok(())
     }
 }
@@ -376,6 +381,7 @@ impl DB {
         .bind(app_id)
         .execute(&self.pool)
         .await?;
+
         Ok(())
     }
     /// Returns id of new app. `Ok(None)` means app already exists
@@ -391,6 +397,7 @@ impl DB {
         .bind(name)
         .fetch_one(&self.pool)
         .await?;
+
         Ok(res.app_id)
     }
     pub async fn get_app_name_by_app_id(&self, app_id: Id) -> Result<Option<String>> {
@@ -461,6 +468,7 @@ impl DB {
         .bind(source_id)
         .execute(&self.pool)
         .await?;
+
         Ok(())
     }
     pub async fn get_source_id_by_app_id(&self, app_id: Id) -> Result<Option<Id>> {

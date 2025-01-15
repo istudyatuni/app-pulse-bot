@@ -17,6 +17,7 @@ const SOURCE_TABLE: &str = "source";
 
 const SOURCE_ID: Id = 1;
 
+// todo: add variant for NoRowsAffected
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("failed to run query: {0}")]
@@ -362,14 +363,12 @@ impl DB {
 
 // App
 impl DB {
-    /// Add new app, if there is already exists app with
-    /// (`app_id`, `source_id`), update `last_updated_at`
     pub async fn save_app_last_updated_at(
         &self,
         app_id: Id,
         last_updated_at: UnixDateTime,
     ) -> Result<()> {
-        log::debug!("saving app {app_id}");
+        log::debug!("update last_updated_at for app {app_id}");
         sqlx::query(&format!(
             "update {APP_TABLE}
              set last_updated_at = ?
@@ -421,6 +420,25 @@ impl DB {
         .await;
 
         Ok(res.ignore_not_found()?.map(|r| r.app_id))
+    }
+    /// Return list of apps from specified source when at least 1 user subsribed to this source
+    pub async fn get_apps_to_check_updates(&self, source_id: Id) -> Result<Vec<models::App>> {
+        log::debug!("select apps by source_id {source_id}");
+        Ok(sqlx::query_as::<_, models::App>(&format!(
+            "select * from {APP_TABLE} a
+             join {USER_SUBSCRIBE_TABLE} us on us.source_id = a.source_id
+             where a.app_id in (
+               select app_id from {USER_UPDATE_TABLE}
+               where source_id = ?
+                 and should_notify = true
+             )
+             and a.source_id = ?
+             and us.subscribed = true"
+        ))
+        .bind(source_id)
+        .bind(source_id)
+        .fetch_all(&self.pool)
+        .await?)
     }
 }
 
@@ -556,6 +574,8 @@ impl<T> IgnoreNotFound<T> for std::result::Result<T, sqlx::Error> {
 mod tests {
     use std::ops::RangeFrom;
 
+    use models::ShouldNotify;
+
     use super::*;
 
     struct Timer {
@@ -565,7 +585,7 @@ mod tests {
     impl Timer {
         fn new() -> Self {
             Self {
-                iter: Box::new(RangeFrom { start: 0i64 }),
+                iter: Box::new(RangeFrom { start: 0 }),
             }
         }
         fn skip(&mut self, count: u32) {
@@ -578,11 +598,14 @@ mod tests {
         }
     }
 
-    async fn prepare_db_timer(test_name: &str) -> Result<DB> {
+    async fn prepare(test_name: &str) -> Result<DB> {
         let file = format!("../../target/{test_name}.db");
 
         let _ = tokio::fs::remove_file(&file).await;
         let db = DB::init(&file).await?;
+
+        // init after migrations
+        common::init_logger();
 
         Ok(db)
     }
@@ -593,7 +616,7 @@ mod tests {
 
         const SOURCE_ID: Id = 1;
 
-        let db = prepare_db_timer("test_select_users_to_notify").await?;
+        let db = prepare("test_select_users_to_notify").await?;
         let mut timer = Timer::new();
         timer.skip(1);
 
@@ -619,13 +642,15 @@ mod tests {
     #[tokio::test]
     async fn test_no_select_users_to_notify() -> Result<()> {
         const SOURCE_ID: Id = 1;
-        const APP_ID: Id = 1;
 
-        let db = prepare_db_timer("test_no_select_users_to_notify").await?;
+        let db = prepare("test_no_select_users_to_notify").await?;
         let mut timer = Timer::new();
         timer.skip(1);
 
-        db.save_app_last_updated_at(APP_ID, timer.next()).await?;
+        // todo: seems that app in db is not required, and result of select_users_to_notify is still
+        // empty
+        let app_id = db.add_app(SOURCE_ID, "").await?;
+        db.save_app_last_updated_at(app_id, timer.next()).await?;
 
         // there is one user
         db.add_user_simple(1).await?;
@@ -635,7 +660,7 @@ mod tests {
         db.save_source_updated_at(SOURCE_ID, timer.next()).await?;
         db.save_user_last_notified(1, timer.next()).await?;
 
-        let users = db.select_users_to_notify(SOURCE_ID, APP_ID).await?;
+        let users = db.select_users_to_notify(SOURCE_ID, app_id).await?;
         assert!(users.is_empty());
 
         Ok(())
@@ -643,7 +668,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_select_users_to_notify_about_bot_update() -> Result<()> {
-        let db = prepare_db_timer("test_select_users_to_notify_about_bot_update").await?;
+        let db = prepare("test_select_users_to_notify_about_bot_update").await?;
         let mut timer = Timer::new();
         timer.skip(1);
 
@@ -658,6 +683,52 @@ mod tests {
             assert_eq!(users.len(), 1, "notify about version {}", v + 1);
             db.save_user_version_notified_impl(1, v).await?;
         }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_select_apps_to_check_updates_empty() -> Result<()> {
+        const SOURCE_ID: Id = 1;
+        const USER_ID: Id = 1;
+
+        let db = prepare("test_select_apps_to_check_updates_empty").await?;
+        let mut timer = Timer::new();
+        timer.skip(1);
+
+        let app_id = db.add_app(SOURCE_ID, "").await?;
+
+        // there is one user
+        db.add_user_simple(1).await?;
+        db.save_user_subscribed(1, false).await?;
+        db.save_should_notify_user(USER_ID, SOURCE_ID, app_id, ShouldNotify::Notify)
+            .await?;
+
+        let apps = db.get_apps_to_check_updates(SOURCE_ID).await?;
+        assert!(apps.is_empty());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_select_apps_to_check_updates() -> Result<()> {
+        const SOURCE_ID: Id = 1;
+        const USER_ID: Id = 1;
+
+        let db = prepare("test_select_apps_to_check_updates").await?;
+        let mut timer = Timer::new();
+        timer.skip(1);
+
+        // there is one user
+        db.add_user_simple(1).await?;
+        db.save_user_subscribed(1, true).await?;
+
+        let app_id = db.add_app(SOURCE_ID, "").await?;
+        db.save_should_notify_user(USER_ID, SOURCE_ID, app_id, ShouldNotify::Notify)
+            .await?;
+
+        let apps = db.get_apps_to_check_updates(SOURCE_ID).await?;
+        assert_eq!(apps.len(), 1);
 
         Ok(())
     }

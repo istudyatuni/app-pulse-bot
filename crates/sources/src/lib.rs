@@ -23,7 +23,6 @@ pub trait UpdateSource {
 
     fn name() -> &'static str;
 
-    /// Create source with default timeout
     fn new(db: DB, timeout: Duration, source_id: Id) -> Result<Self, Self::InitError>
     where
         Self: Sized;

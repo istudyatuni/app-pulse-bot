@@ -55,6 +55,26 @@ impl Nixpkgs {
 
         Ok(resp.into_iter().map(|h| h.source).collect())
     }
+    /// Search by exact `package_attr_name`
+    pub(crate) async fn search_exact(&self, name: &str) -> Result<Vec<HitSource>, SearchError> {
+        const CHANNEL: &str = "unstable"; // or 24.05
+        let channel = format!("latest-42-nixos-{CHANNEL}");
+        let resp = self
+            .client
+            .search(opensearch::SearchParts::Index(&[channel.as_str()]))
+            .size(1)
+            .body(make_exact_query_body(name))
+            .send()
+            .await?;
+
+        let resp = resp.json::<Response>().await?;
+        let resp = resp.hits.hits;
+        if resp.is_empty() {
+            return Err(SearchError::Empty);
+        }
+
+        Ok(resp.into_iter().map(|h| h.source).collect())
+    }
 }
 
 /// Query to search packages
@@ -150,20 +170,22 @@ pub(crate) struct Response {
 
 #[derive(Debug, serde::Deserialize)]
 pub(crate) struct ResponseHits {
-    hits: Vec<Hit>,
+    pub(crate) hits: Vec<Hit>,
 }
 
 #[derive(Debug, serde::Deserialize)]
 pub(crate) struct Hit {
     #[serde(rename = "_source")]
-    source: HitSource,
+    pub(crate) source: HitSource,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub(crate) struct HitSource {
     // package_attr_name == package_attr_set + . + package_pname
     #[serde(rename = "package_attr_name")]
-    name: String,
+    pub(crate) name: String,
     #[serde(rename = "package_pversion")]
-    version: String,
+    pub(crate) version: String,
+    // #[serde(rename = "package_description")]
+    // pub(crate) description: String,
 }

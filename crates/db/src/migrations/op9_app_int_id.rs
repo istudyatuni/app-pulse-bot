@@ -47,15 +47,12 @@ impl Operation<sqlx::Sqlite> for Operation9AppIntId {
         sqlx::query(&format!("alter table {APP_TABLE} rename to {APP_TMP}"))
             .execute(&mut *connection)
             .await?;
-        // todo: app_id is now enough for primary key
         sqlx::query(&format!(
             "create table {APP_TABLE} (
-             app_id int not null,
+             app_id int not null primary key,
              source_id int not null,
              name text,
-             last_updated_at int default 0, -- unix time
-
-             primary key (app_id, source_id)
+             last_updated_at int default 0 -- unix time
         )"
         ))
         .execute(&mut *connection)

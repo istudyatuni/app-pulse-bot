@@ -41,6 +41,7 @@ quote = "1"
 reqwest = { version = "0.11.22", default-features = false, features = ["rustls-tls"] }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.135"
+similar-asserts = "1.6.0"
 simplelog = "0.12.2"
 sqlx = { version = "0.8.3", features = ["macros", "migrate", "runtime-tokio", "sqlite", "tls-rustls"] }
 sqlx_migrator = { version = "0.16.2", features = ["sqlite"] }

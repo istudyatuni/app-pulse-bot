@@ -62,17 +62,27 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
         }
     };
 
-    // todo: update callbacks to include source_id
     match callback {
         Callback::Notify {
+            source_id,
             app_id,
             should_notify,
         } => {
-            let res = handle_update_callback(should_notify, db, chat_id, app_id, &lang).await;
+            let res =
+                handle_update_callback(should_notify, db, chat_id, source_id, app_id, &lang).await;
             match res {
                 Ok((popup_msg, keyboard_kind)) => {
                     bot.answer_callback_query(&q.id).text(popup_msg).await?;
-                    edit_update_msg(q.message, bot, chat_id, app_id, keyboard_kind, &lang).await?;
+                    edit_update_msg(
+                        q.message,
+                        bot,
+                        chat_id,
+                        source_id,
+                        app_id,
+                        keyboard_kind,
+                        &lang,
+                    )
+                    .await?;
                 }
                 Err(Some(e)) => {
                     answer_err.text(e).await?;
@@ -105,11 +115,11 @@ async fn handle_update_callback(
     should_notify: ShouldNotify,
     db: DB,
     chat_id: UserId,
+    source_id: Id,
     app_id: Id,
     lang: &str,
 ) -> Result<(String, NewAppKeyboardKind), Option<String>> {
-    // todo: pass source_id
-    db.save_should_notify_user(chat_id, app_id, should_notify)
+    db.save_should_notify_user(chat_id, source_id, app_id, should_notify)
         .await
         .map_err(|e| {
             log::error!("failed to save user should_notify: {e}");
@@ -163,6 +173,7 @@ async fn edit_update_msg(
     msg: Option<MaybeInaccessibleMessage>,
     bot: Bot,
     chat_id: UserId,
+    source_id: Id,
     app_id: Id,
     keyboard_kind: NewAppKeyboardKind,
     lang: &str,
@@ -171,6 +182,7 @@ async fn edit_update_msg(
         bot.edit_message_reply_markup(chat_id, id)
             .reply_markup(
                 Keyboards::update(
+                    source_id,
                     app_id,
                     extract_url_from_callback_msg(kind),
                     keyboard_kind,

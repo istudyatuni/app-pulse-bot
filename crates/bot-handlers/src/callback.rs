@@ -15,13 +15,14 @@ const SET_LANG_FLAG: &str = "lang";
 const IGNORE_TOKEN: &str = "ignore";
 const NOTIFY_TOKEN: &str = "notify";
 
-const NOTIFY_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(3, None);
+const NOTIFY_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(4, None);
 const SETLANG_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(3, None);
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub(crate) enum Callback {
     Notify {
+        source_id: Id,
         app_id: Id,
         should_notify: ShouldNotify,
     },
@@ -38,11 +39,13 @@ impl PayloadData for Callback {
     fn to_payload(&self) -> String {
         match self {
             Self::Notify {
+                source_id,
                 app_id,
                 should_notify,
             } => NOTIFY_CALLBACK_LAYOUT
                 .make_payload(vec![
                     NOTIFY_FLAG,
+                    &source_id.to_string(),
                     &app_id.to_string(),
                     should_notify.to_payload().as_str(),
                 ])
@@ -71,11 +74,16 @@ impl PayloadData for Callback {
             NOTIFY_FLAG => {
                 let data = NOTIFY_CALLBACK_LAYOUT.parse_payload(value)?;
                 Callback::Notify {
-                    app_id: data[1]
+                    source_id: data[1]
+                        .parse()
+                        .inspect_err(|e| log::error!("failed to parse source_id in callback: {e}"))
+                        .map_err(|_| CallbackParseError::InvalidCallback)?,
+                    app_id: data[2]
                         .parse()
                         .inspect_err(|e| log::error!("failed to parse app_id in callback: {e}"))
                         .map_err(|_| CallbackParseError::InvalidCallback)?,
-                    should_notify: ShouldNotify::try_from_payload(&data[2])?,
+                    should_notify: ShouldNotify::try_from_payload(&data[3])
+                        .inspect_err(|_| log::error!("failed to parse should_notify"))?,
                 }
             }
             SET_LANG_FLAG => {
@@ -150,8 +158,9 @@ impl From<PayloadParseError> for CallbackParseError {
 }
 
 impl Callback {
-    pub(crate) fn notify(app_id: Id, should_notify: ShouldNotify) -> Self {
+    pub(crate) fn notify(source_id: Id, app_id: Id, should_notify: ShouldNotify) -> Self {
         Self::Notify {
+            source_id,
             app_id,
             should_notify,
         }
@@ -170,17 +179,20 @@ mod tests {
 
     #[test]
     fn test_callback_from_str() {
+        common::init_logger();
+
         const V: u8 = CALLBACK_VERSION;
+        let source_id = 2;
         let app_id = 1;
 
         let table = vec![
             (
-                format!("{V}:{NOTIFY_FLAG}:{app_id}:{NOTIFY_TOKEN}"),
-                Ok(Callback::notify(app_id, ShouldNotify::Notify)),
+                format!("{V}:{NOTIFY_FLAG}:{source_id}:{app_id}:{NOTIFY_TOKEN}"),
+                Ok(Callback::notify(source_id, app_id, ShouldNotify::Notify)),
             ),
             (
-                format!("{V}:{NOTIFY_FLAG}:{app_id}:{IGNORE_TOKEN}"),
-                Ok(Callback::notify(app_id, ShouldNotify::Ignore)),
+                format!("{V}:{NOTIFY_FLAG}:{source_id}:{app_id}:{IGNORE_TOKEN}"),
+                Ok(Callback::notify(source_id, app_id, ShouldNotify::Ignore)),
             ),
             (
                 format!("{V}:{SET_LANG_FLAG}:start:en"),
@@ -195,7 +207,7 @@ mod tests {
                 Err(CallbackParseError::InvalidToken),
             ),
             (
-                format!("{V}:{NOTIFY_FLAG}:{app_id}:asdf"),
+                format!("{V}:{NOTIFY_FLAG}:{source_id}:{app_id}:asdf"),
                 Err(CallbackParseError::InvalidToken),
             ),
             (

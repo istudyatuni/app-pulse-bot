@@ -61,11 +61,27 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 let res = match db.should_notify_user(user_id, source_id, app_id).await {
                     Ok(s) => match s {
                         None => {
-                            send_suggest_update(bot.clone(), chat_id, app_id, update, lang).await
+                            send_suggest_update(
+                                bot.clone(),
+                                chat_id,
+                                source_id,
+                                app_id,
+                                update,
+                                lang,
+                            )
+                            .await
                         }
                         Some(ShouldNotify::Notify) => {
-                            send_update(bot.clone(), db.clone(), chat_id, app_id, update, lang)
-                                .await
+                            send_update(
+                                bot.clone(),
+                                db.clone(),
+                                chat_id,
+                                source_id,
+                                app_id,
+                                update,
+                                lang,
+                            )
+                            .await
                         }
                         Some(ShouldNotify::Ignore) => {
                             log::debug!("ignoring update {app_id} for user {user_id}");
@@ -102,6 +118,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
 async fn send_suggest_update(
     bot: Bot,
     chat_id: ChatId,
+    source_id: Id,
     app_id: Id,
     update: &Update,
     lang: &str,
@@ -118,6 +135,7 @@ async fn send_suggest_update(
 
     bot.send_message(chat_id, text.join(""))
         .reply_markup(Keyboards::update(
+            source_id,
             app_id,
             update.update_link().clone(),
             NewAppKeyboardKind::Both,
@@ -131,6 +149,7 @@ async fn send_update(
     bot: Bot,
     db: DB,
     chat_id: ChatId,
+    source_id: Id,
     app_id: Id,
     update: &Update,
     lang: &str,
@@ -152,6 +171,7 @@ async fn send_update(
 
     bot.send_message(chat_id, text.join(""))
         .reply_markup(Keyboards::update(
+            source_id,
             app_id,
             update.update_link().clone(),
             NewAppKeyboardKind::NotifyEnabled,

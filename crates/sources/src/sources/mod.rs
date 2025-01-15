@@ -22,15 +22,20 @@ macro_rules! spawn_list_sources {
                     },
                 }
 
-                match $module::Source::new(
-                    $db.clone(),
-                    crate::SOURCE_TIMEOUT,
-                    $db.get_source_id_by_source_name($module::Source::name())
-                        .await
-                        // todo: no panic on Err
-                        .expect("should get source_id without errors")
-                        .expect("source should be in db")
-                ) {
+                let source_name = $module::Source::name();
+                let source_id = match $db.get_source_id_by_source_name(source_name).await {
+                    Ok(Some(id)) => id,
+                    Ok(None) => {
+                        log::error!("bug: source by source_name {source_name} not found after register");
+                        break 'source;
+                    },
+                    Err(e) => {
+                        log::error!("bug: failed to get source by source_name {source_name} after register: {e}");
+                        break 'source;
+                    },
+                };
+
+                match $module::Source::new($db.clone(), crate::SOURCE_TIMEOUT, source_id) {
                     Ok(source) => {
                         $jobs.spawn(spawn_with_token(
                             $token.clone(),

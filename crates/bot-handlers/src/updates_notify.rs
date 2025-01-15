@@ -20,7 +20,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
         let source_id = updates.source_id;
 
         log::debug!("got {} updates", updates.count());
-        db.save_source_updated_at(updates.last_update)
+        db.save_source_updated_at(source_id, updates.last_update)
             .await
             .log_error_msg("failed to save source last_updated_at");
 

@@ -20,3 +20,5 @@ macros.workspace = true
 
 [dev-dependencies]
 tokio.workspace = true
+
+common = { workspace = true, features = ["test"]}

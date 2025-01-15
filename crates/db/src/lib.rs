@@ -455,8 +455,11 @@ impl DB {
             }
         }
     }
-    // todo: pass source_id
-    pub async fn save_source_updated_at(&self, last_updated_at: UnixDateTime) -> Result<()> {
+    pub async fn save_source_updated_at(
+        &self,
+        source_id: Id,
+        last_updated_at: UnixDateTime,
+    ) -> Result<()> {
         log::debug!("save source last_updated_at: {last_updated_at}");
         sqlx::query(&format!(
             "update {SOURCE_TABLE}
@@ -464,7 +467,7 @@ impl DB {
              where source_id = ?"
         ))
         .bind(last_updated_at)
-        .bind(SOURCE_ID)
+        .bind(source_id)
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -596,7 +599,7 @@ mod tests {
         }
 
         // source updated before one of users was notified
-        db.save_source_updated_at(timer.next()).await?;
+        db.save_source_updated_at(SOURCE_ID, timer.next()).await?;
         db.save_user_last_notified(1, timer.next()).await?;
 
         let users = db.select_users_to_notify(SOURCE_ID, app_id).await?;
@@ -621,7 +624,7 @@ mod tests {
         db.save_user_subscribed(1, true).await?;
 
         // source updated before user was notified
-        db.save_source_updated_at(timer.next()).await?;
+        db.save_source_updated_at(SOURCE_ID, timer.next()).await?;
         db.save_user_last_notified(1, timer.next()).await?;
 
         let users = db.select_users_to_notify(SOURCE_ID, APP_ID).await?;

@@ -131,8 +131,7 @@ impl Operation<sqlx::Sqlite> for Operation9AppIntId {
 
         Ok(())
     }
-    async fn down(&self, connection: &mut sqlx::SqliteConnection) -> Result<(), Error> {
-        sqlx::query("DROP TABLE sample").execute(connection).await?;
-        Ok(())
+    async fn down(&self, _connection: &mut sqlx::SqliteConnection) -> Result<(), Error> {
+        unimplemented!()
     }
 }

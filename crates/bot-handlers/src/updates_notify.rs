@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use anyhow::Result;
 use teloxide::prelude::*;
 use tokio::sync::mpsc::Receiver;
@@ -19,13 +17,14 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
     log::debug!("starting listen for updates");
     // todo: graceful shutdown for updates
     while let Some(updates) = rx.recv().await {
+        let source_id = updates.source_id;
+
         log::debug!("got {} updates", updates.count());
         db.save_source_updated_at(updates.last_update)
             .await
             .log_error_msg("failed to save source last_updated_at");
 
         for update in &updates.updates {
-            let source_id = update.source_id();
             let app_id = match update.app_id() {
                 Some(id) => id,
                 None => match db.add_app(source_id, update.name()).await {
@@ -92,18 +91,11 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
             }
         }
 
-        for source_id in updates
-            .updates
-            .iter()
-            .map(|u| u.source_id())
-            .collect::<HashSet<_>>()
-        {
-            db.save_all_users_last_notified(source_id, DateTime::now())
-                .await
-                .log_error_msg_with(|| {
-                    format!("failed to save all users last_notified_at for source {source_id}")
-                });
-        }
+        db.save_all_users_last_notified(source_id, DateTime::now())
+            .await
+            .log_error_msg_with(|| {
+                format!("failed to save all users last_notified_at for source {source_id}")
+            });
     }
 }
 

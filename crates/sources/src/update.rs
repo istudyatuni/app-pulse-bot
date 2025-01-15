@@ -6,6 +6,7 @@ use db::types::Id;
 #[derive(Debug, Default)]
 pub struct UpdatesList {
     pub updates: Vec<Update>,
+    pub source_id: Id,
     pub last_update: UnixDateTime,
 }
 
@@ -25,7 +26,6 @@ pub struct Update {
     update_link: Option<Url>,
     /// When `None`, this update is about new app
     app_id: Option<Id>,
-    source_id: Id,
     name: String,
     update_time: UnixDateTime,
 }
@@ -33,9 +33,6 @@ pub struct Update {
 impl Update {
     pub fn app_id(&self) -> Option<Id> {
         self.app_id
-    }
-    pub fn source_id(&self) -> Id {
-        self.source_id
     }
     pub fn description(&self) -> Option<&str> {
         self.description.as_deref()

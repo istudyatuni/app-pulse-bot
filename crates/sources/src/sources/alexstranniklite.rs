@@ -68,8 +68,16 @@ impl Source {
                     updates.push(
                         Update::builder()
                             .app_id(app_id)
-                            .description_link(&format!("{channel_link}{}", msg.id))
-                            .update_link(&format!("{channel_link}{}", update.id))
+                            .description_link(
+                                format!("{channel_link}{}", msg.id)
+                                    .parse()
+                                    .expect("generated url should be valid"),
+                            )
+                            .update_link(
+                                format!("{channel_link}{}", update.id)
+                                    .parse()
+                                    .expect("generated url should be valid"),
+                            )
                             .update_time(update.date)
                             .build(),
                     );

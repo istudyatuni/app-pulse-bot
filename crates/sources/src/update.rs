@@ -25,8 +25,7 @@ pub struct Update {
     update_link: Option<Url>,
     /// When `None`, this update is about new app
     app_id: Option<Id>,
-    #[expect(unused)]
-    #[builder(default = "".to_string())]
+    source_id: Id,
     name: String,
     update_time: UnixDateTime,
 }
@@ -35,8 +34,14 @@ impl Update {
     pub fn app_id(&self) -> Option<Id> {
         self.app_id
     }
+    pub fn source_id(&self) -> Id {
+        self.source_id
+    }
     pub fn description(&self) -> Option<&str> {
         self.description.as_deref()
+    }
+    pub fn name(&self) -> &str {
+        self.name.as_str()
     }
     pub fn description_link(&self) -> &Option<Url> {
         &self.description_link

@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 use anyhow::Result;
-use common::LogError;
 use log::Level;
 use teloxide::{
     Bot,
@@ -12,6 +11,8 @@ use teloxide::{
 };
 use time::format_description::well_known::Rfc3339;
 use tokio::sync::mpsc::Receiver;
+
+use common::LogError;
 
 pub(crate) async fn start_tg_logs_job(bot: Bot, chat_id: ChatId, mut rx: Receiver<LogMessage>) {
     while let Some(text) = rx.recv().await {

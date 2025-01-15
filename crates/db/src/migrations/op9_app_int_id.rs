@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use common::UnixDateTime;
 use sqlx_migrator::error::Error;
 use sqlx_migrator::operation::Operation;
+
+use common::UnixDateTime;
 
 use crate::{APP_TABLE, USER_UPDATE_TABLE, models::ShouldNotify, types::Id};
 

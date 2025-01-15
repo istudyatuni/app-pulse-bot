@@ -58,5 +58,6 @@ pub async fn spawn_sources_update_jobs(
     spawn_list_sources![
         db, jobs, token, tx;
         alexstranniklite,
+        nixos,
     ];
 }

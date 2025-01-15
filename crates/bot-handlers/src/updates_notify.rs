@@ -167,9 +167,13 @@ async fn send_update(
         text.push(url.to_string());
     } else if let Some(url) = update.description_link() {
         text.push(url.to_string());
+    } else if let Some(description) = update.description() {
+        text.push(description.to_owned());
+    } else if let Some(update_version) = update.update_version() {
+        text.push(update_version.to_owned());
     }
 
-    bot.send_message(chat_id, text.join(""))
+    bot.send_message(chat_id, text.join(" "))
         .reply_markup(Keyboards::update(
             source_id,
             app_id,

@@ -27,6 +27,7 @@ pub struct Update {
     app_id: Option<Id>,
     name: String,
     update_time: UnixDateTime,
+    update_version: Option<String>,
 }
 
 impl Update {
@@ -47,5 +48,8 @@ impl Update {
     }
     pub fn update_time(&self) -> UnixDateTime {
         self.update_time
+    }
+    pub fn update_version(&self) -> Option<&str> {
+        self.update_version.as_deref()
     }
 }

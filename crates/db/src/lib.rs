@@ -409,12 +409,13 @@ impl DB {
 
         Ok(res.ignore_not_found()?.map(|r| r.name))
     }
-    pub async fn get_app_id_by_app_name(&self, app_name: &str) -> Result<Option<Id>> {
+    pub async fn get_app_id(&self, source_id: Id, app_name: &str) -> Result<Option<Id>> {
         log::debug!("select app_id from app {app_name}");
         let res = sqlx::query_as::<_, models::fetch::AppId>(&format!(
             "select app_id from {APP_TABLE}
-             where name = ?"
+             where source_id = ? and name = ?"
         ))
+        .bind(source_id)
         .bind(app_name)
         .fetch_one(&self.pool)
         .await;
@@ -711,7 +712,6 @@ mod tests {
 
         Ok(())
     }
-
 
     #[tokio::test]
     async fn test_select_apps_to_check_updates_empty_user_blocked() -> Result<()> {

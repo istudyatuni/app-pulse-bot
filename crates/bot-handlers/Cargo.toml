@@ -16,3 +16,6 @@ db.workspace = true
 common.workspace = true
 i18n.workspace = true
 sources.workspace = true
+
+[dev-dependencies]
+similar-asserts.workspace = true

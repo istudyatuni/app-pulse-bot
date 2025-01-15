@@ -54,6 +54,7 @@ pub(crate) struct Keyboards;
 
 impl Keyboards {
     pub(crate) fn update(
+        source_id: Id,
         app_id: Id,
         url: Option<Url>,
         kind: NewAppKeyboardKind,
@@ -63,19 +64,19 @@ impl Keyboards {
             NewAppKeyboardKind::Both => KeyboardBuilder::with_layout(2, 2)
                 .callback(
                     tr!(notify_button, lang),
-                    Callback::notify(app_id, ShouldNotify::Notify).to_payload(),
+                    Callback::notify(source_id, app_id, ShouldNotify::Notify).to_payload(),
                 )
                 .callback(
                     tr!(ignore_button, lang),
-                    Callback::notify(app_id, ShouldNotify::Ignore).to_payload(),
+                    Callback::notify(source_id, app_id, ShouldNotify::Ignore).to_payload(),
                 ),
             NewAppKeyboardKind::NotifyEnabled => KeyboardBuilder::with_layout(1, 2).callback(
                 BELL_MSG,
-                Callback::notify(app_id, ShouldNotify::Ignore).to_payload(),
+                Callback::notify(source_id, app_id, ShouldNotify::Ignore).to_payload(),
             ),
             NewAppKeyboardKind::NotifyDisabled => KeyboardBuilder::with_layout(1, 2).callback(
                 NO_BELL_MSG,
-                Callback::notify(app_id, ShouldNotify::Notify).to_payload(),
+                Callback::notify(source_id, app_id, ShouldNotify::Notify).to_payload(),
             ),
         };
 
@@ -153,6 +154,7 @@ mod tests {
     const IGNORE_MSG: &str = "Ignore";
     const SEE_UPDATE_MSG: &str = "See update";
 
+    const SOURCE_ID: Id = 2;
     const APP_ID: Id = 1;
     const USER_LANG: &str = "en";
 
@@ -165,33 +167,45 @@ mod tests {
 
         let table = vec![
             (
-                Keyboards::update(APP_ID, Some(url.clone()), Kind::Both, USER_LANG),
+                Keyboards::update(SOURCE_ID, APP_ID, Some(url.clone()), Kind::Both, USER_LANG),
                 vec![
                     vec![
-                        Btn::callback(NOTIFY_MSG, cb("notify:1:notify")),
-                        Btn::callback(IGNORE_MSG, cb("notify:1:ignore")),
+                        Btn::callback(NOTIFY_MSG, cb("notify:2:1:notify")),
+                        Btn::callback(IGNORE_MSG, cb("notify:2:1:ignore")),
                     ],
                     vec![update_btn.clone()],
                 ],
             ),
             (
-                Keyboards::update(APP_ID, Some(url.clone()), Kind::NotifyEnabled, USER_LANG),
+                Keyboards::update(
+                    SOURCE_ID,
+                    APP_ID,
+                    Some(url.clone()),
+                    Kind::NotifyEnabled,
+                    USER_LANG,
+                ),
                 vec![vec![
-                    Btn::callback(BELL_MSG, cb("notify:1:ignore")),
+                    Btn::callback(BELL_MSG, cb("notify:2:1:ignore")),
                     update_btn.clone(),
                 ]],
             ),
             (
-                Keyboards::update(APP_ID, Some(url.clone()), Kind::NotifyDisabled, USER_LANG),
+                Keyboards::update(
+                    SOURCE_ID,
+                    APP_ID,
+                    Some(url.clone()),
+                    Kind::NotifyDisabled,
+                    USER_LANG,
+                ),
                 vec![vec![
-                    Btn::callback(NO_BELL_MSG, cb("notify:1:notify")),
+                    Btn::callback(NO_BELL_MSG, cb("notify:2:1:notify")),
                     update_btn.clone(),
                 ]],
             ),
         ];
         for (res, expected) in table {
             let res: ReplyMarkup = res.into();
-            assert_eq!(res, Reply::InlineKeyboard(Markup::new(expected)));
+            similar_asserts::assert_eq!(res, Reply::InlineKeyboard(Markup::new(expected)));
         }
     }
 }

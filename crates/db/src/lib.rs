@@ -160,6 +160,7 @@ impl DB {
     pub async fn save_should_notify_user(
         &self,
         user_id: impl Into<UserId>,
+        source_id: Id,
         app_id: Id,
         should_notify: models::ShouldNotify,
     ) -> Result<()> {
@@ -175,7 +176,7 @@ impl DB {
              do update set should_notify=excluded.should_notify"
         ))
         .bind(update.user_id())
-        .bind(SOURCE_ID)
+        .bind(source_id)
         .bind(update.app_id())
         .bind(update.should_notify())
         .execute(&self.pool)

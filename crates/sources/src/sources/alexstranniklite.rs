@@ -14,6 +14,7 @@ use timer::Timer;
 const CHANNEL_NAME: &str = "alexstranniklite";
 
 pub struct Source {
+    id: Id,
     timer: Timer,
     db: DB,
 }
@@ -105,8 +106,9 @@ impl UpdateSource for Source {
         "tg@alexstranniklite"
     }
 
-    fn with_timeout(timeout: Duration, db: DB) -> Result<Self, Self::InitError> {
+    fn new(db: DB, timeout: Duration, source_id: Id) -> Result<Self, Self::InitError> {
         Ok(Self {
+            id: source_id,
             timer: Timer::new(timeout),
             db,
         })

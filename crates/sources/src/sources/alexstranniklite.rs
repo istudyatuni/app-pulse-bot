@@ -69,7 +69,6 @@ impl Source {
                     updates.push(
                         Update::builder()
                             .maybe_app_id(app_id)
-                            .source_id(self.id)
                             .name(app_name)
                             .description_link(
                                 format!("{channel_link}{}", msg.id)
@@ -95,6 +94,7 @@ impl Source {
         }
         super::UpdatesList {
             updates,
+            source_id: self.id,
             last_update: last_update.unwrap_or_default(),
         }
     }

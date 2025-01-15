@@ -425,7 +425,7 @@ impl DB {
     pub async fn get_apps_to_check_updates(&self, source_id: Id) -> Result<Vec<models::App>> {
         log::debug!("select apps by source_id {source_id}");
         Ok(sqlx::query_as::<_, models::App>(&format!(
-            "select * from {APP_TABLE} a
+            "select a.* from {APP_TABLE} a
              join {USER_SUBSCRIBE_TABLE} us on us.source_id = a.source_id
              join {USER_TABLE} u on us.user_id = u.user_id
              where a.app_id in (

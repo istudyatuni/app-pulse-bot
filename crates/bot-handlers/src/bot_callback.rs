@@ -7,7 +7,8 @@ use teloxide::{
     },
 };
 
-use db::{DB, models::ShouldNotify, types::Id};
+use common::types::Id;
+use db::{DB, models::ShouldNotify};
 
 use crate::{
     DEFAULT_USER_LANG,

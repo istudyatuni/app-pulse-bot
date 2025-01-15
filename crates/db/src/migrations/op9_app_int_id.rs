@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use sqlx_migrator::error::Error;
 use sqlx_migrator::operation::Operation;
 
-use common::UnixDateTime;
+use common::{UnixDateTime, types::Id};
 
-use crate::{APP_TABLE, USER_UPDATE_TABLE, models::ShouldNotify, types::Id};
+use crate::{APP_TABLE, USER_UPDATE_TABLE, models::ShouldNotify};
 
 /// Use `int` for `app_id`
 ///

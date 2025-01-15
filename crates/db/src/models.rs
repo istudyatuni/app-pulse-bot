@@ -1,12 +1,12 @@
 use sqlx::{Row, sqlite::SqliteRow};
 use teloxide::utils::markdown::user_mention;
 
-use common::{DateTime, UnixDateTime};
-
-use crate::{
-    SOURCE_ID,
+use common::{
+    DateTime, UnixDateTime,
     types::{Id, UserId},
 };
+
+use crate::SOURCE_ID;
 
 #[derive(Debug, Default, sqlx::FromRow, bon::Builder)]
 pub struct User {
@@ -190,7 +190,7 @@ pub struct Stats {
 
 /// Struct helpers for extracting partial structs
 pub mod fetch {
-    use crate::types::Id;
+    use common::types::Id;
 
     #[derive(sqlx::FromRow)]
     pub(crate) struct SourceId {

@@ -11,9 +11,10 @@ test = []
 chrono.workspace = true
 dotenvy_macro.workspace = true
 log.workspace = true
-simplelog = "0.12.2"
-tokio.workspace = true
+simplelog.workspace = true
+teloxide.workspace = true
 tokio-util.workspace = true
+tokio.workspace = true
 
 [build-dependencies]
 anyhow.workspace = true

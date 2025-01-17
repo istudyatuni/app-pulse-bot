@@ -195,11 +195,6 @@ pub mod fetch {
     }
 
     #[derive(sqlx::FromRow)]
-    pub(crate) struct Name {
-        pub name: String,
-    }
-
-    #[derive(sqlx::FromRow)]
     pub(crate) struct Count {
         pub count: u32,
     }

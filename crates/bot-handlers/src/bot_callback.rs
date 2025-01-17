@@ -21,7 +21,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
     let chat_id = q.from.id;
 
     let lang = db
-        .select_user(chat_id)
+        .get_user(chat_id)
         .await
         .ok()
         .flatten()

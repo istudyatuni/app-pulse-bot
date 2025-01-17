@@ -21,7 +21,7 @@ impl DB {
 
         Ok(())
     }
-    pub async fn select_user(&self, user_id: impl Into<UserId>) -> Result<Option<models::User>> {
+    pub async fn get_user(&self, user_id: impl Into<UserId>) -> Result<Option<models::User>> {
         let user_id = user_id.into();
         log::debug!("select user {user_id}");
         let id: Id = user_id.into();

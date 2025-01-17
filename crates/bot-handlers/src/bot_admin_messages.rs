@@ -15,7 +15,7 @@ use crate::{
 };
 
 pub async fn admin_command_handler(bot: Bot, msg: Message, cmd: AdminCommand, db: DB) -> ResponseResult<()> {
-    let user = db.select_user(msg.chat.id).await.ok().flatten();
+    let user = db.get_user(msg.chat.id).await.ok().flatten();
     let lang = get_user_lang(user.as_ref(), msg.from.as_ref());
 
     match cmd {

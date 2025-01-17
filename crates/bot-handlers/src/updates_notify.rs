@@ -177,8 +177,8 @@ async fn send_update(
     update: &Update,
     lang: &str,
 ) -> Result<(), UpdateError> {
-    let app_name = match db.get_app_name(app_id).await? {
-        Some(n) => n,
+    let app_name = match db.get_app(app_id).await? {
+        Some(app) => app.name().to_owned(),
         None => {
             log::error!("app by app_id {app_id} not found");
             // todo: probably move to locales?

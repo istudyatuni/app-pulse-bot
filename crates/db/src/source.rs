@@ -72,20 +72,14 @@ impl DB {
 
         Ok(res.ignore_not_found()?.map(|r| r.source_id))
     }
-    pub async fn get_source_updated_at(&self, source_id: SourceId) -> Result<UnixDateTime> {
+    /*pub async fn get_source(&self, source_id: SourceId) -> Result<Option<models::Source>> {
         log::debug!("select source last_updated_at");
-        let res = sqlx::query_as::<_, models::Source>(&format!(
-            "select last_updated_at
-             from {SOURCE_TABLE}
+        Ok(sqlx::query_as::<_, models::Source>(&format!(
+            "select * from {SOURCE_TABLE}
              where source_id = ?"
         ))
         .bind(source_id)
         .fetch_optional(&self.pool)
-        .await?;
-
-        if res.is_none() {
-            log::error!("source not found when selecting last_updated_at");
-        }
-        Ok(res.map(|s| s.last_updated_at()).unwrap_or_default())
-    }
+        .await?)
+    }*/
 }

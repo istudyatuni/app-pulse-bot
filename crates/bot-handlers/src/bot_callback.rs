@@ -7,7 +7,7 @@ use teloxide::{
     },
 };
 
-use common::types::Id;
+use common::types::{AppId, SourceId};
 use db::{DB, models::ShouldNotify};
 
 use crate::{
@@ -102,8 +102,8 @@ async fn handle_update_callback(
     should_notify: ShouldNotify,
     db: DB,
     chat_id: UserId,
-    source_id: Id,
-    app_id: Id,
+    source_id: SourceId,
+    app_id: AppId,
     lang: &str,
 ) -> Result<(String, NewAppKeyboardKind), Option<String>> {
     db.save_should_notify_user(chat_id, source_id, app_id, should_notify)
@@ -154,8 +154,8 @@ async fn edit_update_msg(
     msg: Option<MaybeInaccessibleMessage>,
     bot: Bot,
     chat_id: UserId,
-    source_id: Id,
-    app_id: Id,
+    source_id: SourceId,
+    app_id: AppId,
     keyboard_kind: NewAppKeyboardKind,
     lang: &str,
 ) -> ResponseResult<()> {

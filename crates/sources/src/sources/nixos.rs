@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 
-use common::types::Id;
+use common::types::SourceId;
 use db::DB;
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
 };
 
 pub(crate) struct Source {
-    id: Id,
+    id: SourceId,
     timer: Timer,
     client: Nixpkgs,
     db: DB,
@@ -61,7 +61,7 @@ impl Source {
             updates.push(
                 Update::builder()
                     .name(app_name)
-                    .maybe_app_id(app_id)
+                    .maybe_app_id(app_id.map(Into::into))
                     .update_version(data.version.clone())
                     .build(),
             );
@@ -82,7 +82,7 @@ impl UpdateSource for Source {
         "nixpkgs@packages"
     }
 
-    fn new(db: DB, timeout: Duration, source_id: Id) -> Result<Self, Self::InitError> {
+    fn new(db: DB, timeout: Duration, source_id: SourceId) -> Result<Self, Self::InitError> {
         Ok(Self {
             id: source_id,
             timer: Timer::new(timeout),

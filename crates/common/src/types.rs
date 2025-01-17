@@ -1,3 +1,4 @@
+use derive_more::{Deref, Display, FromStr};
 use teloxide::types::{ChatId as TgChatId, Recipient, UserId as TgUserId};
 
 pub type Id = i64;
@@ -7,6 +8,38 @@ pub struct UserId(pub u64);
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ChatId(pub i64);
+
+macro_rules! newtype_id {
+    () => {};
+    ($($name:ident),*) => {
+        $(
+            #[derive(
+                Debug,
+                Default,
+                Clone,
+                Copy,
+                PartialEq,
+                Eq,
+                FromStr,
+                Display,
+                Deref,
+                derive_more::From,
+                derive_more::Into,
+                sqlx::Type,
+            )]
+            #[sqlx(transparent)]
+            pub struct $name(Id);
+
+            impl $name {
+                pub const fn new(id: Id) -> Self {
+                    Self(id)
+                }
+            }
+        )*
+    };
+}
+
+newtype_id!(AppId, SourceId);
 
 macro_rules! cast {
     ($($from:ty => $to:ty : $value:ident => $convert:expr),* $(,)?) => {

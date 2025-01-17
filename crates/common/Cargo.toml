@@ -9,9 +9,11 @@ test = []
 
 [dependencies]
 chrono.workspace = true
+derive_more.workspace = true
 dotenvy_macro.workspace = true
 log.workspace = true
 simplelog.workspace = true
+sqlx.workspace = true
 teloxide.workspace = true
 tokio-util.workspace = true
 tokio.workspace = true

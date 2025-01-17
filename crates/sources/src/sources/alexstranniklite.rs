@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 
+use common::types::SourceId;
 use db::DB;
 
 use crate::extractor::tg::{
@@ -13,7 +14,7 @@ use timer::Timer;
 const CHANNEL_NAME: &str = "alexstranniklite";
 
 pub struct Source {
-    id: Id,
+    id: SourceId,
     timer: Timer,
     db: DB,
 }
@@ -62,7 +63,7 @@ impl Source {
 
                     updates.push(
                         Update::builder()
-                            .maybe_app_id(app_id)
+                            .maybe_app_id(app_id.map(Into::into))
                             .name(app_name)
                             .description_link(
                                 format!("{channel_link}{}", msg.id)
@@ -102,7 +103,7 @@ impl UpdateSource for Source {
         "tg@alexstranniklite"
     }
 
-    fn new(db: DB, timeout: Duration, source_id: Id) -> Result<Self, Self::InitError> {
+    fn new(db: DB, timeout: Duration, source_id: SourceId) -> Result<Self, Self::InitError> {
         Ok(Self {
             id: source_id,
             timer: Timer::new(timeout),

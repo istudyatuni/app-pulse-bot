@@ -38,11 +38,20 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
             log::debug!("got update for app {}", app_id);
 
             if let Err(e) = db
-                .save_app_last_updated_at(app_id, update.update_time())
+                .save_app_last_updated_at(source_id, app_id, update.update_time())
                 .await
             {
                 log::error!("failed to update app last_updated_at: {e}");
                 continue;
+            }
+            if let Some(version) = update.update_version() {
+                if let Err(e) = db
+                    .save_app_last_updated_version(source_id, app_id, version.to_owned())
+                    .await
+                {
+                    log::error!("failed to update app last_updated_version: {e}");
+                    continue;
+                }
             }
 
             let users = match db.select_users_to_notify(source_id, app_id).await {

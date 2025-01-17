@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use async_trait::async_trait;
-
 use common::types::SourceId;
 use db::DB;
 
@@ -120,7 +118,6 @@ impl UpdateSource for Source {
     }
 }
 
-#[async_trait]
 impl UpdateSourceList for Source {
     async fn get_updates(&self) -> super::UpdatesList {
         self.get_updates_list().await

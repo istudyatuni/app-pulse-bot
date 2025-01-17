@@ -6,7 +6,6 @@ publish.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-async-trait.workspace = true
 bon.workspace = true
 log.workspace = true
 opensearch.workspace = true

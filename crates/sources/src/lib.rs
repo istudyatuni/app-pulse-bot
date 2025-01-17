@@ -1,7 +1,8 @@
 //! Updates sources
+#![expect(async_fn_in_trait)]
+
 use std::time::Duration;
 
-use async_trait::async_trait;
 use tokio::sync::mpsc::Sender;
 
 use common::types::SourceId;
@@ -18,7 +19,6 @@ mod update;
 pub(crate) const SOURCE_TIMEOUT: Duration = Duration::from_secs(60 * 60);
 
 /// Source that can be fetched for update
-#[async_trait]
 pub trait UpdateSource {
     type InitError;
 
@@ -41,7 +41,6 @@ pub trait UpdateSource {
     fn reset_timer(&self);
 }
 
-#[async_trait]
 pub trait UpdateSourceList: UpdateSource {
     /// Fetch updates
     async fn get_updates(&self) -> UpdatesList;

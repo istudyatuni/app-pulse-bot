@@ -64,18 +64,6 @@ impl DB {
 
         Ok(res.app_id)
     }
-    pub async fn get_app_name(&self, app_id: AppId) -> Result<Option<String>> {
-        log::debug!("select app_name from app {app_id}");
-        let res = sqlx::query_as::<_, models::fetch::Name>(&format!(
-            "select name from {APP_TABLE}
-             where app_id = ?"
-        ))
-        .bind(app_id)
-        .fetch_one(&self.pool)
-        .await;
-
-        Ok(res.ignore_not_found()?.map(|r| r.name))
-    }
     pub async fn get_app_id(&self, source_id: SourceId, app_name: &str) -> Result<Option<AppId>> {
         log::debug!("select app_id from app {app_name}");
         let res = sqlx::query_as::<_, models::fetch::AppId>(&format!(

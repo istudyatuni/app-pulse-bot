@@ -1,2 +1,8 @@
 max_width = 120
 match_block_trailing_comma = true
+
+# unstable
+unstable_features = true
+wrap_comments = true
+comment_width = 100
+format_code_in_doc_comments = true

@@ -98,7 +98,8 @@ impl DB {
 
         Ok(res.ignore_not_found()?.map(|r| r.app_id))
     }
-    /// Return list of apps from specified source when at least 1 user subsribed to this source
+    /// Return list of apps from specified source when at least 1 user subsribed
+    /// to this source
     pub async fn get_apps_to_check_updates(&self, source_id: Id) -> Result<Vec<models::App>> {
         log::debug!("select apps by source_id {source_id}");
         Ok(sqlx::query_as::<_, models::App>(&format!(

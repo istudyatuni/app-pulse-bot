@@ -73,8 +73,8 @@ async fn test_no_select_users_to_notify() -> Result<()> {
     let mut timer = Timer::new();
     timer.skip(1);
 
-    // todo: seems that app in db is not required, and result of select_users_to_notify is still
-    // empty
+    // todo: seems that app in db is not required, and result of
+    // select_users_to_notify is still empty
     let app_id = db.add_app(SOURCE_ID, "").await?;
     db.save_app_last_updated_at(SOURCE_ID, app_id, timer.next()).await?;
 

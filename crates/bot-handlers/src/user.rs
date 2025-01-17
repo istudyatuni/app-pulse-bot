@@ -15,9 +15,7 @@ pub async fn run_collect_user_names_job(bot: Bot, db: DB) -> Result<(), UsersCol
                 db.save_user_name(u.user_id(), &name).await.log_error();
             }
             if let Some(username) = chat.username {
-                db.save_user_username(u.user_id(), &username)
-                    .await
-                    .log_error();
+                db.save_user_username(u.user_id(), &username).await.log_error();
             }
         } else {
             log::error!(code = false; "saved chat {} is not private", u.display());

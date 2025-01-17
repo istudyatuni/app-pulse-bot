@@ -38,18 +38,11 @@ pub struct DB {
 
 impl DB {
     pub async fn init(path: &str) -> Result<Self> {
-        let pool = SqlitePool::connect_with(
-            SqliteConnectOptions::new()
-                .filename(path)
-                .create_if_missing(true),
-        )
-        .await?;
+        let pool = SqlitePool::connect_with(SqliteConnectOptions::new().filename(path).create_if_missing(true)).await?;
 
         Self::migrate(pool.acquire().await?).await?;
 
-        sqlx::query("PRAGMA foreign_keys = ON")
-            .execute(&pool)
-            .await?;
+        sqlx::query("PRAGMA foreign_keys = ON").execute(&pool).await?;
 
         Ok(Self { pool })
     }
@@ -89,12 +82,12 @@ impl DB {
         })
     }
     async fn load_count(&self, sql_predicate: &str) -> Result<u32> {
-        Ok(sqlx::query_as::<_, models::fetch::Count>(&format!(
-            "select count(*) as count {sql_predicate}"
-        ))
-        .fetch_one(&self.pool)
-        .await?
-        .count)
+        Ok(
+            sqlx::query_as::<_, models::fetch::Count>(&format!("select count(*) as count {sql_predicate}"))
+                .fetch_one(&self.pool)
+                .await?
+                .count,
+        )
     }
 }
 

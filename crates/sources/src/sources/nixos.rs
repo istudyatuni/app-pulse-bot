@@ -28,7 +28,7 @@ impl Source {
                     Self::name()
                 );
                 return super::UpdatesList::default();
-            }
+            },
         };
 
         let mut updates = vec![];
@@ -38,13 +38,9 @@ impl Source {
             let data = match self.client.search_exact(app.name()).await {
                 Ok(a) => a,
                 Err(e) => {
-                    log::error!(
-                        "failed to search app {} in {}: {e}",
-                        app.name(),
-                        Self::name()
-                    );
+                    log::error!("failed to search app {} in {}: {e}", app.name(), Self::name());
                     continue;
-                }
+                },
             };
             let Some(data) = data.first() else {
                 continue;
@@ -56,11 +52,11 @@ impl Source {
                         log::warn!("app by name {app_name} not found in db");
                     }
                     id
-                }
+                },
                 Err(e) => {
                     log::error!("failed to get app_id by app_name ({app_name}): {e}");
                     continue;
-                }
+                },
             };
             updates.push(
                 Update::builder()

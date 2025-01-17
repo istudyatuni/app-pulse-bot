@@ -67,7 +67,7 @@ impl Parse for Migrations {
                     } else {
                         return Err(input.error("Expected a string for 'app'"));
                     }
-                }
+                },
                 "fake" => {
                     if fake.is_some() {
                         return Err(input.error("Duplicate key 'fake'"));
@@ -78,7 +78,7 @@ impl Parse for Migrations {
                     } else {
                         return Err(input.error("Expected an integer for 'fake'"));
                     }
-                }
+                },
                 "folder" => {
                     if folder.is_some() {
                         return Err(input.error("Duplicate key 'folder'"));
@@ -89,19 +89,19 @@ impl Parse for Migrations {
                     } else {
                         return Err(input.error("Expected a string for 'folder'"));
                     }
-                }
+                },
                 "register_fake_fn" => {
                     if register_fake_fn.is_some() {
                         return Err(input.error("Duplicate key 'register_fake_fn'"));
                     }
                     register_fake_fn = Some(input.parse()?);
-                }
+                },
                 "register_fn" => {
                     if register_fn.is_some() {
                         return Err(input.error("Duplicate key 'register_fn'"));
                     }
                     register_fn = Some(input.parse()?);
-                }
+                },
                 "migrations" => {
                     if !list.is_empty() {
                         return Err(input.error("Duplicate key 'migrations'"));
@@ -124,7 +124,7 @@ impl Parse for Migrations {
                             return Err(input.error("Expected an integer key for migrations"));
                         }
                     }
-                }
+                },
                 _ => return Err(input.error("Unexpected key in input")),
             }
 
@@ -134,12 +134,8 @@ impl Parse for Migrations {
         }
 
         match (fake, &register_fake_fn) {
-            (Some(_), None) => {
-                return Err(input.error("'fake' requires 'register_fake_fn' to be defined"))
-            }
-            (None, Some(_)) => {
-                return Err(input.error("'register_fake_fn' requires 'fake' to be defined"))
-            }
+            (Some(_), None) => return Err(input.error("'fake' requires 'register_fake_fn' to be defined")),
+            (None, Some(_)) => return Err(input.error("'register_fake_fn' requires 'fake' to be defined")),
             _ => (),
         }
 
@@ -179,11 +175,7 @@ pub fn build_migrations(input: Migrations) -> TokenStream {
                     .unwrap_or_else(|e| format!("-- failed to read {}/{up}: {e}", cur.display()));
                 let down = std::fs::read_to_string(&down)
                     .unwrap_or_else(|e| format!("-- failed to read {}/{down}: {e}", cur.display()));
-                let op_doc = format!(
-                    "Operation for `{name}`\n{}\n{}",
-                    sql("Up", &up),
-                    sql("Down", &down)
-                );
+                let op_doc = format!("Operation for `{name}`\n{}\n{}", sql("Up", &up), sql("Down", &down));
 
                 quote! {
                     #[doc = #op_doc]
@@ -197,13 +189,13 @@ pub fn build_migrations(input: Migrations) -> TokenStream {
                         ::sqlx_migrator::vec_box![(#up, #down)]
                     );
                 }
-            }
+            },
             Migration::Rust(_, _) => quote! {},
         };
         let migration = match m {
             Migration::Raw(_) => {
                 quote! {}
-            }
+            },
             Migration::Rust(name, op_type) => {
                 quote! {
                     ::sqlx_migrator::sqlite_migration! (
@@ -214,7 +206,7 @@ pub fn build_migrations(input: Migrations) -> TokenStream {
                         ::sqlx_migrator::vec_box![super::#op_type]
                     );
                 }
-            }
+            },
         };
         let doc = match m {
             Migration::Raw(name) => {
@@ -223,7 +215,7 @@ pub fn build_migrations(input: Migrations) -> TokenStream {
                     "Migration for `{name}`\n\nSee [`super::__migrations::{}`]",
                     op_ident.to_token_stream().to_string().replace(' ', "")
                 )
-            }
+            },
             Migration::Rust(name, ty) => format!(
                 "Migration `{name}`\n\nSee [`super::{}`]",
                 ty.to_token_stream().to_string().replace(' ', "")
@@ -237,11 +229,7 @@ pub fn build_migrations(input: Migrations) -> TokenStream {
         }
     });
 
-    let migrations_idents: Vec<_> = input
-        .migrations
-        .iter()
-        .map(|(i, _)| migration_struct(i))
-        .collect();
+    let migrations_idents: Vec<_> = input.migrations.iter().map(|(i, _)| migration_struct(i)).collect();
     let fake_fn = match (input.register_fake_fn, input.fake) {
         (Some(fake_ident), Some(fake)) => {
             let migrations_idents = migrations_idents.iter().take(fake);
@@ -253,7 +241,7 @@ pub fn build_migrations(input: Migrations) -> TokenStream {
                     #(migrator.add_migration(Box::new(__migrations::#migrations_idents));)*
                 }
             }
-        }
+        },
         (None, None) => quote! {},
         _ => unreachable!("fake and fake_fn should be both defined"),
     };

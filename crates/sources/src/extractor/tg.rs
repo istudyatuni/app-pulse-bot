@@ -20,11 +20,11 @@ pub(crate) async fn fetch_public_channel(name: &str) -> Result<Vec<Message>> {
         match fetch_public_channel_impl(name).await {
             Err(FetchError::FloodWait(wait)) => {
                 tokio::time::sleep(wait).await;
-            }
+            },
             res => {
                 res.log_error_msg("failed to fetch");
                 return res.map_err(Into::into);
-            }
+            },
         }
     }
     log::error!("failed to fetch telegram/{name} in {MAX_RETRIES} retries");
@@ -52,7 +52,7 @@ async fn fetch_public_channel_impl(name: &str) -> Result<Vec<Message>, FetchErro
                     let dur = Duration::from_secs(sec);
                     log::warn!("got FLOOD_WAIT_X, waiting for {dur:?}");
                     return Err(FetchError::FloodWait(dur));
-                }
+                },
                 _ => (),
             }
         }

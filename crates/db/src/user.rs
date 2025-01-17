@@ -5,10 +5,7 @@ use common::{
 
 use crate::{models, IgnoreNotFound};
 
-use super::{
-    Result, APP_TABLE, DB, SOURCE_ID, SOURCE_TABLE, USER_SUBSCRIBE_TABLE, USER_TABLE,
-    USER_UPDATE_TABLE,
-};
+use super::{Result, APP_TABLE, DB, SOURCE_ID, SOURCE_TABLE, USER_SUBSCRIBE_TABLE, USER_TABLE, USER_UPDATE_TABLE};
 
 impl DB {
     pub async fn add_user(&self, user: models::User) -> Result<()> {
@@ -40,11 +37,7 @@ impl DB {
     }
     /// Select subscribed and not yet notified users for specific source. Does
     /// not check last_updated_version
-    pub async fn select_users_to_notify(
-        &self,
-        source_id: Id,
-        app_id: Id,
-    ) -> Result<Vec<models::User>> {
+    pub async fn select_users_to_notify(&self, source_id: Id, app_id: Id) -> Result<Vec<models::User>> {
         log::debug!("select subscribed users");
         Ok(sqlx::query_as::<_, models::User>(&format!(
             "select u.*
@@ -80,10 +73,7 @@ impl DB {
         self.select_users_to_notify_about_bot_update_impl(common::version())
             .await
     }
-    pub(crate) async fn select_users_to_notify_about_bot_update_impl(
-        &self,
-        version: u32,
-    ) -> Result<Vec<models::User>> {
+    pub(crate) async fn select_users_to_notify_about_bot_update_impl(&self, version: u32) -> Result<Vec<models::User>> {
         log::debug!("select users to notify about bot update: version {version}");
         Ok(sqlx::query_as::<_, models::User>(&format!(
             "select *
@@ -126,13 +116,8 @@ impl DB {
     pub async fn save_user_lang(&self, user_id: impl Into<UserId>, lang: &str) -> Result<()> {
         self.save_user_string_table(user_id, "lang", lang).await
     }
-    pub async fn save_user_username(
-        &self,
-        user_id: impl Into<UserId>,
-        username: &str,
-    ) -> Result<()> {
-        self.save_user_string_table(user_id, "username", username)
-            .await
+    pub async fn save_user_username(&self, user_id: impl Into<UserId>, username: &str) -> Result<()> {
+        self.save_user_string_table(user_id, "username", username).await
     }
     pub async fn save_user_name(&self, user_id: impl Into<UserId>, name: &str) -> Result<()> {
         self.save_user_string_table(user_id, "name", name).await
@@ -157,11 +142,7 @@ impl DB {
         log::debug!("user {user_table_column} updated");
         Ok(())
     }
-    pub async fn save_user_subscribed(
-        &self,
-        user_id: impl Into<UserId>,
-        subscribed: bool,
-    ) -> Result<()> {
+    pub async fn save_user_subscribed(&self, user_id: impl Into<UserId>, subscribed: bool) -> Result<()> {
         let user_id = user_id.into();
         log::debug!("saving user {user_id} subscribe: {subscribed}");
         let update = models::UserSubscribe::new(user_id, subscribed);
@@ -183,11 +164,7 @@ impl DB {
         Ok(())
     }
     /// Set `last_notified_at` for all users, subscribed to source
-    pub async fn save_all_users_last_notified(
-        &self,
-        source_id: Id,
-        last_notified_at: UnixDateTime,
-    ) -> Result<()> {
+    pub async fn save_all_users_last_notified(&self, source_id: Id, last_notified_at: UnixDateTime) -> Result<()> {
         log::debug!("saving all users last_notified_at: {last_notified_at}");
 
         sqlx::query(&format!(
@@ -205,18 +182,10 @@ impl DB {
         Ok(())
     }
     pub async fn save_user_version_notified(&self, user_id: impl Into<UserId>) -> Result<()> {
-        self.save_user_string_table(
-            user_id,
-            "last_version_notified",
-            &common::version().to_string(),
-        )
-        .await
+        self.save_user_string_table(user_id, "last_version_notified", &common::version().to_string())
+            .await
     }
-    pub async fn save_user_bot_blocked(
-        &self,
-        user_id: impl Into<UserId>,
-        blocked: bool,
-    ) -> Result<()> {
+    pub async fn save_user_bot_blocked(&self, user_id: impl Into<UserId>, blocked: bool) -> Result<()> {
         let id: Id = user_id.into().into();
         log::debug!("saving user {id} bot_blocked: {blocked}");
         sqlx::query(&format!(
@@ -281,11 +250,7 @@ impl DB {
         log::debug!("user last_notified_at saved");
         Ok(())
     }
-    pub(crate) async fn save_user_version_notified_impl(
-        &self,
-        user_id: impl Into<UserId>,
-        version: u32,
-    ) -> Result<()> {
+    pub(crate) async fn save_user_version_notified_impl(&self, user_id: impl Into<UserId>, version: u32) -> Result<()> {
         let user_id: Id = user_id.into().into();
         sqlx::query(&format!(
             "update {USER_TABLE}

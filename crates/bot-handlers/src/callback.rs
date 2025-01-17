@@ -3,10 +3,7 @@ use anyhow::Result;
 use common::types::Id;
 use db::models::ShouldNotify;
 
-use crate::{
-    keyboards::LanguagesKeyboardKind, PayloadData, PayloadLayout, PayloadParseError,
-    CALLBACK_VERSION,
-};
+use crate::{keyboards::LanguagesKeyboardKind, PayloadData, PayloadLayout, PayloadParseError, CALLBACK_VERSION};
 
 // flags is at the start of message: {flag}:{payload}
 const NOTIFY_FLAG: &str = "notify";
@@ -86,7 +83,7 @@ impl PayloadData for Callback {
                     should_notify: ShouldNotify::try_from_payload(&data[3])
                         .inspect_err(|_| log::error!("failed to parse should_notify"))?,
                 }
-            }
+            },
             SET_LANG_FLAG => {
                 let data = SETLANG_CALLBACK_LAYOUT.parse_payload(value)?;
                 let Some(kind) = LanguagesKeyboardKind::try_from_payload(&data[1]).ok() else {
@@ -96,7 +93,7 @@ impl PayloadData for Callback {
                     lang: data[2].to_string(),
                     kind,
                 }
-            }
+            },
             _ => return Err(CallbackParseError::UnknownCallbackType),
         };
         Ok(res)

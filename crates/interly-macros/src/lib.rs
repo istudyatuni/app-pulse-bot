@@ -35,12 +35,8 @@ pub fn localize(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     match input.data {
         Data::Struct(_) => (),
-        Data::Enum(d) => {
-            return quote_spanned! { d.enum_token.span => compile_error!("use struct"); }.into()
-        }
-        Data::Union(d) => {
-            return quote_spanned! { d.union_token.span => compile_error!("use struct"); }.into()
-        }
+        Data::Enum(d) => return quote_spanned! { d.enum_token.span => compile_error!("use struct"); }.into(),
+        Data::Union(d) => return quote_spanned! { d.union_token.span => compile_error!("use struct"); }.into(),
     }
 
     let dir = DEFAULT_PATH;
@@ -49,7 +45,7 @@ pub fn localize(_args: TokenStream, input: TokenStream) -> TokenStream {
         Err(e) => {
             let msg = format!("failed to read .ftl files from \"{dir}\": {e}");
             return quote! { compile_error!(#msg); }.into();
-        }
+        },
     };
 
     let messages = match extract_messages(files) {
@@ -57,7 +53,7 @@ pub fn localize(_args: TokenStream, input: TokenStream) -> TokenStream {
         Err(e) => {
             let msg = format!("invalid .ftl files:\n{e}");
             return quote! { compile_error!(#msg); }.into();
-        }
+        },
     };
 
     let languages_names: Vec<_> = messages
@@ -68,13 +64,7 @@ pub fn localize(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let ident = input.ident;
     let vis = input.vis;
-    let res = localize_base(
-        vis.clone(),
-        ident,
-        messages,
-        languages_names,
-        DEFAULT_FALLBACK_LOCALE,
-    );
+    let res = localize_base(vis.clone(), ident, messages, languages_names, DEFAULT_FALLBACK_LOCALE);
 
     res.into()
 }
@@ -91,10 +81,7 @@ fn localize_base(
 
     let mut languages_enum_variants = vec![];
     let mut languages_enum_from = vec![];
-    for (lang_enum, lang_str) in languages_names
-        .iter()
-        .map(|l| (l.to_shouty_snake_case(), l))
-    {
+    for (lang_enum, lang_str) in languages_names.iter().map(|l| (l.to_shouty_snake_case(), l)) {
         let lang_enum = syn::Ident::new(&lang_enum, Span::call_site());
         languages_enum_variants.push(quote! { #lang_enum });
         languages_enum_from.push(quote! { #lang_str => Self::#lang_enum });

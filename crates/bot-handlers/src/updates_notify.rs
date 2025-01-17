@@ -32,7 +32,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                     Err(e) => {
                         log::error!("failed to add app when got update: {e}");
                         continue;
-                    }
+                    },
                 },
             };
             let app = match db.get_app(app_id).await {
@@ -40,11 +40,11 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 Ok(None) => {
                     log::error!("failed to get app from db: app not found");
                     continue;
-                }
+                },
                 Err(e) => {
                     log::error!("failed to get app from db: {e}");
                     continue;
-                }
+                },
             };
             log::debug!("got update for app {}", app_id);
 
@@ -81,10 +81,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 }
             }
             if let Some(version) = update_version {
-                if let Err(e) = db
-                    .save_app_last_updated_version(source_id, app_id, version)
-                    .await
-                {
+                if let Err(e) = db.save_app_last_updated_version(source_id, app_id, version).await {
                     log::error!("failed to update app last_updated_version: {e}");
                     continue;
                 }
@@ -95,7 +92,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 Err(e) => {
                     log::error!("failed to select users: {e}");
                     continue;
-                }
+                },
             };
             log::debug!("sending app '{app_id}' update to {} users", users.len());
 
@@ -105,48 +102,29 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 let lang = user.lang();
                 let res = match db.should_notify_user(user_id, source_id, app_id).await {
                     Ok(s) => match s {
-                        None => {
-                            send_suggest_update(
-                                bot.clone(),
-                                chat_id,
-                                source_id,
-                                app_id,
-                                update,
-                                lang,
-                            )
-                            .await
-                        }
+                        None => send_suggest_update(bot.clone(), chat_id, source_id, app_id, update, lang).await,
                         Some(ShouldNotify::Notify) => {
-                            send_update(
-                                bot.clone(),
-                                db.clone(),
-                                chat_id,
-                                source_id,
-                                app_id,
-                                update,
-                                lang,
-                            )
-                            .await
-                        }
+                            send_update(bot.clone(), db.clone(), chat_id, source_id, app_id, update, lang).await
+                        },
                         Some(ShouldNotify::Ignore) => {
                             log::debug!("ignoring update {app_id} for user {user_id}");
                             continue;
-                        }
+                        },
                     },
                     Err(e) => {
                         log::error!("failed to check, if should notify user {user_id}: {e}");
                         continue;
-                    }
+                    },
                 };
                 if let Err(e) = res {
                     match e {
                         UpdateError::BotBlocked(chat_id) => handle_bot_blocked(&db, chat_id).await,
                         UpdateError::RequestError(e) => {
                             log::error!("error from update notifier: {e}")
-                        }
+                        },
                         UpdateError::Db(e) => {
                             log::error!("error from update notifier: {e}")
-                        }
+                        },
                     }
                 }
             }
@@ -154,9 +132,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
 
         db.save_all_users_last_notified(source_id, DateTime::now())
             .await
-            .log_error_msg_with(|| {
-                format!("failed to save all users last_notified_at for source {source_id}")
-            });
+            .log_error_msg_with(|| format!("failed to save all users last_notified_at for source {source_id}"));
     }
 }
 
@@ -206,7 +182,7 @@ async fn send_update(
             log::error!("app by app_id {app_id} not found");
             // todo: probably move to locales?
             "-_-".to_string()
-        }
+        },
     };
     let mut text = vec![tr!(new_update_msg, lang, &app_name) + "\n"];
     if let Some(url) = update.update_link() {
@@ -251,15 +227,15 @@ async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
             match e {
                 UpdateError::BotBlocked(chat_id) => {
                     handle_bot_blocked(&db, chat_id).await;
-                }
+                },
                 UpdateError::RequestError(e) => {
                     failed.0 += 1;
                     errors.push(e.to_string());
-                }
+                },
                 UpdateError::Db(e) => {
                     failed.0 += 1;
                     errors.push(e.to_string());
-                }
+                },
             }
         } else if let Err(e) = db.save_user_version_notified(user_id).await {
             log::error!("failed to save user {user_id} notified: {e}");
@@ -302,9 +278,7 @@ impl<R> MapBotBlockedError for Result<R, teloxide::RequestError> {
         match self {
             Ok(_) => Ok(()),
             Err(e) => match e {
-                teloxide::RequestError::Api(teloxide::ApiError::BotBlocked) => {
-                    Err(UpdateError::BotBlocked(chat_id))
-                }
+                teloxide::RequestError::Api(teloxide::ApiError::BotBlocked) => Err(UpdateError::BotBlocked(chat_id)),
                 _ => Err(e.into()),
             },
         }

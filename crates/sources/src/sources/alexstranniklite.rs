@@ -5,8 +5,7 @@ use async_trait::async_trait;
 use db::DB;
 
 use crate::extractor::tg::{
-    fetch_public_channel, Document, KeyboardButton, Media, Message, ReplyInlineMarkupRow,
-    ReplyMarkup,
+    fetch_public_channel, Document, KeyboardButton, Media, Message, ReplyInlineMarkupRow, ReplyMarkup,
 };
 use crate::*;
 use timer::Timer;
@@ -58,7 +57,7 @@ impl Source {
                             log::error!("failed to get app_id by app_name ({app_name}): {e}");
                             msg_with_update.take();
                             continue;
-                        }
+                        },
                     };
 
                     updates.push(
@@ -204,7 +203,10 @@ mod tests {
     fn test_get_app_id() {
         let table = &[
             ("<strong>app</strong> 1.2.3 <strong>arm7</strong>", "app"),
-            ("<a href=\"mts.music\" target=\"_blank\" rel=\"nofollow\"><strong>app.text</strong></a> 9.19.0", "app.text"),
+            (
+                "<a href=\"mts.music\" target=\"_blank\" rel=\"nofollow\"><strong>app.text</strong></a> 9.19.0",
+                "app.text",
+            ),
         ];
         for (msg, expected) in table {
             assert_eq!(

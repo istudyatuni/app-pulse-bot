@@ -15,17 +15,11 @@ pub(crate) struct MessageInfo {
     pub(crate) attrs: Vec<String>,
 }
 
-pub(crate) fn extract_messages(
-    locales: Vec<(PathBuf, String)>,
-) -> Result<Vec<(LanguageIdentifier, LangInfo)>, String> {
+pub(crate) fn extract_messages(locales: Vec<(PathBuf, String)>) -> Result<Vec<(LanguageIdentifier, LangInfo)>, String> {
     let mut res = vec![];
     for (path, source) in locales {
-        let resource = FluentResource::try_new(source.clone()).map_err(|(_, e)| {
-            e.iter()
-                .map(|e| e.to_string())
-                .collect::<Vec<_>>()
-                .join("\n")
-        })?;
+        let resource = FluentResource::try_new(source.clone())
+            .map_err(|(_, e)| e.iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n"))?;
 
         let mut messages = vec![];
 
@@ -39,8 +33,7 @@ pub(crate) fn extract_messages(
                 let mut attrs = vec![];
                 for e in elements {
                     if let PatternElement::Placeable {
-                        expression:
-                            Expression::Inline(InlineExpression::VariableReference { id, .. }),
+                        expression: Expression::Inline(InlineExpression::VariableReference { id, .. }),
                     } = e
                     {
                         attrs.push(id.name.to_owned());
@@ -67,9 +60,7 @@ pub(crate) fn extract_messages(
 
 fn extract_lang(path: PathBuf) -> Result<LanguageIdentifier, String> {
     if !matches!(path.extension(), Some("ftl")) {
-        return Err(format!(
-            "something went wrong, expected .ftl file, but got \"{path}\""
-        ));
+        return Err(format!("something went wrong, expected .ftl file, but got \"{path}\""));
     }
 
     path.file_name()

@@ -1,6 +1,4 @@
-use teloxide::{
-    macros::BotCommands as DeriveBotCommands, types::BotCommand, utils::command::BotCommands,
-};
+use teloxide::{macros::BotCommands as DeriveBotCommands, types::BotCommand, utils::command::BotCommands};
 
 use i18n::tr_literal;
 
@@ -51,10 +49,7 @@ impl AdminCommand {
     }
 }
 
-fn translate_bot_commands(
-    commands: Vec<BotCommand>,
-    lang: &str,
-) -> impl IntoIterator<Item = BotCommand> {
+fn translate_bot_commands(commands: Vec<BotCommand>, lang: &str) -> impl IntoIterator<Item = BotCommand> {
     let lang = lang.to_owned();
     commands.into_iter().map(move |c| {
         if c.description.starts_with("$") {

@@ -8,10 +8,7 @@ use unic_langid::LanguageIdentifier;
 
 use crate::locales::{LangInfo, MessageInfo};
 
-pub(crate) fn make_messages_methods(
-    vis: Visibility,
-    messages: &Vec<(LanguageIdentifier, LangInfo)>,
-) -> TokenStream {
+pub(crate) fn make_messages_methods(vis: Visibility, messages: &Vec<(LanguageIdentifier, LangInfo)>) -> TokenStream {
     let mut msgs = vec![];
     let mut msgs_map = HashMap::new();
     for (_, info) in messages {

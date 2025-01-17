@@ -2,8 +2,8 @@ use reqwest::Url;
 use teloxide::{
     prelude::*,
     types::{
-        CallbackQuery, InlineKeyboardButtonKind, InlineKeyboardMarkup, MaybeInaccessibleMessage,
-        MessageCommon, MessageKind,
+        CallbackQuery, InlineKeyboardButtonKind, InlineKeyboardMarkup, MaybeInaccessibleMessage, MessageCommon,
+        MessageKind,
     },
 };
 
@@ -30,9 +30,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
 
     let Some(data) = q.data else {
         log::error!("got empty callback {} from user {}", q.id, chat_id);
-        answer_err
-            .text(tr!(something_wrong_empty_callback, &lang))
-            .await?;
+        answer_err.text(tr!(something_wrong_empty_callback, &lang)).await?;
         return Ok(());
     };
     log::debug!("got callback: {:?}", data);
@@ -44,23 +42,23 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
                 CallbackParseError::InvalidCallback => {
                     log::error!("invalid callback: {data:?}");
                     tr!(something_wrong_invalid_callback, &lang)
-                }
+                },
                 CallbackParseError::InvalidToken => {
                     log::error!("invalid token in callback: {data:?}");
                     tr!(something_wrong_invalid_callback, &lang)
-                }
+                },
                 CallbackParseError::OutdatedCallback => {
                     log::warn!("handling outdated callback");
                     tr!(outdated_callback, &lang)
-                }
+                },
                 CallbackParseError::UnknownCallbackType => {
                     log::error!("unknown callback: {data:?}");
                     tr!(something_wrong_unknown_callback_type, &lang)
-                }
+                },
             };
             answer_err.text(msg).await?;
             return Ok(());
-        }
+        },
     };
 
     match callback {
@@ -69,43 +67,30 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
             app_id,
             should_notify,
         } => {
-            let res =
-                handle_update_callback(should_notify, db, chat_id, source_id, app_id, &lang).await;
+            let res = handle_update_callback(should_notify, db, chat_id, source_id, app_id, &lang).await;
             match res {
                 Ok((popup_msg, keyboard_kind)) => {
                     bot.answer_callback_query(&q.id).text(popup_msg).await?;
-                    edit_update_msg(
-                        q.message,
-                        bot,
-                        chat_id,
-                        source_id,
-                        app_id,
-                        keyboard_kind,
-                        &lang,
-                    )
-                    .await?;
-                }
+                    edit_update_msg(q.message, bot, chat_id, source_id, app_id, keyboard_kind, &lang).await?;
+                },
                 Err(Some(e)) => {
                     answer_err.text(e).await?;
-                }
+                },
                 _ => (),
             }
-        }
+        },
         Callback::SetLang { lang, kind } => match handle_lang_callback(db, chat_id, &lang).await {
             Ok(popup_msg) => {
                 bot.answer_callback_query(&q.id).text(popup_msg).await?;
                 let (text, markup) = match kind {
                     LanguagesKeyboardKind::Start => (tr!(welcome_suggest_subscribe, &lang), None),
-                    LanguagesKeyboardKind::Settings => (
-                        tr!(choose_language, &lang),
-                        Some(Keyboards::languages(kind)),
-                    ),
+                    LanguagesKeyboardKind::Settings => (tr!(choose_language, &lang), Some(Keyboards::languages(kind))),
                 };
                 edit_msg_text(q.message, bot, chat_id, text, markup).await?;
-            }
+            },
             Err(e) => {
                 answer_err.text(e).await?;
-            }
+            },
         },
     }
 
@@ -127,14 +112,8 @@ async fn handle_update_callback(
             Some(tr!(something_wrong_try_again, lang))
         })?;
     let (popup_msg, keyboard_kind) = match should_notify {
-        ShouldNotify::Notify => (
-            tr!(notifications_enabled, lang),
-            NewAppKeyboardKind::NotifyEnabled,
-        ),
-        ShouldNotify::Ignore => (
-            tr!(notifications_disabled, lang),
-            NewAppKeyboardKind::NotifyDisabled,
-        ),
+        ShouldNotify::Notify => (tr!(notifications_enabled, lang), NewAppKeyboardKind::NotifyEnabled),
+        ShouldNotify::Ignore => (tr!(notifications_disabled, lang), NewAppKeyboardKind::NotifyDisabled),
     };
     Ok((popup_msg, keyboard_kind))
 }

@@ -28,12 +28,7 @@ pub(crate) enum LogMessage {
 }
 
 impl LogMessage {
-    pub(crate) fn log_error(
-        s: impl Into<String>,
-        target: &str,
-        file: Option<&str>,
-        line: Option<u32>,
-    ) -> Self {
+    pub(crate) fn log_error(s: impl Into<String>, target: &str, file: Option<&str>, line: Option<u32>) -> Self {
         let mut msg = format!("[ERROR] {}\n        at {target}", s.into());
         if let Some(file) = file {
             msg += &format!(": {file}");

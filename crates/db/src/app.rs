@@ -17,40 +17,28 @@ impl DB {
 
         Ok(res.ignore_not_found()?)
     }
-    pub async fn save_app_last_updated_at(
-        &self,
-        source_id: Id,
-        app_id: Id,
-        last_updated_at: UnixDateTime,
-    ) -> Result<()> {
+    pub async fn save_app_last_updated_at(&self, app_id: Id, last_updated_at: UnixDateTime) -> Result<()> {
         log::debug!("update last_updated_at for app {app_id}");
         sqlx::query(&format!(
             "update {APP_TABLE}
              set last_updated_at = ?
-             where source_id = ? and app_id = ?"
+             where app_id = ?"
         ))
         .bind(last_updated_at)
-        .bind(source_id)
         .bind(app_id)
         .execute(&self.pool)
         .await?;
 
         Ok(())
     }
-    pub async fn save_app_last_updated_version(
-        &self,
-        source_id: Id,
-        app_id: Id,
-        last_updated_version: &str,
-    ) -> Result<()> {
+    pub async fn save_app_last_updated_version(&self, app_id: Id, last_updated_version: &str) -> Result<()> {
         log::debug!("update last_updated_at for app {app_id}");
         sqlx::query(&format!(
             "update {APP_TABLE}
              set last_updated_version = ?
-             where source_id = ? and app_id = ?"
+             where app_id = ?"
         ))
         .bind(last_updated_version)
-        .bind(source_id)
         .bind(app_id)
         .execute(&self.pool)
         .await?;
@@ -73,7 +61,7 @@ impl DB {
 
         Ok(res.app_id)
     }
-    pub async fn get_app_name_by_app_id(&self, app_id: Id) -> Result<Option<String>> {
+    pub async fn get_app_name(&self, app_id: Id) -> Result<Option<String>> {
         log::debug!("select app_name from app {app_id}");
         let res = sqlx::query_as::<_, models::fetch::Name>(&format!(
             "select name from {APP_TABLE}

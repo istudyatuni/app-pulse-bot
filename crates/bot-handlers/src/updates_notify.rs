@@ -75,13 +75,13 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
             }
 
             if let Some(time) = update_time {
-                if let Err(e) = db.save_app_last_updated_at(source_id, app_id, time).await {
+                if let Err(e) = db.save_app_last_updated_at(app_id, time).await {
                     log::error!("failed to update app last_updated_at: {e}");
                     continue;
                 }
             }
             if let Some(version) = update_version {
-                if let Err(e) = db.save_app_last_updated_version(source_id, app_id, version).await {
+                if let Err(e) = db.save_app_last_updated_version(app_id, version).await {
                     log::error!("failed to update app last_updated_version: {e}");
                     continue;
                 }
@@ -176,7 +176,7 @@ async fn send_update(
     update: &Update,
     lang: &str,
 ) -> Result<(), UpdateError> {
-    let app_name = match db.get_app_name_by_app_id(app_id).await? {
+    let app_name = match db.get_app_name(app_id).await? {
         Some(n) => n,
         None => {
             log::error!("app by app_id {app_id} not found");

@@ -48,7 +48,7 @@ async fn test_select_users_to_notify() -> Result<()> {
     timer.skip(1);
 
     let app_id = db.add_app(SOURCE_ID, "").await?;
-    db.save_app_last_updated_at(SOURCE_ID, app_id, timer.next()).await?;
+    db.save_app_last_updated_at(app_id, timer.next()).await?;
 
     // there are 2 users
     for u in [1, 2] {
@@ -77,7 +77,7 @@ async fn test_no_select_users_to_notify() -> Result<()> {
     // todo: seems that app in db is not required, and result of
     // select_users_to_notify is still empty
     let app_id = db.add_app(SOURCE_ID, "").await?;
-    db.save_app_last_updated_at(SOURCE_ID, app_id, timer.next()).await?;
+    db.save_app_last_updated_at(app_id, timer.next()).await?;
 
     // there is one user
     db.add_user_simple(1).await?;

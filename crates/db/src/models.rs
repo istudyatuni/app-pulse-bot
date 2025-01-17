@@ -6,8 +6,6 @@ use common::{
     DateTime, UnixDateTime,
 };
 
-use crate::SOURCE_ID;
-
 #[derive(Debug, Default, sqlx::FromRow, bon::Builder)]
 pub struct User {
     /// User ID
@@ -67,7 +65,7 @@ impl User {
 #[derive(Debug, Default)]
 pub struct UserUpdate {
     user_id: Id,
-    #[allow(unused)]
+    #[expect(unused)]
     source_id: Id,
     app_id: Id,
     should_notify: Option<ShouldNotify>,
@@ -77,7 +75,7 @@ impl UserUpdate {
     pub fn new(user_id: Id, app_id: Id, should_notify: Option<ShouldNotify>) -> Self {
         Self {
             user_id,
-            source_id: SOURCE_ID,
+            source_id: 0,
             app_id,
             should_notify,
         }
@@ -123,7 +121,7 @@ impl UserSubscribe {
     pub fn new(user_id: UserId, subscribed: bool) -> Self {
         Self {
             user_id: user_id.into(),
-            source_id: SOURCE_ID,
+            source_id: 0,
             subscribed,
         }
     }

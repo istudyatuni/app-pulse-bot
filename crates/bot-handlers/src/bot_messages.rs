@@ -8,7 +8,7 @@ use teloxide::{
     types::{BotCommand, ChatKind, MessageKind},
 };
 
-use common::types;
+use common::types::{self, Id};
 use db::{models::User, DB};
 
 use crate::{
@@ -48,16 +48,17 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
     }
 
     // todo: rework how subsribe work with multiple sources
+    const SOURCE_ID: Id = 1; // temp
     match cmd {
         Command::Start => handle_start_command(bot.clone(), &db, user, &lang, msg).await?,
-        Command::Subscribe => match db.save_user_subscribed(msg.chat.id, true).await {
+        Command::Subscribe => match db.save_user_subscribed(msg.chat.id, SOURCE_ID, true).await {
             Ok(()) => {
                 bot.send_message(msg.chat.id, tr!(subscribed, &lang)).await?;
                 log::debug!("user {} subscribed", msg.chat.id);
             },
             Err(e) => log::error!("failed to subscribe user {}: {e}", msg.chat.id.0),
         },
-        Command::Unsubscribe => match db.save_user_subscribed(msg.chat.id, false).await {
+        Command::Unsubscribe => match db.save_user_subscribed(msg.chat.id, SOURCE_ID, false).await {
             Ok(()) => {
                 bot.send_message(msg.chat.id, tr!(unsubscribed, &lang)).await?;
                 log::debug!("user {} unsubscribed", msg.chat.id);

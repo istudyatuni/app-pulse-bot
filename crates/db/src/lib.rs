@@ -1,8 +1,6 @@
 use sqlx::{pool::PoolConnection, sqlite::SqliteConnectOptions, Sqlite, SqlitePool};
 use sqlx_migrator::{Migrate, Migrator, Plan};
 
-use common::types::Id;
-
 mod app;
 mod migrations;
 pub mod models;
@@ -17,8 +15,6 @@ const USER_UPDATE_TABLE: &str = "user_update";
 const USER_SUBSCRIBE_TABLE: &str = "user_subscribe";
 const APP_TABLE: &str = "app";
 const SOURCE_TABLE: &str = "source";
-
-const SOURCE_ID: Id = 1;
 
 // todo: add variant for NoRowsAffected
 #[derive(Debug, thiserror::Error)]

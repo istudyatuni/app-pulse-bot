@@ -5,7 +5,7 @@ use common::{
 
 use crate::{models, IgnoreNotFound};
 
-use super::{Result, APP_TABLE, DB, SOURCE_ID, SOURCE_TABLE, USER_SUBSCRIBE_TABLE, USER_TABLE, USER_UPDATE_TABLE};
+use super::{Result, APP_TABLE, DB, SOURCE_TABLE, USER_SUBSCRIBE_TABLE, USER_TABLE, USER_UPDATE_TABLE};
 
 impl DB {
     pub async fn add_user(&self, user: models::User) -> Result<()> {
@@ -142,7 +142,12 @@ impl DB {
         log::debug!("user {user_table_column} updated");
         Ok(())
     }
-    pub async fn save_user_subscribed(&self, user_id: impl Into<UserId>, subscribed: bool) -> Result<()> {
+    pub async fn save_user_subscribed(
+        &self,
+        user_id: impl Into<UserId>,
+        source_id: Id,
+        subscribed: bool,
+    ) -> Result<()> {
         let user_id = user_id.into();
         log::debug!("saving user {user_id} subscribe: {subscribed}");
         let update = models::UserSubscribe::new(user_id, subscribed);
@@ -155,7 +160,7 @@ impl DB {
              do update set subscribed=excluded.subscribed"
         ))
         .bind(update.user_id())
-        .bind(SOURCE_ID)
+        .bind(source_id)
         .bind(update.subscribed())
         .execute(&self.pool)
         .await?;

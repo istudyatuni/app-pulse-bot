@@ -1,5 +1,6 @@
 use std::ops::RangeFrom;
 
+use common::types::Id;
 use models::ShouldNotify;
 
 use super::*;
@@ -52,7 +53,7 @@ async fn test_select_users_to_notify() -> Result<()> {
     // there are 2 users
     for u in [1, 2] {
         db.add_user_simple(u).await?;
-        db.save_user_subscribed(u, true).await?;
+        db.save_user_subscribed(u, SOURCE_ID, true).await?;
     }
 
     // source updated before one of users was notified
@@ -80,7 +81,7 @@ async fn test_no_select_users_to_notify() -> Result<()> {
 
     // there is one user
     db.add_user_simple(1).await?;
-    db.save_user_subscribed(1, true).await?;
+    db.save_user_subscribed(1, SOURCE_ID, true).await?;
 
     // source updated before user was notified
     db.save_source_updated_at(SOURCE_ID, timer.next()).await?;
@@ -124,7 +125,7 @@ async fn test_select_apps_to_check_updates_empty() -> Result<()> {
 
     // there is one user
     db.add_user_simple(USER_ID).await?;
-    db.save_user_subscribed(USER_ID, false).await?;
+    db.save_user_subscribed(USER_ID, SOURCE_ID, false).await?;
     db.save_should_notify_user(USER_ID, SOURCE_ID, app_id, ShouldNotify::Notify)
         .await?;
 
@@ -148,7 +149,7 @@ async fn test_select_apps_to_check_updates_empty_user_blocked() -> Result<()> {
     // there is one user
     db.add_user_simple(USER_ID).await?;
     db.save_user_bot_blocked(USER_ID, true).await?;
-    db.save_user_subscribed(USER_ID, true).await?;
+    db.save_user_subscribed(USER_ID, SOURCE_ID, true).await?;
     db.save_should_notify_user(USER_ID, SOURCE_ID, app_id, ShouldNotify::Notify)
         .await?;
 
@@ -169,7 +170,7 @@ async fn test_select_apps_to_check_updates() -> Result<()> {
 
     // there is one user
     db.add_user_simple(USER_ID).await?;
-    db.save_user_subscribed(USER_ID, true).await?;
+    db.save_user_subscribed(USER_ID, SOURCE_ID, true).await?;
 
     let app_id = db.add_app(SOURCE_ID, "").await?;
     db.save_should_notify_user(USER_ID, SOURCE_ID, app_id, ShouldNotify::Notify)

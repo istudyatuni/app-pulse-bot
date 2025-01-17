@@ -23,5 +23,6 @@ build_migrations!(
         8: "0008_source-name-unique",
         9: "0009_app-int-id" => op9_app_int_id::Operation9AppIntId,
         10: "0010_app-last-updated-version",
+        11: "0011_app-name-unique",
     ],
 );

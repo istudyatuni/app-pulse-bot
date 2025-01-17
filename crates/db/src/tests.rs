@@ -1,4 +1,4 @@
-use std::ops::RangeFrom;
+use std::{ops::RangeFrom, path::PathBuf};
 
 use common::types::{Id, SourceId};
 use models::ShouldNotify;
@@ -25,16 +25,30 @@ impl Timer {
     }
 }
 
-async fn prepare(test_name: &str) -> Result<DB> {
-    let file = format!("../../target/{test_name}.db");
-
-    let _ = tokio::fs::remove_file(&file).await;
-    let db = DB::init(&file).await?;
-
-    // init after migrations
+async fn prepare() -> Result<DB> {
     common::init_logger();
 
-    Ok(db)
+    const DIR: &str = "target/test-db";
+    const REL_PATH: &str = "../..";
+
+    let dir = PathBuf::from(REL_PATH).join(DIR);
+    std::fs::create_dir_all(&dir).unwrap();
+    let path_fmt = |id| format!("{REL_PATH}/{DIR}/{id}.db");
+
+    // in hope that no single test can call this at the same time
+    let mut id = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+
+    let mut file = path_fmt(id);
+    while std::fs::exists(&file).unwrap() {
+        id += 1;
+        file = path_fmt(id);
+    }
+
+    log::debug!("using db at {}/{id}.db", dir.canonicalize().unwrap().display());
+    DB::init(&file).await
 }
 
 #[tokio::test]
@@ -43,7 +57,7 @@ async fn test_select_users_to_notify() -> Result<()> {
 
     const SOURCE_ID: SourceId = SourceId::new(1);
 
-    let db = prepare("test_select_users_to_notify").await?;
+    let db = prepare().await?;
     let mut timer = Timer::new();
     timer.skip(1);
 
@@ -70,7 +84,7 @@ async fn test_select_users_to_notify() -> Result<()> {
 async fn test_no_select_users_to_notify() -> Result<()> {
     const SOURCE_ID: SourceId = SourceId::new(1);
 
-    let db = prepare("test_no_select_users_to_notify").await?;
+    let db = prepare().await?;
     let mut timer = Timer::new();
     timer.skip(1);
 
@@ -95,7 +109,7 @@ async fn test_no_select_users_to_notify() -> Result<()> {
 
 #[tokio::test]
 async fn test_select_users_to_notify_about_bot_update() -> Result<()> {
-    let db = prepare("test_select_users_to_notify_about_bot_update").await?;
+    let db = prepare().await?;
     let mut timer = Timer::new();
     timer.skip(1);
 
@@ -117,7 +131,7 @@ async fn test_select_apps_to_check_updates_empty() -> Result<()> {
     const SOURCE_ID: SourceId = SourceId::new(1);
     const USER_ID: Id = 1;
 
-    let db = prepare("test_select_apps_to_check_updates_empty").await?;
+    let db = prepare().await?;
     let mut timer = Timer::new();
     timer.skip(1);
 
@@ -140,7 +154,7 @@ async fn test_select_apps_to_check_updates_empty_user_blocked() -> Result<()> {
     const SOURCE_ID: SourceId = SourceId::new(1);
     const USER_ID: Id = 1;
 
-    let db = prepare("test_select_apps_to_check_updates_empty_user_blocked").await?;
+    let db = prepare().await?;
     let mut timer = Timer::new();
     timer.skip(1);
 
@@ -164,7 +178,7 @@ async fn test_select_apps_to_check_updates() -> Result<()> {
     const SOURCE_ID: SourceId = SourceId::new(1);
     const USER_ID: Id = 1;
 
-    let db = prepare("test_select_apps_to_check_updates").await?;
+    let db = prepare().await?;
     let mut timer = Timer::new();
     timer.skip(1);
 

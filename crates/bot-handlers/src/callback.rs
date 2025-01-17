@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use common::types::Id;
+use common::types::{AppId, SourceId};
 use db::models::ShouldNotify;
 
 use crate::{keyboards::LanguagesKeyboardKind, PayloadData, PayloadLayout, PayloadParseError, CALLBACK_VERSION};
@@ -20,8 +20,8 @@ const SETLANG_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(3, None);
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub(crate) enum Callback {
     Notify {
-        source_id: Id,
-        app_id: Id,
+        source_id: SourceId,
+        app_id: AppId,
         should_notify: ShouldNotify,
     },
     SetLang {
@@ -156,7 +156,7 @@ impl From<PayloadParseError> for CallbackParseError {
 }
 
 impl Callback {
-    pub(crate) fn notify(source_id: Id, app_id: Id, should_notify: ShouldNotify) -> Self {
+    pub(crate) fn notify(source_id: SourceId, app_id: AppId, should_notify: ShouldNotify) -> Self {
         Self::Notify {
             source_id,
             app_id,
@@ -180,8 +180,8 @@ mod tests {
         common::init_logger();
 
         const V: u8 = CALLBACK_VERSION;
-        let source_id = 2;
-        let app_id = 1;
+        let source_id = 2.into();
+        let app_id = 1.into();
 
         let table = vec![
             (

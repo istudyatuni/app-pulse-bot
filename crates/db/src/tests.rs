@@ -1,6 +1,6 @@
 use std::ops::RangeFrom;
 
-use common::types::Id;
+use common::types::{Id, SourceId};
 use models::ShouldNotify;
 
 use super::*;
@@ -41,7 +41,7 @@ async fn prepare(test_name: &str) -> Result<DB> {
 async fn test_select_users_to_notify() -> Result<()> {
     common::init_logger();
 
-    const SOURCE_ID: Id = 1;
+    const SOURCE_ID: SourceId = SourceId::new(1);
 
     let db = prepare("test_select_users_to_notify").await?;
     let mut timer = Timer::new();
@@ -68,7 +68,7 @@ async fn test_select_users_to_notify() -> Result<()> {
 
 #[tokio::test]
 async fn test_no_select_users_to_notify() -> Result<()> {
-    const SOURCE_ID: Id = 1;
+    const SOURCE_ID: SourceId = SourceId::new(1);
 
     let db = prepare("test_no_select_users_to_notify").await?;
     let mut timer = Timer::new();
@@ -114,7 +114,7 @@ async fn test_select_users_to_notify_about_bot_update() -> Result<()> {
 
 #[tokio::test]
 async fn test_select_apps_to_check_updates_empty() -> Result<()> {
-    const SOURCE_ID: Id = 1;
+    const SOURCE_ID: SourceId = SourceId::new(1);
     const USER_ID: Id = 1;
 
     let db = prepare("test_select_apps_to_check_updates_empty").await?;
@@ -137,7 +137,7 @@ async fn test_select_apps_to_check_updates_empty() -> Result<()> {
 
 #[tokio::test]
 async fn test_select_apps_to_check_updates_empty_user_blocked() -> Result<()> {
-    const SOURCE_ID: Id = 1;
+    const SOURCE_ID: SourceId = SourceId::new(1);
     const USER_ID: Id = 1;
 
     let db = prepare("test_select_apps_to_check_updates_empty_user_blocked").await?;
@@ -161,7 +161,7 @@ async fn test_select_apps_to_check_updates_empty_user_blocked() -> Result<()> {
 
 #[tokio::test]
 async fn test_select_apps_to_check_updates() -> Result<()> {
-    const SOURCE_ID: Id = 1;
+    const SOURCE_ID: SourceId = SourceId::new(1);
     const USER_ID: Id = 1;
 
     let db = prepare("test_select_apps_to_check_updates").await?;

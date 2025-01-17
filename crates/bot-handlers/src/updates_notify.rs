@@ -1,8 +1,9 @@
 use anyhow::Result;
+use common::types::{AppId, SourceId};
 use teloxide::prelude::*;
 use tokio::sync::mpsc::Receiver;
 
-use common::{types::Id, DateTime, LogError};
+use common::{DateTime, LogError};
 use db::{models::ShouldNotify, DB};
 use sources::{Update, UpdatesList};
 
@@ -139,8 +140,8 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
 async fn send_suggest_update(
     bot: Bot,
     chat_id: ChatId,
-    source_id: Id,
-    app_id: Id,
+    source_id: SourceId,
+    app_id: AppId,
     update: &Update,
     lang: &str,
 ) -> Result<(), UpdateError> {
@@ -171,8 +172,8 @@ async fn send_update(
     bot: Bot,
     db: DB,
     chat_id: ChatId,
-    source_id: Id,
-    app_id: Id,
+    source_id: SourceId,
+    app_id: AppId,
     update: &Update,
     lang: &str,
 ) -> Result<(), UpdateError> {

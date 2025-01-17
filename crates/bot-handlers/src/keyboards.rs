@@ -1,7 +1,7 @@
 use reqwest::Url;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup};
 
-use common::types::Id;
+use common::types::{AppId, SourceId};
 use db::models::ShouldNotify;
 
 use crate::{callback::Callback, tr, PayloadData};
@@ -55,8 +55,8 @@ pub(crate) struct Keyboards;
 
 impl Keyboards {
     pub(crate) fn update(
-        source_id: Id,
-        app_id: Id,
+        source_id: SourceId,
+        app_id: AppId,
         url: Option<Url>,
         kind: NewAppKeyboardKind,
         lang: &str,
@@ -149,8 +149,8 @@ mod tests {
     const IGNORE_MSG: &str = "Ignore";
     const SEE_UPDATE_MSG: &str = "See update";
 
-    const SOURCE_ID: Id = 2;
-    const APP_ID: Id = 1;
+    const SOURCE_ID: SourceId = SourceId::new(2);
+    const APP_ID: AppId = AppId::new(1);
     const USER_LANG: &str = "en";
 
     #[test]

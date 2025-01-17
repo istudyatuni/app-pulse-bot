@@ -1,11 +1,14 @@
 use reqwest::Url;
 
-use common::{types::Id, UnixDateTime};
+use common::{
+    types::{AppId, SourceId},
+    UnixDateTime,
+};
 
 #[derive(Debug, Default)]
 pub struct UpdatesList {
     pub updates: Vec<Update>,
-    pub source_id: Id,
+    pub source_id: SourceId,
     pub last_update: UnixDateTime,
 }
 
@@ -24,14 +27,14 @@ pub struct Update {
     description_link: Option<Url>,
     update_link: Option<Url>,
     /// When `None`, this update is about new app
-    app_id: Option<Id>,
+    app_id: Option<AppId>,
     name: String,
     update_time: Option<UnixDateTime>,
     update_version: Option<String>,
 }
 
 impl Update {
-    pub fn app_id(&self) -> Option<Id> {
+    pub fn app_id(&self) -> Option<AppId> {
         self.app_id
     }
     pub fn description(&self) -> Option<&str> {

@@ -1,4 +1,7 @@
-use common::{types::Id, UnixDateTime};
+use common::{
+    types::{AppId, SourceId},
+    UnixDateTime,
+};
 
 use crate::{models, IgnoreNotFound};
 
@@ -31,7 +34,7 @@ impl DB {
             },
         }
     }
-    pub async fn save_source_updated_at(&self, source_id: Id, last_updated_at: UnixDateTime) -> Result<()> {
+    pub async fn save_source_updated_at(&self, source_id: SourceId, last_updated_at: UnixDateTime) -> Result<()> {
         log::debug!("save source last_updated_at: {last_updated_at}");
         sqlx::query(&format!(
             "update {SOURCE_TABLE}
@@ -45,7 +48,7 @@ impl DB {
 
         Ok(())
     }
-    pub async fn get_source_id_by_app_id(&self, app_id: Id) -> Result<Option<Id>> {
+    pub async fn get_source_id_by_app_id(&self, app_id: AppId) -> Result<Option<SourceId>> {
         log::debug!("select source_id from app by app_id {app_id}");
         let res = sqlx::query_as::<_, models::fetch::SourceId>(&format!(
             "select source_id from {APP_TABLE}
@@ -57,7 +60,7 @@ impl DB {
 
         Ok(res.ignore_not_found()?.map(|r| r.source_id))
     }
-    pub async fn get_source_id_by_source_name(&self, source_name: &str) -> Result<Option<Id>> {
+    pub async fn get_source_id_by_source_name(&self, source_name: &str) -> Result<Option<SourceId>> {
         log::debug!("select source_id source name {source_name}");
         let res = sqlx::query_as::<_, models::fetch::SourceId>(&format!(
             "select source_id from {SOURCE_TABLE}
@@ -69,7 +72,7 @@ impl DB {
 
         Ok(res.ignore_not_found()?.map(|r| r.source_id))
     }
-    pub async fn get_source_updated_at(&self, source_id: Id) -> Result<UnixDateTime> {
+    pub async fn get_source_updated_at(&self, source_id: SourceId) -> Result<UnixDateTime> {
         log::debug!("select source last_updated_at");
         let res = sqlx::query_as::<_, models::Source>(&format!(
             "select last_updated_at

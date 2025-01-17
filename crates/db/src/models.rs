@@ -2,7 +2,7 @@ use sqlx::{sqlite::SqliteRow, Row};
 
 use common::{
     markdown::user_mention,
-    types::{Id, UserId},
+    types::{AppId, Id, SourceId, UserId},
     DateTime, UnixDateTime,
 };
 
@@ -66,16 +66,16 @@ impl User {
 pub struct UserUpdate {
     user_id: Id,
     #[expect(unused)]
-    source_id: Id,
-    app_id: Id,
+    source_id: SourceId,
+    app_id: AppId,
     should_notify: Option<ShouldNotify>,
 }
 
 impl UserUpdate {
-    pub fn new(user_id: Id, app_id: Id, should_notify: Option<ShouldNotify>) -> Self {
+    pub fn new(user_id: Id, app_id: AppId, should_notify: Option<ShouldNotify>) -> Self {
         Self {
             user_id,
-            source_id: 0,
+            source_id: 0.into(),
             app_id,
             should_notify,
         }
@@ -83,7 +83,7 @@ impl UserUpdate {
     pub fn user_id(&self) -> Id {
         self.user_id
     }
-    pub fn app_id(&self) -> Id {
+    pub fn app_id(&self) -> AppId {
         self.app_id
     }
     pub fn should_notify(&self) -> Option<ShouldNotify> {
@@ -113,7 +113,7 @@ impl sqlx::FromRow<'_, SqliteRow> for ShouldNotify {
 pub struct UserSubscribe {
     user_id: Id,
     #[expect(unused)]
-    source_id: Id,
+    source_id: SourceId,
     subscribed: bool,
 }
 
@@ -121,7 +121,7 @@ impl UserSubscribe {
     pub fn new(user_id: UserId, subscribed: bool) -> Self {
         Self {
             user_id: user_id.into(),
-            source_id: 0,
+            source_id: 0.into(),
             subscribed,
         }
     }
@@ -135,18 +135,18 @@ impl UserSubscribe {
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct App {
-    app_id: Id,
-    source_id: Id,
+    app_id: AppId,
+    source_id: SourceId,
     name: String,
     last_updated_at: UnixDateTime,
     last_updated_version: Option<String>,
 }
 
 impl App {
-    pub fn app_id(&self) -> Id {
+    pub fn app_id(&self) -> AppId {
         self.app_id
     }
-    pub fn source_id(&self) -> Id {
+    pub fn source_id(&self) -> SourceId {
         self.source_id
     }
     pub fn name(&self) -> &str {
@@ -163,7 +163,7 @@ impl App {
 #[allow(unused)]
 #[derive(Debug, sqlx::FromRow)]
 pub struct Source {
-    source_id: Id,
+    source_id: SourceId,
     name: String,
     last_updated_at: UnixDateTime,
 }
@@ -184,16 +184,14 @@ pub struct Stats {
 
 /// Struct helpers for extracting partial structs
 pub mod fetch {
-    use common::types::Id;
-
     #[derive(sqlx::FromRow)]
     pub(crate) struct SourceId {
-        pub source_id: Id,
+        pub source_id: common::types::SourceId,
     }
 
     #[derive(sqlx::FromRow)]
     pub(crate) struct AppId {
-        pub app_id: Id,
+        pub app_id: common::types::AppId,
     }
 
     #[derive(sqlx::FromRow)]

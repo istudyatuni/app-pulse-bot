@@ -27,6 +27,7 @@ async-trait = "0.1.85"
 bon = "3.3.2"
 camino = "1.1.9"
 chrono = "0.4.39"
+derive_more = { version = "1.0.0", features = ["deref", "display", "from", "from_str", "into"] }
 dotenvy_macro = "0.15.7"
 fluent = "0.16.1"
 fluent-syntax = "0.11.1"

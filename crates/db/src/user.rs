@@ -1,5 +1,5 @@
 use common::{
-    types::{Id, UserId},
+    types::{AppId, Id, SourceId, UserId},
     UnixDateTime,
 };
 
@@ -37,7 +37,7 @@ impl DB {
     }
     /// Select subscribed and not yet notified users for specific source. Does
     /// not check last_updated_version
-    pub async fn select_users_to_notify(&self, source_id: Id, app_id: Id) -> Result<Vec<models::User>> {
+    pub async fn select_users_to_notify(&self, source_id: SourceId, app_id: AppId) -> Result<Vec<models::User>> {
         log::debug!("select subscribed users");
         Ok(sqlx::query_as::<_, models::User>(&format!(
             "select u.*
@@ -88,8 +88,8 @@ impl DB {
     pub async fn save_should_notify_user(
         &self,
         user_id: impl Into<UserId>,
-        source_id: Id,
-        app_id: Id,
+        source_id: SourceId,
+        app_id: AppId,
         should_notify: models::ShouldNotify,
     ) -> Result<()> {
         let user_id = user_id.into();
@@ -145,7 +145,7 @@ impl DB {
     pub async fn save_user_subscribed(
         &self,
         user_id: impl Into<UserId>,
-        source_id: Id,
+        source_id: SourceId,
         subscribed: bool,
     ) -> Result<()> {
         let user_id = user_id.into();
@@ -169,7 +169,11 @@ impl DB {
         Ok(())
     }
     /// Set `last_notified_at` for all users, subscribed to source
-    pub async fn save_all_users_last_notified(&self, source_id: Id, last_notified_at: UnixDateTime) -> Result<()> {
+    pub async fn save_all_users_last_notified(
+        &self,
+        source_id: SourceId,
+        last_notified_at: UnixDateTime,
+    ) -> Result<()> {
         log::debug!("saving all users last_notified_at: {last_notified_at}");
 
         sqlx::query(&format!(
@@ -208,8 +212,8 @@ impl DB {
     pub async fn should_notify_user(
         &self,
         user_id: impl Into<UserId>,
-        source_id: Id,
-        app_id: Id,
+        source_id: SourceId,
+        app_id: AppId,
     ) -> Result<Option<models::ShouldNotify>> {
         log::debug!("getting user preference");
         let id: Id = user_id.into().into();

@@ -12,6 +12,8 @@ new-update-msg = Update for { $app }
 subscribed = Subscribed
 unsubscribed = Unsubscribed
 
+sources-list = Available sources
+
 about-description =
     This bot help you track applications updates.
     Currently only one source supported: @alexstranniklite
@@ -20,6 +22,7 @@ about-description =
 
 how-to-use-header = *How to use this bot:*
 
+# todo: how to subscribe
 how-to-use = { how-to-use-header }
 
     Bot send you notifications about new apps. Under each message you will see buttons "{ notify-button }" and "{ ignore-button }".
@@ -43,6 +46,7 @@ unknown-message = Try /help
 notify-button = Notify
 ignore-button = Ignore
 see-update-button = See update
+back-button = Back
 
 ## Misc
 
@@ -73,8 +77,7 @@ not-implemented-already-subscribed = You are already subscribed
 ## Commands descriptions
 
 commands-list-header = *Supported commands:*
-subscribe-command = Subscribe
-unsubscribe-command = Unsubscribe
+sources-command = Sources management
 changelog-command = Changelog
 settings-command = Configuration
 about-command = About this bot

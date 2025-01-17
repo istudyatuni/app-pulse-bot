@@ -7,10 +7,8 @@ use i18n::tr_literal;
 pub enum Command {
     #[command(hide)]
     Start,
-    #[command(description = "$subscribe-command")]
-    Subscribe,
-    #[command(description = "$unsubscribe-command")]
-    Unsubscribe,
+    #[command(description = "$sources-command")]
+    Sources,
     #[command(description = "$changelog-command")]
     Changelog,
     #[command(description = "$settings-command")]
@@ -28,7 +26,7 @@ impl Command {
     /// Check if command allowed in public chats
     pub(crate) fn allowed_in_public(self) -> bool {
         match self {
-            Self::Start | Self::Subscribe | Self::Unsubscribe => false,
+            Self::Start | Self::Sources => false,
             Self::Changelog | Self::Settings | Self::About | Self::Help => true,
         }
     }

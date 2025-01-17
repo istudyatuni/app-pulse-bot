@@ -109,18 +109,16 @@ impl UpdateSource for Source {
         })
     }
 
+    async fn get_updates(&self) -> super::UpdatesList {
+        self.get_updates_list().await
+    }
+
     fn wait_remains(&self) -> Option<Duration> {
         self.timer.elapsed_remains()
     }
 
     fn reset_timer(&self) {
         self.timer.reset()
-    }
-}
-
-impl UpdateSourceList for Source {
-    async fn get_updates(&self) -> super::UpdatesList {
-        self.get_updates_list().await
     }
 }
 

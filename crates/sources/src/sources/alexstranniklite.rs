@@ -53,12 +53,7 @@ impl Source {
                     // handle case 1
                     let app_name = get_app_name(update);
                     let app_id = match self.db.get_app_id(self.id, &app_name).await {
-                        Ok(id) => {
-                            if id.is_none() {
-                                log::warn!("app by name {app_name} not found in db");
-                            }
-                            id
-                        }
+                        Ok(id) => id,
                         Err(e) => {
                             log::error!("failed to get app_id by app_name ({app_name}): {e}");
                             msg_with_update.take();

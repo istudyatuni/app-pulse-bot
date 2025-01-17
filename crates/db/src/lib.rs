@@ -365,6 +365,7 @@ impl DB {
 impl DB {
     pub async fn save_app_last_updated_at(
         &self,
+        source_id: Id,
         app_id: Id,
         last_updated_at: UnixDateTime,
     ) -> Result<()> {
@@ -372,9 +373,30 @@ impl DB {
         sqlx::query(&format!(
             "update {APP_TABLE}
              set last_updated_at = ?
-             where app_id = ?"
+             where source_id = ? and app_id = ?"
         ))
         .bind(last_updated_at)
+        .bind(source_id)
+        .bind(app_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+    pub async fn save_app_last_updated_version(
+        &self,
+        source_id: Id,
+        app_id: Id,
+        last_updated_version: String,
+    ) -> Result<()> {
+        log::debug!("update last_updated_at for app {app_id}");
+        sqlx::query(&format!(
+            "update {APP_TABLE}
+             set last_updated_version = ?
+             where source_id = ? and app_id = ?"
+        ))
+        .bind(last_updated_version)
+        .bind(source_id)
         .bind(app_id)
         .execute(&self.pool)
         .await?;
@@ -624,7 +646,7 @@ mod tests {
         timer.skip(1);
 
         let app_id = db.add_app(SOURCE_ID, "").await?;
-        db.save_app_last_updated_at(app_id, timer.next()).await?;
+        db.save_app_last_updated_at(SOURCE_ID, app_id, timer.next()).await?;
 
         // there are 2 users
         for u in [1, 2] {
@@ -653,7 +675,7 @@ mod tests {
         // todo: seems that app in db is not required, and result of select_users_to_notify is still
         // empty
         let app_id = db.add_app(SOURCE_ID, "").await?;
-        db.save_app_last_updated_at(app_id, timer.next()).await?;
+        db.save_app_last_updated_at(SOURCE_ID, app_id, timer.next()).await?;
 
         // there is one user
         db.add_user_simple(1).await?;

@@ -141,17 +141,10 @@ pub struct App {
     source_id: Id,
     name: String,
     last_updated_at: UnixDateTime,
+    last_updated_version: Option<String>,
 }
 
 impl App {
-    pub fn new(app_id: Id, source_id: Id, name: &str, last_updated_at: UnixDateTime) -> Self {
-        Self {
-            app_id,
-            source_id,
-            name: name.to_string(),
-            last_updated_at,
-        }
-    }
     pub fn app_id(&self) -> Id {
         self.app_id
     }
@@ -163,6 +156,9 @@ impl App {
     }
     pub fn last_updated_at(&self) -> UnixDateTime {
         self.last_updated_at
+    }
+    pub fn last_updated_version(&self) -> Option<&str> {
+        self.last_updated_version.as_deref()
     }
 }
 

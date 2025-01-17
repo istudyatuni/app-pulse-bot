@@ -22,5 +22,6 @@ build_migrations!(
         7: "0007_user-info",
         8: "0008_source-name-unique",
         9: "0009_app-int-id" => op9_app_int_id::Operation9AppIntId,
+        10: "0010_app-last-updated-version",
     ],
 );

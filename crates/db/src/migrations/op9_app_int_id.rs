@@ -31,7 +31,6 @@ struct AppOld {
 #[derive(Debug, sqlx::FromRow)]
 struct UserUpdateOld {
     user_id: Id,
-    source_id: Id,
     app_id: String,
     should_notify: Option<ShouldNotify>,
 }
@@ -49,11 +48,11 @@ impl Operation<sqlx::Sqlite> for Operation9AppIntId {
             .await?;
         sqlx::query(&format!(
             "create table {APP_TABLE} (
-             app_id int not null primary key,
-             source_id int not null,
-             name text,
-             last_updated_at int default 0 -- unix time
-        )"
+               app_id int not null primary key,
+               source_id int not null,
+               name text,
+               last_updated_at int default 0 -- unix time
+            )"
         ))
         .execute(&mut *connection)
         .await?;
@@ -87,13 +86,12 @@ impl Operation<sqlx::Sqlite> for Operation9AppIntId {
             .await?;
         sqlx::query(&format!(
             "create table {USER_UPDATE_TABLE} (
-             user_id int not null,
-             source_id int not null,
-             app_id int not null,
-             should_notify int not null, -- bool
+               user_id int not null,
+               app_id int not null,
+               should_notify int not null, -- bool
 
-             primary key (user_id, source_id, app_id)
-        )"
+               primary key (user_id, app_id)
+            )"
         ))
         .execute(&mut *connection)
         .await?;
@@ -104,11 +102,10 @@ impl Operation<sqlx::Sqlite> for Operation9AppIntId {
         for update in updates {
             sqlx::query(&format!(
                 "insert into {USER_UPDATE_TABLE}
-                 (user_id, source_id, app_id, should_notify)
-                 values (?, ?, ?, ?)"
+                 (user_id, app_id, should_notify)
+                 values (?, ?, ?)"
             ))
             .bind(update.user_id)
-            .bind(update.source_id)
             .bind(app_id_map.get(&update.app_id).expect("app_id should be known"))
             .bind(update.should_notify)
             .execute(&mut *connection)

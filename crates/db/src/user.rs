@@ -140,7 +140,7 @@ impl DB {
         log::debug!("user {user_table_column} updated");
         Ok(())
     }
-    pub async fn save_user_subscribed(
+    pub async fn save_user_subscribed_to_source(
         &self,
         user_id: impl Into<UserId>,
         source_id: SourceId,

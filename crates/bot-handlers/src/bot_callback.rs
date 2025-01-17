@@ -67,7 +67,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
             app_id,
             should_notify,
         } => {
-            let res = handle_update_callback(should_notify, db, chat_id, source_id, app_id, &lang).await;
+            let res = handle_update_callback(should_notify, db, chat_id, app_id, &lang).await;
             match res {
                 Ok((popup_msg, keyboard_kind)) => {
                     bot.answer_callback_query(&q.id).text(popup_msg).await?;
@@ -101,11 +101,10 @@ async fn handle_update_callback(
     should_notify: ShouldNotify,
     db: DB,
     chat_id: UserId,
-    source_id: SourceId,
     app_id: AppId,
     lang: &str,
 ) -> Result<(String, NewAppKeyboardKind), Option<String>> {
-    db.save_should_notify_user(chat_id, source_id, app_id, should_notify)
+    db.save_should_notify_user(chat_id, app_id, should_notify)
         .await
         .map_err(|e| {
             log::error!("failed to save user should_notify: {e}");

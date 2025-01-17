@@ -88,7 +88,6 @@ impl DB {
     pub async fn save_should_notify_user(
         &self,
         user_id: impl Into<UserId>,
-        source_id: SourceId,
         app_id: AppId,
         should_notify: models::ShouldNotify,
     ) -> Result<()> {
@@ -98,13 +97,12 @@ impl DB {
 
         sqlx::query(&format!(
             "insert into {USER_UPDATE_TABLE}
-             (user_id, source_id, app_id, should_notify)
-             values (?, ?, ?, ?)
-             on conflict(user_id, source_id, app_id)
+             (user_id, app_id, should_notify)
+             values (?, ?, ?)
+             on conflict(user_id, app_id)
              do update set should_notify=excluded.should_notify"
         ))
         .bind(update.user_id())
-        .bind(source_id)
         .bind(update.app_id())
         .bind(update.should_notify())
         .execute(&self.pool)
@@ -212,7 +210,6 @@ impl DB {
     pub async fn should_notify_user(
         &self,
         user_id: impl Into<UserId>,
-        source_id: SourceId,
         app_id: AppId,
     ) -> Result<Option<models::ShouldNotify>> {
         log::debug!("getting user preference");
@@ -220,10 +217,9 @@ impl DB {
         let update = sqlx::query_as::<_, models::ShouldNotify>(&format!(
             "select should_notify
              from {USER_UPDATE_TABLE}
-             where user_id = ? and source_id = ? and app_id = ?"
+             where user_id = ? and app_id = ?"
         ))
         .bind(id)
-        .bind(source_id)
         .bind(app_id)
         .fetch_optional(&self.pool)
         .await?;

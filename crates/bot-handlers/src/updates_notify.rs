@@ -101,7 +101,7 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 let user_id = user.user_id();
                 let chat_id = ChatId(user_id);
                 let lang = user.lang();
-                let res = match db.should_notify_user(user_id, source_id, app_id).await {
+                let res = match db.should_notify_user(user_id, app_id).await {
                     Ok(s) => match s {
                         None => send_suggest_update(bot.clone(), chat_id, source_id, app_id, update, lang).await,
                         Some(ShouldNotify::Notify) => {

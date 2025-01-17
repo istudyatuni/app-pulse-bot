@@ -87,14 +87,12 @@ impl DB {
              join {USER_TABLE} u on us.user_id = u.user_id
              where a.app_id in (
                select app_id from {USER_UPDATE_TABLE}
-               where source_id = ?
-                 and should_notify = true
+               where should_notify = true
              )
              and a.source_id = ?
              and us.subscribed = true
              and u.bot_blocked = false"
         ))
-        .bind(source_id)
         .bind(source_id)
         .fetch_all(&self.pool)
         .await?)

@@ -138,7 +138,7 @@ async fn test_select_apps_to_check_updates_empty() -> Result<()> {
     // there is one user
     db.add_user_simple(USER_ID).await?;
     db.save_user_subscribed(USER_ID, SOURCE_ID, false).await?;
-    db.save_should_notify_user(USER_ID, SOURCE_ID, app_id, ShouldNotify::Notify)
+    db.save_should_notify_user(USER_ID, app_id, ShouldNotify::Notify)
         .await?;
 
     let apps = db.get_apps_to_check_updates(SOURCE_ID).await?;
@@ -162,7 +162,7 @@ async fn test_select_apps_to_check_updates_empty_user_blocked() -> Result<()> {
     db.add_user_simple(USER_ID).await?;
     db.save_user_bot_blocked(USER_ID, true).await?;
     db.save_user_subscribed(USER_ID, SOURCE_ID, true).await?;
-    db.save_should_notify_user(USER_ID, SOURCE_ID, app_id, ShouldNotify::Notify)
+    db.save_should_notify_user(USER_ID, app_id, ShouldNotify::Notify)
         .await?;
 
     let apps = db.get_apps_to_check_updates(SOURCE_ID).await?;
@@ -185,7 +185,7 @@ async fn test_select_apps_to_check_updates() -> Result<()> {
     db.save_user_subscribed(USER_ID, SOURCE_ID, true).await?;
 
     let app_id = db.add_app(SOURCE_ID, "").await?;
-    db.save_should_notify_user(USER_ID, SOURCE_ID, app_id, ShouldNotify::Notify)
+    db.save_should_notify_user(USER_ID, app_id, ShouldNotify::Notify)
         .await?;
 
     let apps = db.get_apps_to_check_updates(SOURCE_ID).await?;

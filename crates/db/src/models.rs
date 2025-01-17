@@ -65,8 +65,6 @@ impl User {
 #[derive(Debug, Default)]
 pub struct UserUpdate {
     user_id: Id,
-    #[expect(unused)]
-    source_id: SourceId,
     app_id: AppId,
     should_notify: Option<ShouldNotify>,
 }
@@ -75,7 +73,6 @@ impl UserUpdate {
     pub fn new(user_id: Id, app_id: AppId, should_notify: Option<ShouldNotify>) -> Self {
         Self {
             user_id,
-            source_id: 0.into(),
             app_id,
             should_notify,
         }

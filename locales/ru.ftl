@@ -12,6 +12,8 @@ new-update-msg = Обновление для { $app }
 subscribed = Вы подписаны
 unsubscribed = Вы отписаны
 
+sources-list = Доступные источники
+
 about-description =
     Этот бот помогает отслеживать обновления приложений.
     Пока что поддерживается только один источник: @alexstranniklite
@@ -43,6 +45,7 @@ unknown-message = Попробуйте /help
 notify-button = Уведомлять
 ignore-button = Игнорировать
 see-update-button = Посмотреть обновление
+back-button = Назад
 
 ## Misc
 
@@ -72,8 +75,7 @@ not-implemented-already-subscribed = Вы уже подписаны
 ## Commands descriptions
 
 commands-list-header = *Поддерживаемые команды:*
-subscribe-command = Подписаться
-unsubscribe-command = Отписаться
+sources-command = Управление источниками
 changelog-command = Список изменений
 settings-command = Настройки
 about-command = Об этом боте

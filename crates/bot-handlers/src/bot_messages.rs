@@ -8,7 +8,7 @@ use teloxide::{
     types::{BotCommand, ChatKind, MessageKind},
 };
 
-use common::types::{self, SourceId};
+use common::types;
 use db::{models::User, DB};
 
 use crate::{
@@ -47,23 +47,15 @@ pub async fn command_handler(bot: Bot, msg: Message, cmd: Command, db: DB) -> Re
         return Ok(());
     }
 
-    // todo: rework how subsribe work with multiple sources
-    const SOURCE_ID: SourceId = SourceId::new(1); // temp
     match cmd {
         Command::Start => handle_start_command(bot.clone(), &db, user, &lang, msg).await?,
-        Command::Subscribe => match db.save_user_subscribed_to_source(msg.chat.id, SOURCE_ID, true).await {
-            Ok(()) => {
-                bot.send_message(msg.chat.id, tr!(subscribed, &lang)).await?;
-                log::debug!("user {} subscribed", msg.chat.id);
+        Command::Sources => match db.get_sources().await {
+            Ok(sources) => {
+                bot.send_message(msg.chat.id, tr!(sources_list, &lang))
+                    .reply_markup(Keyboards::sources(&sources))
+                    .await?;
             },
-            Err(e) => log::error!("failed to subscribe user {}: {e}", msg.chat.id.0),
-        },
-        Command::Unsubscribe => match db.save_user_subscribed_to_source(msg.chat.id, SOURCE_ID, false).await {
-            Ok(()) => {
-                bot.send_message(msg.chat.id, tr!(unsubscribed, &lang)).await?;
-                log::debug!("user {} unsubscribed", msg.chat.id);
-            },
-            Err(e) => log::error!("failed to unsubscribe user {}: {e}", msg.chat.id.0),
+            Err(e) => log::error!("failed to get sources: {e}"),
         },
         Command::Changelog => {
             bot.send_message(msg.chat.id, escape(tr!(changelog, &lang)))

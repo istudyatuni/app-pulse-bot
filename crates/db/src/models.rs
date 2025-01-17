@@ -166,6 +166,12 @@ pub struct Source {
 }
 
 impl Source {
+    pub fn source_id(&self) -> SourceId {
+        self.source_id
+    }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
     pub fn last_updated_at(&self) -> UnixDateTime {
         self.last_updated_at
     }

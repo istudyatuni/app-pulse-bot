@@ -74,14 +74,12 @@ impl DB {
 
         Ok(res.ignore_not_found()?.map(|r| r.source_id))
     }
-    /*pub async fn get_source(&self, source_id: SourceId) -> Result<Option<models::Source>> {
-        log::debug!("select source last_updated_at");
-        Ok(sqlx::query_as::<_, models::Source>(&format!(
-            "select * from {SOURCE_TABLE}
-             where source_id = ?"
-        ))
-        .bind(source_id)
-        .fetch_optional(&self.pool)
-        .await?)
-    }*/
+    pub async fn get_sources(&self) -> Result<Vec<models::Source>> {
+        log::debug!("select sources");
+        Ok(
+            sqlx::query_as::<_, models::Source>(&format!("select * from {SOURCE_TABLE} order by name"))
+                .fetch_all(&self.pool)
+                .await?,
+        )
+    }
 }

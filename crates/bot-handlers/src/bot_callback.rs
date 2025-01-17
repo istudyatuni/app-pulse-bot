@@ -79,6 +79,8 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
                 _ => (),
             }
         },
+        Callback::ShowSource { source_id } => todo!(),
+        Callback::ChangeSubscribe { source_id, action } => todo!(),
         Callback::SetLang { lang, kind } => match handle_lang_callback(db, chat_id, &lang).await {
             Ok(popup_msg) => {
                 bot.answer_callback_query(&q.id).text(popup_msg).await?;

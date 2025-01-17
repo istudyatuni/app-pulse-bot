@@ -2,7 +2,7 @@ use reqwest::Url;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup};
 
 use common::types::{AppId, SourceId};
-use db::models::ShouldNotify;
+use db::models::{self, ShouldNotify};
 
 use crate::{callback::Callback, tr, PayloadData};
 
@@ -97,6 +97,26 @@ impl Keyboards {
 
         keyboard
     }
+    // todo: paging
+    pub(crate) fn sources(sources: &[models::Source]) -> KeyboardBuilder {
+        let mut keyboard = KeyboardBuilder::with_layout(sources.len(), 1);
+        for source in sources {
+            keyboard = keyboard.callback(source.name(), Callback::show_source(source.source_id()).to_payload());
+        }
+
+        keyboard
+    }
+    pub(crate) fn source(source: &models::Source, action: ChangeSubscribeAction, lang: &str) -> KeyboardBuilder {
+        KeyboardBuilder::with_layout(1, 2)
+            .callback(
+                action.as_bell_icon(),
+                Callback::change_subscribe(source.source_id(), action).to_payload(),
+            )
+            .callback(
+                tr!(back_button, lang),
+                Callback::show_source(source.source_id()).to_payload(),
+            )
+    }
 }
 
 #[derive(Debug)]
@@ -131,6 +151,40 @@ impl PayloadData for LanguagesKeyboardKind {
         match payload {
             "start" => Ok(Self::Start),
             "settings" => Ok(Self::Settings),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ChangeSubscribeAction {
+    Subscribe,
+    Unsubscribe,
+}
+
+impl ChangeSubscribeAction {
+    fn as_bell_icon(self) -> &'static str {
+        match self {
+            ChangeSubscribeAction::Subscribe => BELL_MSG,
+            ChangeSubscribeAction::Unsubscribe => NO_BELL_MSG,
+        }
+    }
+}
+
+impl PayloadData for ChangeSubscribeAction {
+    type Error = ();
+
+    fn to_payload(&self) -> String {
+        match self {
+            Self::Subscribe => "sub".to_string(),
+            Self::Unsubscribe => "unsub".to_string(),
+        }
+    }
+
+    fn try_from_payload(payload: &str) -> Result<Self, Self::Error> {
+        match payload {
+            "sub" => Ok(Self::Subscribe),
+            "unsub" => Ok(Self::Unsubscribe),
             _ => Err(()),
         }
     }

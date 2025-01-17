@@ -26,11 +26,3 @@ just build-release
 ## Interly
 
 Also take a look at [Interly](crates/interly/README.md), internalization library with [Fluent](https://projectfluent.org) support. This project translated with Interly.
-
-## Development
-
-Enable git hooks:
-
-```sh
-git config core.hooksPath .githooks
-```

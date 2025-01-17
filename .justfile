@@ -8,6 +8,9 @@ check:
 	cargo clippy -- -D warnings
 	@just test
 
+format:
+	cargo +nightly fmt
+
 # Run tests
 test what='--workspace':
 	cargo nextest run {{what}}

@@ -28,6 +28,17 @@ pub trait UpdateSource {
     where
         Self: Sized;
 
+    /// Fetch updates
+    async fn get_updates(&self) -> UpdatesList;
+
+    /// Sleep if timeout isn't end, then fetch updates
+    async fn get_updates_after_sleep(&self) -> UpdatesList {
+        self.sleep().await;
+        let res = self.get_updates().await;
+        self.reset_timer();
+        res
+    }
+
     /// How long should wait until next fetch, None if should not wait
     fn wait_remains(&self) -> Option<Duration>;
 
@@ -41,26 +52,10 @@ pub trait UpdateSource {
     fn reset_timer(&self);
 }
 
-pub trait UpdateSourceList: UpdateSource {
-    /// Fetch updates
-    async fn get_updates(&self) -> UpdatesList;
-
-    /// Sleep if timeout isn't end, then fetch updates
-    async fn get_updates_after_sleep(&self) -> UpdatesList {
-        self.sleep().await;
-        let res = self.get_updates().await;
-        self.reset_timer();
-        res
-    }
-}
-
-/// Source that can be fetched for update by names of apps
-pub trait UpdateSourceByName {}
-
 /// Start update loop for UpdateSourceList
 pub async fn start_list_update_loop<S>(source: S, tx: Sender<UpdatesList>)
 where
-    S: UpdateSourceList + Send + Sync,
+    S: UpdateSource + Send + Sync,
 {
     loop {
         let updates = source.get_updates_after_sleep().await;

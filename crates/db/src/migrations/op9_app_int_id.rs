@@ -61,11 +61,7 @@ impl Operation<sqlx::Sqlite> for Operation9AppIntId {
         let apps = sqlx::query_as::<_, AppOld>(&format!("select * from {APP_TMP}"))
             .fetch_all(&mut *connection)
             .await?;
-        let app_id_map: HashMap<String, Id> = apps
-            .iter()
-            .map(|a| a.app_id.clone())
-            .zip(1 as Id..)
-            .collect();
+        let app_id_map: HashMap<String, Id> = apps.iter().map(|a| a.app_id.clone()).zip(1 as Id..).collect();
 
         for app in apps {
             sqlx::query(&format!(
@@ -86,11 +82,9 @@ impl Operation<sqlx::Sqlite> for Operation9AppIntId {
 
         // migrate user_update
 
-        sqlx::query(&format!(
-            "alter table {USER_UPDATE_TABLE} rename to {USER_UPDATE_TMP}"
-        ))
-        .execute(&mut *connection)
-        .await?;
+        sqlx::query(&format!("alter table {USER_UPDATE_TABLE} rename to {USER_UPDATE_TMP}"))
+            .execute(&mut *connection)
+            .await?;
         sqlx::query(&format!(
             "create table {USER_UPDATE_TABLE} (
              user_id int not null,
@@ -103,10 +97,9 @@ impl Operation<sqlx::Sqlite> for Operation9AppIntId {
         ))
         .execute(&mut *connection)
         .await?;
-        let updates =
-            sqlx::query_as::<_, UserUpdateOld>(&format!("select * from {USER_UPDATE_TMP}"))
-                .fetch_all(&mut *connection)
-                .await?;
+        let updates = sqlx::query_as::<_, UserUpdateOld>(&format!("select * from {USER_UPDATE_TMP}"))
+            .fetch_all(&mut *connection)
+            .await?;
 
         for update in updates {
             sqlx::query(&format!(
@@ -116,11 +109,7 @@ impl Operation<sqlx::Sqlite> for Operation9AppIntId {
             ))
             .bind(update.user_id)
             .bind(update.source_id)
-            .bind(
-                app_id_map
-                    .get(&update.app_id)
-                    .expect("app_id should be known"),
-            )
+            .bind(app_id_map.get(&update.app_id).expect("app_id should be known"))
             .bind(update.should_notify)
             .execute(&mut *connection)
             .await?;

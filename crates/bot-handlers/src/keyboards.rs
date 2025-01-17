@@ -90,13 +90,9 @@ impl Keyboards {
     pub(crate) fn languages(kind: LanguagesKeyboardKind) -> KeyboardBuilder {
         const LANGS_IN_ROW: usize = 3;
         let langs: Vec<&'static str> = i18n::Localize::languages();
-        let mut keyboard =
-            KeyboardBuilder::with_layout(langs.len() / LANGS_IN_ROW + 1, LANGS_IN_ROW);
+        let mut keyboard = KeyboardBuilder::with_layout(langs.len() / LANGS_IN_ROW + 1, LANGS_IN_ROW);
         for lang in langs {
-            keyboard = keyboard.callback(
-                tr!(lang_name, lang),
-                Callback::set_lang(kind, lang).to_payload(),
-            );
+            keyboard = keyboard.callback(tr!(lang_name, lang), Callback::set_lang(kind, lang).to_payload());
         }
 
         keyboard
@@ -142,9 +138,7 @@ impl PayloadData for LanguagesKeyboardKind {
 
 #[cfg(test)]
 mod tests {
-    use teloxide::types::{
-        InlineKeyboardButton as Btn, InlineKeyboardMarkup as Markup, ReplyMarkup as Reply,
-    };
+    use teloxide::types::{InlineKeyboardButton as Btn, InlineKeyboardMarkup as Markup, ReplyMarkup as Reply};
 
     use crate::CALLBACK_VERSION;
 
@@ -178,26 +172,14 @@ mod tests {
                 ],
             ),
             (
-                Keyboards::update(
-                    SOURCE_ID,
-                    APP_ID,
-                    Some(url.clone()),
-                    Kind::NotifyEnabled,
-                    USER_LANG,
-                ),
+                Keyboards::update(SOURCE_ID, APP_ID, Some(url.clone()), Kind::NotifyEnabled, USER_LANG),
                 vec![vec![
                     Btn::callback(BELL_MSG, cb("notify:2:1:ignore")),
                     update_btn.clone(),
                 ]],
             ),
             (
-                Keyboards::update(
-                    SOURCE_ID,
-                    APP_ID,
-                    Some(url.clone()),
-                    Kind::NotifyDisabled,
-                    USER_LANG,
-                ),
+                Keyboards::update(SOURCE_ID, APP_ID, Some(url.clone()), Kind::NotifyDisabled, USER_LANG),
                 vec![vec![
                     Btn::callback(NO_BELL_MSG, cb("notify:2:1:notify")),
                     update_btn.clone(),

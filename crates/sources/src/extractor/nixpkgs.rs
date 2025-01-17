@@ -17,8 +17,7 @@ pub(crate) struct Nixpkgs {
 
 impl Nixpkgs {
     pub(crate) fn new() -> Result<Self, ClientInitError> {
-        let pool =
-            SingleNodeConnectionPool::new(BACKEND_URL.try_into().expect("url should be correct"));
+        let pool = SingleNodeConnectionPool::new(BACKEND_URL.try_into().expect("url should be correct"));
         let transport = TransportBuilder::new(pool)
             .auth(Credentials::Basic(
                 BACKEND_LOGIN.to_string(),
@@ -30,12 +29,7 @@ impl Nixpkgs {
         })
     }
     /// Search by name
-    pub(crate) async fn search(
-        &self,
-        name: &str,
-        from: i64,
-        size: i64,
-    ) -> Result<Vec<HitSource>, SearchError> {
+    pub(crate) async fn search(&self, name: &str, from: i64, size: i64) -> Result<Vec<HitSource>, SearchError> {
         const CHANNEL: &str = "unstable"; // or 24.05
         let channel = format!("latest-42-nixos-{CHANNEL}");
         let resp = self

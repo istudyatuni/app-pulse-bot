@@ -73,10 +73,6 @@ fn systemctl(cmd: &[&str]) -> Result<()> {
 }
 
 fn systemctl_service(cmd: &[&str]) -> Result<()> {
-    let cmd: Vec<_> = cmd
-        .iter()
-        .chain([SYSTEMD_SERVICE_NAME].iter())
-        .copied()
-        .collect();
+    let cmd: Vec<_> = cmd.iter().chain([SYSTEMD_SERVICE_NAME].iter()).copied().collect();
     systemctl(&cmd)
 }

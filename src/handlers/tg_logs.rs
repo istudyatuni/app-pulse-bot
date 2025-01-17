@@ -30,12 +30,7 @@ pub(crate) enum LogMessage {
 }
 
 impl LogMessage {
-    pub(crate) fn log_error(
-        s: impl Into<String>,
-        target: &str,
-        file: Option<&str>,
-        line: Option<u32>,
-    ) -> Self {
+    pub(crate) fn log_error(s: impl Into<String>, target: &str, file: Option<&str>, line: Option<u32>) -> Self {
         let time = match time_now() {
             Ok(t) => t,
             Err(e) => format!("failed to format time: {e}\n"),

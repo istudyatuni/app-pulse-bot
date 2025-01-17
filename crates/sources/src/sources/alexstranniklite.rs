@@ -5,8 +5,7 @@ use async_trait::async_trait;
 use db::DB;
 
 use crate::extractor::tg::{
-    Document, KeyboardButton, Media, Message, ReplyInlineMarkupRow, ReplyMarkup,
-    fetch_public_channel,
+    Document, KeyboardButton, Media, Message, ReplyInlineMarkupRow, ReplyMarkup, fetch_public_channel,
 };
 use crate::*;
 use timer::Timer;
@@ -58,7 +57,7 @@ impl Source {
                             log::error!("failed to get app_id by app_name ({app_name}): {e}");
                             msg_with_update.take();
                             continue;
-                        }
+                        },
                     };
 
                     updates.push(

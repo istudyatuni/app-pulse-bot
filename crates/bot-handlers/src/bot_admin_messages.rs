@@ -14,12 +14,7 @@ use crate::{
     utils::escape,
 };
 
-pub async fn admin_command_handler(
-    bot: Bot,
-    msg: Message,
-    cmd: AdminCommand,
-    db: DB,
-) -> ResponseResult<()> {
+pub async fn admin_command_handler(bot: Bot, msg: Message, cmd: AdminCommand, db: DB) -> ResponseResult<()> {
     let user = db.select_user(msg.chat.id).await.ok().flatten();
     let lang = get_user_lang(user.as_ref(), msg.from.as_ref());
 
@@ -29,14 +24,14 @@ pub async fn admin_command_handler(
                 bot.send_message(msg.chat.id, escape(translate_stats(&stats, &lang)))
                     .parse_mode(teloxide::types::ParseMode::MarkdownV2)
                     .await?;
-            }
+            },
             Err(e) => log::error!("failed to get stats: {e}"),
         },
         AdminCommand::Help => {
             bot.send_message(msg.chat.id, escape(get_help(&lang, true)))
                 .parse_mode(teloxide::types::ParseMode::MarkdownV2)
                 .await?;
-        }
+        },
     }
 
     Ok(())

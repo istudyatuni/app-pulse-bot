@@ -14,8 +14,8 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use bot_handlers::{
-    AdminCommand, Command, admin_command_handler, callback_handler, command_handler,
-    message_handler, run_collect_user_names_job, start_updates_notify_job,
+    AdminCommand, Command, admin_command_handler, callback_handler, command_handler, message_handler,
+    run_collect_user_names_job, start_updates_notify_job,
 };
 use common::{LogError, is_admin_chat_id, spawn_with_token};
 use db::DB;
@@ -68,10 +68,7 @@ async fn main() -> Result<()> {
 
     let db = DB::init(&db_path()).await?;
 
-    let bot = Bot::with_client(
-        TG_BOT_TOKEN,
-        Client::builder().timeout(BOT_REQUEST_TIMEOUT).build()?,
-    );
+    let bot = Bot::with_client(TG_BOT_TOKEN, Client::builder().timeout(BOT_REQUEST_TIMEOUT).build()?);
     set_bot_commands(bot.clone()).await?;
 
     log::info!(tg = IS_PROD; "Bot started");
@@ -103,9 +100,7 @@ async fn main() -> Result<()> {
     ));
 
     jobs.spawn(async move {
-        signal::ctrl_c()
-            .await
-            .log_error_msg("failed to listen for SIGINT");
+        signal::ctrl_c().await.log_error_msg("failed to listen for SIGINT");
         cancel_token.cancel();
     });
 
@@ -170,12 +165,7 @@ fn init_logger(sender: Sender<LogMessage>) {
     };
 
     CombinedLogger::init(vec![
-        TermLogger::new(
-            LOG_LEVEL,
-            term_config,
-            TerminalMode::Mixed,
-            ColorChoice::Auto,
-        ),
+        TermLogger::new(LOG_LEVEL, term_config, TerminalMode::Mixed, ColorChoice::Auto),
         TgLogger::new(sender, tg_config),
     ])
     .expect("failed to init logger");
@@ -192,11 +182,7 @@ async fn start_bot(bot: Bot, db: DB) {
                         .filter(|msg: Message| is_admin_chat_id(msg.chat.id.0))
                         .endpoint(admin_command_handler),
                 )
-                .branch(
-                    dptree::entry()
-                        .filter_command::<Command>()
-                        .endpoint(command_handler),
-                )
+                .branch(dptree::entry().filter_command::<Command>().endpoint(command_handler))
                 .endpoint(message_handler),
         )
         .branch(Update::filter_callback_query().endpoint(callback_handler));

@@ -7,14 +7,11 @@ pub async fn run_collect_user_names_job(bot: Bot, db: DB) -> Result<(), UsersCol
     for u in db.select_all_users().await? {
         let chat = bot.get_chat(u.tg_user_id()).await?;
         if let ChatFullInfoKind::Private(chat) = chat.kind {
-            if let Some(name) = get_chat_name(chat.first_name.as_deref(), chat.last_name.as_deref())
-            {
+            if let Some(name) = get_chat_name(chat.first_name.as_deref(), chat.last_name.as_deref()) {
                 db.save_user_name(u.user_id(), &name).await.log_error();
             }
             if let Some(username) = chat.username {
-                db.save_user_username(u.user_id(), &username)
-                    .await
-                    .log_error();
+                db.save_user_username(u.user_id(), &username).await.log_error();
             }
         } else {
             log::error!(code = false; "saved chat {} is not private", u.display());

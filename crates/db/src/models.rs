@@ -103,11 +103,7 @@ pub enum ShouldNotify {
 impl sqlx::FromRow<'_, SqliteRow> for ShouldNotify {
     fn from_row(row: &SqliteRow) -> Result<Self, sqlx::Error> {
         let res: u8 = row.try_get("should_notify")?;
-        if res == 0 {
-            Ok(Self::Ignore)
-        } else {
-            Ok(Self::Notify)
-        }
+        if res == 0 { Ok(Self::Ignore) } else { Ok(Self::Notify) }
     }
 }
 

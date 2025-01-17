@@ -77,13 +77,13 @@ impl PayloadLayout {
                 res.push(payload[i..raw_end].join(SEP));
                 res.extend_from_slice(&payload[raw_end..]);
                 res
-            }
+            },
             Some(_) | None => {
                 if self.size < size {
                     return Err(PayloadParseError::InvalidSize);
                 }
                 payload
-            }
+            },
         };
         Ok(res)
     }

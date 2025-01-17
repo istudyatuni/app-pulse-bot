@@ -28,14 +28,10 @@ impl DB {
                     }
                 }
                 Err(e.into())
-            }
+            },
         }
     }
-    pub async fn save_source_updated_at(
-        &self,
-        source_id: Id,
-        last_updated_at: UnixDateTime,
-    ) -> Result<()> {
+    pub async fn save_source_updated_at(&self, source_id: Id, last_updated_at: UnixDateTime) -> Result<()> {
         log::debug!("save source last_updated_at: {last_updated_at}");
         sqlx::query(&format!(
             "update {SOURCE_TABLE}

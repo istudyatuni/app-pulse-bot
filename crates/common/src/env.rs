@@ -2,12 +2,8 @@ use std::sync::LazyLock;
 
 use dotenvy_macro::dotenv;
 
-pub(crate) static VERSION: LazyLock<u32> = LazyLock::new(|| {
-    env!("BOT_VERSION")
-        .to_string()
-        .parse()
-        .expect("invalid bot version")
-});
+pub(crate) static VERSION: LazyLock<u32> =
+    LazyLock::new(|| env!("BOT_VERSION").to_string().parse().expect("invalid bot version"));
 
 /// Get bot version
 pub fn version() -> u32 {

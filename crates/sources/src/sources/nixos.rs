@@ -67,7 +67,6 @@ impl Source {
                     .name(app_name)
                     .maybe_app_id(app_id)
                     .update_version(data.version.clone())
-                    .update_time(0)
                     .build(),
             );
         }

@@ -35,18 +35,54 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                     }
                 },
             };
+            let app = match db.get_app(app_id).await {
+                Ok(Some(a)) => a,
+                Ok(None) => {
+                    log::error!("failed to get app from db: app not found");
+                    continue;
+                }
+                Err(e) => {
+                    log::error!("failed to get app from db: {e}");
+                    continue;
+                }
+            };
             log::debug!("got update for app {}", app_id);
 
-            if let Err(e) = db
-                .save_app_last_updated_at(source_id, app_id, update.update_time())
-                .await
-            {
-                log::error!("failed to update app last_updated_at: {e}");
-                continue;
+            let mut update_time = None;
+            let mut update_version = None;
+
+            if let Some(time) = update.update_time() {
+                // source knows about last app's update time, so use it
+                update_time = Some(time);
+            } else if let Some(version) = update.update_version() {
+                // app is updated
+                if let Some(db_version) = app.last_updated_version() {
+                    // save only when version is changed
+                    if version != db_version {
+                        // generate last update time
+                        update_time = Some(common::DateTime::now());
+                        update_version = Some(version);
+                    } else {
+                        // app not updated
+                        log::debug!("sending app '{app_id}' update to 0 users");
+                        continue;
+                    }
+                } else {
+                    // app is new, generate last update time
+                    update_time = Some(common::DateTime::now());
+                    update_version = Some(version);
+                }
             }
-            if let Some(version) = update.update_version() {
+
+            if let Some(time) = update_time {
+                if let Err(e) = db.save_app_last_updated_at(source_id, app_id, time).await {
+                    log::error!("failed to update app last_updated_at: {e}");
+                    continue;
+                }
+            }
+            if let Some(version) = update_version {
                 if let Err(e) = db
-                    .save_app_last_updated_version(source_id, app_id, version.to_owned())
+                    .save_app_last_updated_version(source_id, app_id, version)
                     .await
                 {
                     log::error!("failed to update app last_updated_version: {e}");
@@ -132,6 +168,7 @@ async fn send_suggest_update(
     update: &Update,
     lang: &str,
 ) -> Result<(), UpdateError> {
+    // todo: also show source of app
     let mut text = vec![tr!(new_app_msg, lang) + "\n"];
     if let Some(description) = update.description() {
         text.push(format!("\n{description}\n"));

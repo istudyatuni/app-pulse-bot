@@ -52,7 +52,6 @@ tokio = { version = "1.43.0", features = ["full"] }
 tokio-util = "0.7.13"
 toml = "0.8.19"
 unic-langid = { version = "0.9.5", features = ["macros"] }
-versions = "6.3.2"
 
 bot-handlers = { path = "crates/bot-handlers" }
 common = { path = "crates/common" }

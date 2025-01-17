@@ -26,7 +26,7 @@ pub struct Update {
     /// When `None`, this update is about new app
     app_id: Option<Id>,
     name: String,
-    update_time: UnixDateTime,
+    update_time: Option<UnixDateTime>,
     update_version: Option<String>,
 }
 
@@ -46,7 +46,7 @@ impl Update {
     pub fn update_link(&self) -> &Option<Url> {
         &self.update_link
     }
-    pub fn update_time(&self) -> UnixDateTime {
+    pub fn update_time(&self) -> Option<UnixDateTime> {
         self.update_time
     }
     pub fn update_version(&self) -> Option<&str> {

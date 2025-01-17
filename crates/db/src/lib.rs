@@ -102,7 +102,8 @@ impl DB {
 
         Ok(res.ignore_not_found()?)
     }
-    /// Select subscribed and not yet notified users for specific source
+    /// Select subscribed and not yet notified users for specific source. Does
+    /// not check last_updated_version
     pub async fn select_users_to_notify(
         &self,
         source_id: Id,
@@ -119,7 +120,10 @@ impl DB {
                and u.bot_blocked = false
                and s.source_id = ?
                and a.app_id = ?
-               and a.last_updated_at > u.last_notified_at",
+               and (
+                 a.last_updated_at = 0
+                 or a.last_updated_at > u.last_notified_at
+               )",
         ))
         .bind(source_id)
         .bind(app_id)
@@ -365,6 +369,18 @@ impl DB {
 
 // App
 impl DB {
+    pub async fn get_app(&self, app_id: Id) -> Result<Option<models::App>> {
+        log::debug!("select app {app_id}");
+        let res = sqlx::query_as::<_, models::App>(&format!(
+            "select * from {APP_TABLE}
+             where app_id = ?"
+        ))
+        .bind(app_id)
+        .fetch_one(&self.pool)
+        .await;
+
+        Ok(res.ignore_not_found()?)
+    }
     pub async fn save_app_last_updated_at(
         &self,
         source_id: Id,
@@ -389,7 +405,7 @@ impl DB {
         &self,
         source_id: Id,
         app_id: Id,
-        last_updated_version: String,
+        last_updated_version: &str,
     ) -> Result<()> {
         log::debug!("update last_updated_at for app {app_id}");
         sqlx::query(&format!(

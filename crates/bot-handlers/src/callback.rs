@@ -1,3 +1,5 @@
+use std::{fmt::Display, str::FromStr};
+
 use anyhow::Result;
 
 use common::types::{AppId, SourceId};
@@ -110,16 +112,9 @@ impl PayloadData for Callback {
                     return Err(CallbackParseError::InvalidCallback);
                 };
                 Callback::Notify {
-                    source_id: source_id
-                        .parse()
-                        .inspect_err(|e| log::error!("failed to parse source_id in notify callback: {e}"))
-                        .map_err(|_| CallbackParseError::InvalidCallback)?,
-                    app_id: app_id
-                        .parse()
-                        .inspect_err(|e| log::error!("failed to parse app_id in notify callback: {e}"))
-                        .map_err(|_| CallbackParseError::InvalidCallback)?,
-                    should_notify: ShouldNotify::try_from_payload(should_notify)
-                        .inspect_err(|_| log::error!("failed to parse should_notify"))?,
+                    source_id: parse(source_id, "source_id", "notify")?,
+                    app_id: parse(app_id, "app_id", "notify")?,
+                    should_notify: parse_payload(should_notify, "should_notify", "notify")?,
                 }
             },
             SHOW_ALL_SOURCES_FLAG => Callback::ShowSources,
@@ -130,10 +125,7 @@ impl PayloadData for Callback {
                     return Err(CallbackParseError::InvalidCallback);
                 };
                 Callback::ShowSource {
-                    source_id: source_id
-                        .parse()
-                        .inspect_err(|e| log::error!("failed to parse source_id in show_source callback: {e}"))
-                        .map_err(|_| CallbackParseError::InvalidCallback)?,
+                    source_id: parse(source_id, "source_id", "show_source")?,
                 }
             },
             CHANGE_SUBSCRIBE_FLAG => {
@@ -143,13 +135,8 @@ impl PayloadData for Callback {
                     return Err(CallbackParseError::InvalidCallback);
                 };
                 Callback::ChangeSubscribe {
-                    source_id: source_id
-                        .parse()
-                        .inspect_err(|e| log::error!("failed to parse source_id in change_subscribe callback: {e}"))
-                        .map_err(|_| CallbackParseError::InvalidCallback)?,
-                    action: ChangeSubscribeAction::try_from_payload(action)
-                        .inspect_err(|_| log::error!("failed to parse action in change_subscribe callback"))
-                        .map_err(|_| CallbackParseError::InvalidToken)?,
+                    source_id: parse(source_id, "source_id", "change_subscribe")?,
+                    action: parse_payload(action, "action", "change_subscribe")?,
                 }
             },
             SET_LANG_FLAG => {
@@ -160,9 +147,7 @@ impl PayloadData for Callback {
                 };
                 Callback::SetLang {
                     lang: lang.to_string(),
-                    kind: LanguagesKeyboardKind::try_from_payload(kind)
-                        .inspect_err(|_| log::error!("failed to parse kind in set_lang callback"))
-                        .map_err(|_| CallbackParseError::InvalidToken)?,
+                    kind: parse_payload(kind, "kind", "set_lang")?,
                 }
             },
             _ => return Err(CallbackParseError::UnknownCallbackType),
@@ -209,12 +194,16 @@ impl PayloadData for ShouldNotify {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub(crate) enum CallbackParseError {
+    #[error("invalid callback")]
     InvalidCallback,
+    #[error("invalid token in callback")]
     InvalidToken,
+    #[error("outdated callback")]
     OutdatedCallback,
+    #[error("unknown callback type")]
     UnknownCallbackType,
 }
 
@@ -249,6 +238,25 @@ impl Callback {
             kind,
         }
     }
+}
+
+fn parse<T: FromStr>(value: &str, name: &str, callback_name: &str) -> Result<T, CallbackParseError>
+where
+    T::Err: Display,
+{
+    value
+        .parse()
+        .inspect_err(|e| log::error!("failed to parse {name} in {callback_name} callback: {e}"))
+        .map_err(|_| CallbackParseError::InvalidCallback)
+}
+
+fn parse_payload<T: PayloadData>(value: &str, name: &str, callback_name: &str) -> Result<T, CallbackParseError>
+where
+    T::Error: Display,
+{
+    T::try_from_payload(value)
+        .inspect_err(|e| log::error!("failed to parse {name} in {callback_name} callback: {e}"))
+        .map_err(|_| CallbackParseError::InvalidToken)
 }
 
 #[cfg(test)]

@@ -135,7 +135,7 @@ pub(crate) enum LanguagesKeyboardKind {
 }
 
 impl PayloadData for LanguagesKeyboardKind {
-    type Error = ();
+    type Error = &'static str;
 
     fn to_payload(&self) -> String {
         match self {
@@ -148,7 +148,7 @@ impl PayloadData for LanguagesKeyboardKind {
         match payload {
             "start" => Ok(Self::Start),
             "settings" => Ok(Self::Settings),
-            _ => Err(()),
+            _ => Err("unknown language keyboard kind"),
         }
     }
 }
@@ -175,7 +175,7 @@ impl ChangeSubscribeAction {
 }
 
 impl PayloadData for ChangeSubscribeAction {
-    type Error = ();
+    type Error = &'static str;
 
     fn to_payload(&self) -> String {
         match self {
@@ -188,7 +188,7 @@ impl PayloadData for ChangeSubscribeAction {
         match payload {
             "sub" => Ok(Self::Subscribe),
             "unsub" => Ok(Self::Unsubscribe),
-            _ => Err(()),
+            _ => Err("unknown change_subscribe action"),
         }
     }
 }

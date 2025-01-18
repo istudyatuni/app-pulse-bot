@@ -82,4 +82,14 @@ impl DB {
                 .await?,
         )
     }
+    pub async fn get_source(&self, source_id: SourceId) -> Result<Option<models::Source>> {
+        log::debug!("select source");
+        Ok(sqlx::query_as::<_, models::Source>(&format!(
+            "select * from {SOURCE_TABLE}
+             where source_id = ?"
+        ))
+        .bind(source_id)
+        .fetch_optional(&self.pool)
+        .await?)
+    }
 }

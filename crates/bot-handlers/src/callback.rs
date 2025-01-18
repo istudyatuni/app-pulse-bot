@@ -10,6 +10,7 @@ use crate::{
 
 // flags is at the start of message: {flag}:{payload}
 const NOTIFY_FLAG: &str = "notify";
+const SHOW_ALL_SOURCES_FLAG: &str = "sources";
 const SHOW_SOURCE_FLAG: &str = "source";
 const CHANGE_SUBSCRIBE_FLAG: &str = "sub";
 const SET_LANG_FLAG: &str = "lang";
@@ -19,6 +20,7 @@ const IGNORE_TOKEN: &str = "ignore";
 const NOTIFY_TOKEN: &str = "notify";
 
 const NOTIFY_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(4, None);
+const SHOW_ALL_SOURCES_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(1, None);
 const SHOW_SOURCE_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(2, None);
 const CHANGE_SUBSCRIBE_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(3, None);
 const SETLANG_CALLBACK_LAYOUT: PayloadLayout = PayloadLayout::new(3, None);
@@ -32,6 +34,8 @@ pub(crate) enum Callback {
         app_id: AppId,
         should_notify: ShouldNotify,
     },
+    /// Show all sources
+    ShowSources,
     /// Show information about source and button to subscribe/unsubscribe
     ShowSource { source_id: SourceId },
     /// Subscribe/unsubscribe to source
@@ -62,11 +66,15 @@ impl PayloadData for Callback {
                 ])
                 .inspect_err(|e| log::error!("invalid notify callback is created: {e}"))
                 .unwrap_or_default(),
-            Callback::ShowSource { source_id } => SHOW_SOURCE_CALLBACK_LAYOUT
+            Self::ShowSources => SHOW_ALL_SOURCES_CALLBACK_LAYOUT
+                .make_payload(vec![SHOW_ALL_SOURCES_FLAG])
+                .inspect_err(|e| log::error!("invalid show_sources callback is created: {e}"))
+                .unwrap_or_default(),
+            Self::ShowSource { source_id } => SHOW_SOURCE_CALLBACK_LAYOUT
                 .make_payload(vec![SHOW_SOURCE_FLAG, &source_id.to_string()])
                 .inspect_err(|e| log::error!("invalid show_source callback is created: {e}"))
                 .unwrap_or_default(),
-            Callback::ChangeSubscribe { source_id, action } => CHANGE_SUBSCRIBE_CALLBACK_LAYOUT
+            Self::ChangeSubscribe { source_id, action } => CHANGE_SUBSCRIBE_CALLBACK_LAYOUT
                 .make_payload(vec![
                     CHANGE_SUBSCRIBE_FLAG,
                     action.to_payload().as_str(),
@@ -89,6 +97,7 @@ impl PayloadData for Callback {
         // handle old callbacks, without version
         let version: Option<u8> = data[0].parse().ok();
         if version.is_none_or(|v| v < CALLBACK_VERSION) {
+            log::debug!("got outdated callback, ignoring");
             return Err(CallbackParseError::OutdatedCallback);
         }
 
@@ -113,6 +122,7 @@ impl PayloadData for Callback {
                         .inspect_err(|_| log::error!("failed to parse should_notify"))?,
                 }
             },
+            SHOW_ALL_SOURCES_FLAG => Callback::ShowSources,
             SHOW_SOURCE_FLAG => {
                 let data = SHOW_SOURCE_CALLBACK_LAYOUT.parse_payload(value)?;
                 let [source_id] = &data[1..=1] else {
@@ -224,10 +234,12 @@ impl Callback {
             should_notify,
         }
     }
+    pub(crate) fn show_sources() -> Self {
+        Self::ShowSources
+    }
     pub(crate) fn show_source(source_id: SourceId) -> Self {
         Self::ShowSource { source_id }
     }
-    #[cfg_attr(not(test), expect(unused))]
     pub(crate) fn change_subscribe(source_id: SourceId, action: ChangeSubscribeAction) -> Self {
         Self::ChangeSubscribe { source_id, action }
     }

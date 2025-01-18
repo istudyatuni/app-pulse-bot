@@ -102,7 +102,7 @@ impl sqlx::FromRow<'_, SqliteRow> for ShouldNotify {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, sqlx::FromRow)]
 pub struct UserSubscribe {
     user_id: Id,
     #[expect(unused)]
@@ -158,6 +158,7 @@ impl App {
 pub struct Source {
     source_id: SourceId,
     name: String,
+    description: String,
     last_updated_at: UnixDateTime,
 }
 
@@ -167,6 +168,9 @@ impl Source {
     }
     pub fn name(&self) -> &str {
         &self.name
+    }
+    pub fn description(&self) -> &str {
+        &self.description
     }
     pub fn last_updated_at(&self) -> UnixDateTime {
         self.last_updated_at

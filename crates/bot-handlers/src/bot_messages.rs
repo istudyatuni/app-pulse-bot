@@ -8,7 +8,7 @@ use teloxide::{
     types::{BotCommand, ChatKind, MessageKind},
 };
 
-use common::types::{self, SourceId};
+use common::types;
 use db::{DB, models::User};
 
 use crate::{

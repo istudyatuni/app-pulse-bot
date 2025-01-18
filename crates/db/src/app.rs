@@ -35,7 +35,7 @@ impl DB {
         Ok(())
     }
     pub async fn save_app_last_updated_version(&self, app_id: AppId, last_updated_version: &str) -> Result<()> {
-        log::debug!("update last_updated_at for app {app_id}");
+        log::debug!("update last_updated_version for app {app_id}");
         sqlx::query(&format!(
             "update {APP_TABLE}
              set last_updated_version = ?

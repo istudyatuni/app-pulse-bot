@@ -1,11 +1,8 @@
-use common::{
-    UnixDateTime,
-    types::{AppId, SourceId},
-};
+use common::{UnixDateTime, types::SourceId};
 
 use crate::{IgnoreNotFound, models};
 
-use super::{APP_TABLE, DB, Result, SOURCE_TABLE};
+use super::{DB, Result, SOURCE_TABLE};
 
 impl DB {
     pub async fn add_source_or_ignore(&self, name: &str) -> Result<()> {
@@ -47,18 +44,6 @@ impl DB {
         .await?;
 
         Ok(())
-    }
-    pub async fn get_source_id_by_app_id(&self, app_id: AppId) -> Result<Option<SourceId>> {
-        log::debug!("select source_id from app by app_id {app_id}");
-        let res = sqlx::query_as::<_, models::fetch::SourceId>(&format!(
-            "select source_id from {APP_TABLE}
-             where app_id = ?"
-        ))
-        .bind(app_id)
-        .fetch_one(&self.pool)
-        .await;
-
-        Ok(res.ignore_not_found()?.map(|r| r.source_id))
     }
     pub async fn get_source_id_by_source_name(&self, source_name: &str) -> Result<Option<SourceId>> {
         log::debug!("select source_id source name {source_name}");

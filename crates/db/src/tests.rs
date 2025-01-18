@@ -28,11 +28,8 @@ impl Timer {
 async fn prepare() -> Result<DB> {
     common::init_logger();
 
-    const DIR: &str = "target/test-db";
     const REL_PATH: &str = "../..";
-
-    let dir = PathBuf::from(REL_PATH).join(DIR);
-    std::fs::create_dir_all(&dir).unwrap();
+    const DIR: &str = "target/test-db";
     let path_fmt = |id| format!("{REL_PATH}/{DIR}/{id}.db");
 
     // in hope that no single test can call this at the same time
@@ -47,7 +44,7 @@ async fn prepare() -> Result<DB> {
         file = path_fmt(id);
     }
 
-    log::debug!("using db at {}/{id}.db", dir.canonicalize().unwrap().display());
+    log::debug!("using db at {DIR}/{id}.db");
     DB::init(&file).await
 }
 

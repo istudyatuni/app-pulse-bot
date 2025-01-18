@@ -1,23 +1,22 @@
-use common::{
-    types::SourceId,
-    UnixDateTime,
-};
+use common::{types::SourceId, UnixDateTime};
 
 use crate::{models, IgnoreNotFound};
 
 use super::{Result, DB, SOURCE_TABLE};
 
 impl DB {
-    pub async fn add_source_or_ignore(&self, name: &str) -> Result<()> {
+    /// Add source, ignore if it's already exists. Always updates description
+    pub async fn add_source_or_ignore(&self, name: &str, description: &str) -> Result<()> {
         // used to check failed constraint
         const SOURCE_NAME_UNIQ_ERR: &str = "UNIQUE constraint failed: source.name";
 
         log::debug!("adding source {name}");
         let res = sqlx::query(&format!(
-            "insert into {SOURCE_TABLE} (source_id, name)
-             values ((select max(source_id) from {SOURCE_TABLE}) + 1, ?)"
+            "insert into {SOURCE_TABLE} (source_id, name, description)
+             values ((select max(source_id) from {SOURCE_TABLE}) + 1, ?, ?)"
         ))
         .bind(name)
+        .bind(description)
         .execute(&self.pool)
         .await;
 
@@ -27,7 +26,7 @@ impl DB {
                 if let Some(e) = e.as_database_error() {
                     if e.is_unique_violation() && e.message() == SOURCE_NAME_UNIQ_ERR {
                         log::debug!("source {name} exists, ignoring");
-                        return Ok(());
+                        return self.save_source_description(name, description).await;
                     }
                 }
                 Err(e.into())
@@ -43,6 +42,21 @@ impl DB {
         ))
         .bind(last_updated_at)
         .bind(source_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+    /// Update source description. Use source's name because it's unique anyway
+    pub async fn save_source_description(&self, source_name: &str, description: &str) -> Result<()> {
+        log::debug!("save source description: {description}");
+        sqlx::query(&format!(
+            "update {SOURCE_TABLE}
+             set description = ?
+             where name = ?"
+        ))
+        .bind(description)
+        .bind(source_name)
         .execute(&self.pool)
         .await?;
 

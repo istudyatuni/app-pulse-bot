@@ -14,7 +14,7 @@ macro_rules! spawn_list_sources {
     ($db:ident, $jobs:ident, $token:ident, $tx:ident; $($module:ident),* $(,)?) => {
         $(
             'source: {
-                match $db.add_source_or_ignore($module::Source::name()).await {
+                match $db.add_source_or_ignore($module::Source::name(), $module::Source::description()).await {
                     Ok(()) => (),
                     Err(e) => {
                         log::error!("failed to register source {} in db: {e}", stringify!($module));

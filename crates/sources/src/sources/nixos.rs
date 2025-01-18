@@ -80,6 +80,10 @@ impl UpdateSource for Source {
         "nixpkgs@packages"
     }
 
+    fn description() -> &'static str {
+        "NixOS packages"
+    }
+
     fn new(db: DB, timeout: Duration, source_id: SourceId) -> Result<Self, Self::InitError> {
         Ok(Self {
             id: source_id,

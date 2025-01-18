@@ -19,6 +19,7 @@ use crate::{models::ShouldNotify, APP_TABLE, USER_UPDATE_TABLE};
 /// Migrate other tables
 ///
 /// - `user_update.app_id`
+/// - remove `user_update.source_id` because it's not required anymore
 pub(crate) struct Operation9AppIntId;
 
 #[derive(Debug, sqlx::FromRow)]
@@ -81,6 +82,7 @@ impl Operation<sqlx::Sqlite> for Operation9AppIntId {
 
         // migrate user_update
 
+        // source_id is removed
         sqlx::query(&format!("alter table {USER_UPDATE_TABLE} rename to {USER_UPDATE_TMP}"))
             .execute(&mut *connection)
             .await?;

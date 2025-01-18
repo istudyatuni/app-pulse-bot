@@ -24,6 +24,8 @@ pub trait UpdateSource {
 
     fn name() -> &'static str;
 
+    fn description() -> &'static str;
+
     fn new(db: DB, timeout: Duration, source_id: SourceId) -> Result<Self, Self::InitError>
     where
         Self: Sized;

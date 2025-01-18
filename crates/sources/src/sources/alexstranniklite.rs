@@ -101,6 +101,10 @@ impl UpdateSource for Source {
         "tg@alexstranniklite"
     }
 
+    fn description() -> &'static str {
+        "Telegram channel @alexstranniklite"
+    }
+
     fn new(db: DB, timeout: Duration, source_id: SourceId) -> Result<Self, Self::InitError> {
         Ok(Self {
             id: source_id,

@@ -8,11 +8,14 @@ use teloxide::{
 };
 
 use common::types::{AppId, SourceId};
-use db::{models::ShouldNotify, DB};
+use db::{
+    models::{ShouldNotify, Source},
+    DB,
+};
 
 use crate::{
     callback::{Callback, CallbackParseError},
-    keyboards::{Keyboards, LanguagesKeyboardKind, NewAppKeyboardKind},
+    keyboards::{ChangeSubscribeAction, Keyboards, LanguagesKeyboardKind, NewAppKeyboardKind},
     tr, DEFAULT_USER_LANG,
 };
 
@@ -76,19 +79,69 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
                 Err(Some(e)) => {
                     answer_err.text(e).await?;
                 },
-                _ => (),
+                Err(None) => (),
             }
         },
-        Callback::ShowSource { source_id } => todo!(),
-        Callback::ChangeSubscribe { source_id, action } => todo!(),
-        Callback::SetLang { lang, kind } => match handle_lang_callback(db, chat_id, &lang).await {
+        Callback::ShowSources => match db.get_sources().await {
+            Ok(sources) => {
+                edit_msg(
+                    q.message,
+                    bot,
+                    chat_id,
+                    Some(tr!(sources_list, &lang)),
+                    Some(Keyboards::sources(&sources)),
+                )
+                .await?;
+            },
+            Err(e) => {
+                log::error!("failed to get sources: {e}");
+                answer_err.text(tr!(something_wrong_try_again, &lang)).await?;
+            },
+        },
+        Callback::ShowSource { source_id } => {
+            let res = handle_show_source_callback(db, chat_id, source_id, &lang).await;
+            match res {
+                Ok((source, action)) => {
+                    edit_msg(
+                        q.message,
+                        bot,
+                        chat_id,
+                        Some(source.description().to_owned()),
+                        Some(Keyboards::source(source_id, action, &lang)),
+                    )
+                    .await?
+                },
+                Err(e) => {
+                    answer_err.text(e).await?;
+                },
+            }
+        },
+        Callback::ChangeSubscribe { source_id, action } => {
+            match handle_change_subscribe_callback(db, chat_id, source_id, action, &lang).await {
+                Ok(msg) => {
+                    bot.answer_callback_query(q.id).text(msg).await?;
+                    edit_msg(
+                        q.message,
+                        bot,
+                        chat_id,
+                        None,
+                        Some(Keyboards::source(source_id, action.invert(), &lang)),
+                    )
+                    .await?
+                },
+                Err(e) => {
+                    answer_err.text(e).await?;
+                },
+            }
+        },
+        Callback::SetLang { lang, kind } => match handle_set_lang_callback(db, chat_id, &lang).await {
             Ok(popup_msg) => {
                 bot.answer_callback_query(&q.id).text(popup_msg).await?;
                 let (text, markup) = match kind {
                     LanguagesKeyboardKind::Start => (tr!(welcome_suggest_subscribe, &lang), None),
                     LanguagesKeyboardKind::Settings => (tr!(choose_language, &lang), Some(Keyboards::languages(kind))),
                 };
-                edit_msg_text(q.message, bot, chat_id, text, markup).await?;
+                edit_msg(q.message, bot, chat_id, Some(text), markup).await?;
             },
             Err(e) => {
                 answer_err.text(e).await?;
@@ -99,6 +152,10 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
     Ok(())
 }
 
+/// Handle Callback::update
+///
+/// - save if should notify user
+/// - return popup message and new_keyboard kind
 async fn handle_update_callback(
     should_notify: ShouldNotify,
     db: DB,
@@ -119,7 +176,60 @@ async fn handle_update_callback(
     Ok((popup_msg, keyboard_kind))
 }
 
-async fn handle_lang_callback(db: DB, chat_id: UserId, lang: &str) -> Result<String, String> {
+async fn handle_show_source_callback(
+    db: DB,
+    chat_id: UserId,
+    source_id: SourceId,
+    lang: &str,
+) -> Result<(Source, ChangeSubscribeAction), String> {
+    let source = db.get_source(source_id).await.map_err(|e| {
+        log::error!("failed to get source: {e}");
+        tr!(something_wrong_try_again, lang)
+    })?;
+    let Some(source) = source else {
+        log::error!("source {} not found", source_id);
+        return Err(tr!(something_wrong_try_again, lang));
+    };
+    let subscribed = db
+        .get_user_subscribed_to_source(chat_id, source_id)
+        .await
+        .inspect_err(|e| log::error!("failed to get user subscribed: {e}"))
+        .map_err(|_| tr!(something_wrong_try_again, lang))?
+        // user is not subscribed by default
+        .unwrap_or_default();
+    let action = match subscribed {
+        true => ChangeSubscribeAction::Unsubscribe,
+        false => ChangeSubscribeAction::Subscribe,
+    };
+    Ok((source, action))
+}
+
+async fn handle_change_subscribe_callback(
+    db: DB,
+    chat_id: UserId,
+    source_id: SourceId,
+    action: ChangeSubscribeAction,
+    lang: &str,
+) -> Result<String, String> {
+    let subscribed = match action {
+        ChangeSubscribeAction::Subscribe => true,
+        ChangeSubscribeAction::Unsubscribe => false,
+    };
+    db.save_user_subscribed_to_source(chat_id, source_id, subscribed)
+        .await
+        .inspect_err(|e| log::error!("failed to change user subscribe to source: {e}"))
+        .map_err(|_| tr!(something_wrong_try_again, lang))?;
+    let msg = match action {
+        ChangeSubscribeAction::Subscribe => tr!(subscribed, lang),
+        ChangeSubscribeAction::Unsubscribe => tr!(unsubscribed, lang),
+    };
+    Ok(msg)
+}
+
+/// Handle Callback::set_lang
+///
+/// - save selected lang for user
+async fn handle_set_lang_callback(db: DB, chat_id: UserId, lang: &str) -> Result<String, String> {
     db.save_user_lang(chat_id, lang).await.map_err(|e| {
         log::error!("failed to update lang for user: {e}");
         tr!(something_wrong_try_again, lang)
@@ -127,23 +237,29 @@ async fn handle_lang_callback(db: DB, chat_id: UserId, lang: &str) -> Result<Str
     Ok(tr!(lang_saved, lang))
 }
 
-async fn edit_msg_text<S, M>(
+async fn edit_msg<M>(
     msg: Option<MaybeInaccessibleMessage>,
     bot: Bot,
     chat_id: UserId,
-    text: S,
+    text: Option<String>,
     markup: Option<M>,
 ) -> ResponseResult<()>
 where
-    S: Into<String>,
     M: Into<InlineKeyboardMarkup>,
 {
     if let Some(Message { id, .. }) = msg.and_then(|m| m.regular_message().cloned()) {
-        let mut e = bot.edit_message_text(chat_id, id, text);
-        if let Some(m) = markup {
-            e = e.reply_markup(m.into());
+        // let text = text.map(Into::into);
+        let markup = markup.map(Into::into);
+
+        if let (Some(text), Some(markup)) = (&text, &markup) {
+            bot.edit_message_text(chat_id, id, text)
+                .reply_markup(markup.clone())
+                .await?;
+        } else if let Some(text) = text {
+            bot.edit_message_text(chat_id, id, text).await?;
+        } else if let Some(markup) = markup {
+            bot.edit_message_reply_markup(chat_id, id).reply_markup(markup).await?;
         }
-        e.await?;
     } else {
         log::error!("tried edit msg in chat {chat_id}, but it's not accessible")
     }

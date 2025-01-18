@@ -140,6 +140,23 @@ impl DB {
         log::debug!("user {user_table_column} updated");
         Ok(())
     }
+    pub async fn get_user_subscribed_to_source(
+        &self,
+        user_id: impl Into<UserId>,
+        source_id: SourceId,
+    ) -> Result<Option<bool>> {
+        let user_id: Id = user_id.into().into();
+        Ok(sqlx::query_as::<_, models::UserSubscribe>(&format!(
+            "select * from {USER_SUBSCRIBE_TABLE}
+             where user_id = ?
+               and source_id = ?"
+        ))
+        .bind(user_id)
+        .bind(source_id)
+        .fetch_optional(&self.pool)
+        .await?
+        .map(|u| u.subscribed()))
+    }
     pub async fn save_user_subscribed_to_source(
         &self,
         user_id: impl Into<UserId>,
@@ -207,6 +224,7 @@ impl DB {
 
         Ok(())
     }
+    /// Should notify user about app updates
     pub async fn should_notify_user(
         &self,
         user_id: impl Into<UserId>,

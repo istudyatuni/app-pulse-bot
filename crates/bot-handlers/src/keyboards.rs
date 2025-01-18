@@ -106,16 +106,13 @@ impl Keyboards {
 
         keyboard
     }
-    pub(crate) fn source(source: &models::Source, action: ChangeSubscribeAction, lang: &str) -> KeyboardBuilder {
+    pub(crate) fn source(source_id: SourceId, action: ChangeSubscribeAction, lang: &str) -> KeyboardBuilder {
         KeyboardBuilder::with_layout(1, 2)
             .callback(
                 action.as_bell_icon(),
-                Callback::change_subscribe(source.source_id(), action).to_payload(),
+                Callback::change_subscribe(source_id, action).to_payload(),
             )
-            .callback(
-                tr!(back_button, lang),
-                Callback::show_source(source.source_id()).to_payload(),
-            )
+            .callback(tr!(back_button, lang), Callback::show_sources().to_payload())
     }
 }
 
@@ -165,8 +162,14 @@ pub(crate) enum ChangeSubscribeAction {
 impl ChangeSubscribeAction {
     fn as_bell_icon(self) -> &'static str {
         match self {
-            ChangeSubscribeAction::Subscribe => BELL_MSG,
-            ChangeSubscribeAction::Unsubscribe => NO_BELL_MSG,
+            Self::Subscribe => BELL_MSG,
+            Self::Unsubscribe => NO_BELL_MSG,
+        }
+    }
+    pub(crate) fn invert(self) -> Self {
+        match self {
+            Self::Subscribe => Self::Unsubscribe,
+            Self::Unsubscribe => Self::Subscribe,
         }
     }
 }

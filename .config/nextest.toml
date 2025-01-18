@@ -1,0 +1,8 @@
+experimental = ["setup-scripts"]
+
+[script.db-lock]
+command = ".config/test-prepare.sh"
+
+[[profile.default.scripts]]
+filter = 'default()'
+setup = 'db-lock'

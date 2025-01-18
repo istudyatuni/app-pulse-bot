@@ -28,9 +28,8 @@ impl Timer {
 async fn prepare() -> Result<DB> {
     common::init_logger();
 
-    const DIR: &str = "target/test-db";
     const REL_PATH: &str = "../..";
-    std::fs::create_dir_all(DIR).unwrap();
+    const DIR: &str = "target/test-db";
     let path_fmt = |id| format!("{REL_PATH}/{DIR}/{id}.db");
 
     // in hope that no single test can call this at the same time

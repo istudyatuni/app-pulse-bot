@@ -3,6 +3,7 @@ mod bot_callback;
 mod bot_messages;
 mod callback;
 mod commands;
+mod dialogue;
 mod keyboards;
 mod payload;
 mod updates_notify;
@@ -13,6 +14,7 @@ pub use bot_admin_messages::admin_command_handler;
 pub use bot_callback::callback_handler;
 pub use bot_messages::{command_handler, message_handler};
 pub use commands::{AdminCommand, Command};
+pub use dialogue::{SourceSearchState, receive_name_handler};
 pub use updates_notify::start_updates_notify_job;
 pub use user::run_collect_user_names_job;
 

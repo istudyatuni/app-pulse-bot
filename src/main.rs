@@ -4,7 +4,7 @@ use anyhow::Result;
 use dotenvy_macro::dotenv;
 use reqwest::Client;
 use simplelog::LevelFilter;
-use teloxide::{prelude::*, types::BotCommandScope};
+use teloxide::{dispatching::dialogue::InMemStorage, prelude::*, types::BotCommandScope};
 use tokio::{
     signal,
     sync::mpsc::{self, Sender},
@@ -13,8 +13,8 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use bot_handlers::{
-    admin_command_handler, callback_handler, command_handler, message_handler, run_collect_user_names_job,
-    start_updates_notify_job, AdminCommand, Command,
+    admin_command_handler, callback_handler, command_handler, message_handler, receive_name_handler,
+    run_collect_user_names_job, start_updates_notify_job, AdminCommand, Command, SourceSearchState,
 };
 use common::{is_admin_chat_id, spawn_with_token, LogError};
 use db::DB;
@@ -171,11 +171,12 @@ async fn start_bot(bot: Bot, db: DB) {
                         .endpoint(admin_command_handler),
                 )
                 .branch(dptree::entry().filter_command::<Command>().endpoint(command_handler))
+                .branch(dptree::case![SourceSearchState::ReceiveName { name }].endpoint(receive_name_handler))
                 .endpoint(message_handler),
         )
         .branch(Update::filter_callback_query().endpoint(callback_handler));
     Dispatcher::builder(bot.clone(), handler)
-        .dependencies(dptree::deps![db])
+        .dependencies(dptree::deps![db, InMemStorage::<SourceSearchState>::new()])
         .default_handler(|update| async move { log::error!("unhandled update: {update:?}") })
         .error_handler(LoggingErrorHandler::with_custom_text("error in dispatcher"))
         .enable_ctrlc_handler()

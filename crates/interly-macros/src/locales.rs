@@ -53,12 +53,8 @@ pub(crate) fn extract_messages(
             }
         }
 
-        let lang = match extract_lang(path.clone()) {
-            Ok(i) => i,
-            Err(e) => return Err(e),
-        };
         res.push((
-            lang,
+            extract_lang(path.clone())?,
             LangInfo {
                 messages: messages.clone(),
                 source,

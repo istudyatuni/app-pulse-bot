@@ -145,25 +145,25 @@ fn has_button(msg: &Message, text: &str) -> bool {
 
 /// Only works for update message type
 ///
-/// - `"<strong>app</strong> 1.2.3 <strong>arm7</strong>"` -> `"app"`
-/// - `"<a ...><strong>app</strong></a> 1.2.3 <strong>arm7</strong>"` -> `"app"`
+/// - `"<b>app</b> 1.2.3 <b>arm7</b>"` -> `"app"`
+/// - `"<a ...><b>app</b></a> 1.2.3 <b>arm7</b>"` -> `"app"`
 fn get_app_id(msg: &Message) -> String {
     let msg: &str = &msg.message;
     if msg.starts_with("<a") {
-        msg.split("<strong>")
+        msg.split("<b>")
             .skip(1)
             .take(1)
             .collect::<String>()
-            .split("</strong>")
+            .split("</b>")
             .take(1)
             .collect()
     } else {
-        if !msg.starts_with("<strong>") {
+        if !msg.starts_with("<b>") {
             log::error!("got unknown message when parsing app_id: {msg}");
         }
         let s = msg.split(' ').take(1).collect::<String>();
-        let s = s.strip_prefix("<strong>").unwrap_or(&s);
-        s.strip_suffix("</strong>").unwrap_or(s).to_string()
+        let s = s.strip_prefix("<b>").unwrap_or(&s);
+        s.strip_suffix("</b>").unwrap_or(s).to_string()
     }
 }
 
@@ -174,8 +174,8 @@ mod tests {
     #[test]
     fn test_get_app_id() {
         let table = &[
-            ("<strong>app</strong> 1.2.3 <strong>arm7</strong>", "app"),
-            ("<a href=\"mts.music\" target=\"_blank\" rel=\"nofollow\"><strong>app.text</strong></a> 9.19.0", "app.text"),
+            ("<b>app</b> 1.2.3 <b>arm7</b>", "app"),
+            ("<a href=\"mts.music\" target=\"_blank\" rel=\"nofollow\"><b>app.text</b></a> 9.19.0", "app.text"),
         ];
         for (msg, expected) in table {
             assert_eq!(

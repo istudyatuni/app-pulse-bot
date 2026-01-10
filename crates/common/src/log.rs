@@ -13,18 +13,21 @@ impl<T, E> LogError for Result<T, E>
 where
     E: Display,
 {
+    #[track_caller]
     fn log_error(&self) -> &Self {
         if let Err(e) = self {
             log::error!("{e}")
         }
         self
     }
+    #[track_caller]
     fn log_error_msg(&self, msg: &str) -> &Self {
         if let Err(e) = self {
             log::error!("{msg}: {e}")
         }
         self
     }
+    #[track_caller]
     fn log_error_msg_with<M, F>(&self, f: F) -> &Self
     where
         M: Into<String>,

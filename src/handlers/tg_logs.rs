@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use anyhow::Result;
 use common::LogError;
 use log::Level;
 use teloxide::{
@@ -9,6 +10,7 @@ use teloxide::{
     utils::markdown::code_block_with_lang,
     Bot,
 };
+use time::format_description::well_known::Rfc3339;
 use tokio::sync::mpsc::Receiver;
 
 pub(crate) async fn start_tg_logs_job(bot: Bot, chat_id: ChatId, mut rx: Receiver<LogMessage>) {
@@ -33,7 +35,11 @@ impl LogMessage {
         file: Option<&str>,
         line: Option<u32>,
     ) -> Self {
-        let mut msg = format!("[ERROR] {}\n        at {target}", s.into());
+        let time = match time_now() {
+            Ok(t) => t,
+            Err(e) => format!("failed to format time: {e}\n"),
+        };
+        let mut msg = format!("{time} [ERROR] {}\n        at {target}", s.into());
         if let Some(file) = file {
             msg += &format!(": {file}");
             if let Some(line) = line {
@@ -70,4 +76,9 @@ fn level_to_string(level: Level) -> String {
         Level::Trace => "Trace",
     };
     s.to_string()
+}
+
+fn time_now() -> Result<String> {
+    let time = time::OffsetDateTime::now_utc();
+    Ok(time.format(&Rfc3339)?)
 }

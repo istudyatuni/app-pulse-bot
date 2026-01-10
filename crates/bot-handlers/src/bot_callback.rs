@@ -16,7 +16,7 @@ use crate::{
 };
 
 pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseResult<()> {
-    let answer_err = bot.answer_callback_query(&q.id).show_alert(true);
+    let answer_err = bot.answer_callback_query(q.id.clone()).show_alert(true);
     let chat_id = q.from.id;
 
     let lang = db
@@ -66,7 +66,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
             let res = handle_update_callback(should_notify, db, chat_id, &app_id, &lang).await;
             match res {
                 Ok((popup_msg, keyboard_kind)) => {
-                    bot.answer_callback_query(&q.id).text(popup_msg).await?;
+                    bot.answer_callback_query(q.id).text(popup_msg).await?;
                     edit_update_msg(q.message, bot, chat_id, &app_id, keyboard_kind, &lang).await?;
                 }
                 Err(Some(e)) => {
@@ -77,7 +77,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseRes
         }
         Callback::SetLang { lang, token } => match handle_lang_callback(db, chat_id, &lang).await {
             Ok(popup_msg) => {
-                bot.answer_callback_query(&q.id).text(popup_msg).await?;
+                bot.answer_callback_query(q.id).text(popup_msg).await?;
                 let (text, markup) = match token {
                     LanguagesKeyboardToken::Start => (tr!(welcome_suggest_subscribe, &lang), None),
                     LanguagesKeyboardToken::Settings => (

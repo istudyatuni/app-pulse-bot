@@ -111,7 +111,10 @@ async fn handle_start_command(
             let user = User::builder().user_id(id.into()).lang(lang.to_owned());
             let user = if let ChatKind::Private(chat) = msg.chat.kind {
                 user.maybe_username(chat.username.clone())
-                    .maybe_name(get_chat_name(&chat))
+                    .maybe_name(get_chat_name(
+                        chat.first_name.as_deref(),
+                        chat.last_name.as_deref(),
+                    ))
                     .build()
             } else {
                 log::error!("handler for command /start called not in private chat");

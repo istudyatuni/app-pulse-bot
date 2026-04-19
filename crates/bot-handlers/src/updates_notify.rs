@@ -188,9 +188,9 @@ async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
 
 #[derive(Debug, thiserror::Error)]
 enum UpdateError {
-    #[error("bot blocked by user {0}")]
+    #[error("bot blocked by user [{0}](tg://user?id={0})")]
     BotBlocked(ChatId),
-    #[error("user {0} deactivated")]
+    #[error("user [{0}](tg://user?id={0}) deactivated")]
     UserDeactivated(ChatId),
 
     #[error(transparent)]

@@ -241,13 +241,15 @@ impl DB {
         )
         .await
     }
-    pub async fn save_user_bot_blocked(
+    /// Save that chat with user is not available
+    pub async fn save_user_unavailable(
         &self,
         user_id: impl Into<UserId>,
         blocked: bool,
     ) -> Result<()> {
         let id: Id = user_id.into().into();
-        log::debug!("saving user {id} bot_blocked: {blocked}");
+        log::debug!("saving user {id} not available: {blocked}");
+        // "bot_blocked" is old name
         sqlx::query(&format!(
             "update {USER_TABLE}
              set bot_blocked = ?

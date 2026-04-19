@@ -100,7 +100,7 @@ async fn handle_start_command(
         Some(u) => {
             if u.bot_blocked() {
                 log::info!(tg = true; "User {} returned", u.display());
-                if let Err(e) = db.save_user_bot_blocked(u.user_id(), false).await {
+                if let Err(e) = db.save_user_unavailable(u.user_id(), false).await {
                     log::error!("failed to save that user is returned: {e}")
                 }
             }

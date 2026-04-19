@@ -64,7 +64,13 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 };
                 if let Err(e) = res {
                     match e {
-                        UpdateError::BotBlocked(chat_id) => handle_bot_blocked(&db, chat_id).await,
+                        UpdateError::BotBlocked(chat_id) => {
+                            handle_bot_blocked(&db, chat_id, ChatUnavailableError::BotBlocked).await
+                        }
+                        UpdateError::UserDeactivated(chat_id) => {
+                            handle_bot_blocked(&db, chat_id, ChatUnavailableError::UserDeactivated)
+                                .await
+                        }
                         UpdateError::RequestError(ref e) => {
                             log::error!("error from update notifier: {e}")
                         }
@@ -150,7 +156,10 @@ async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
         {
             match e {
                 UpdateError::BotBlocked(chat_id) => {
-                    handle_bot_blocked(&db, chat_id).await;
+                    handle_bot_blocked(&db, chat_id, ChatUnavailableError::BotBlocked).await;
+                }
+                UpdateError::UserDeactivated(chat_id) => {
+                    handle_bot_blocked(&db, chat_id, ChatUnavailableError::UserDeactivated).await
                 }
                 UpdateError::RequestError(e) => {
                     failed.0 += 1;
@@ -181,6 +190,8 @@ async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
 enum UpdateError {
     #[error("bot blocked by user {0}")]
     BotBlocked(ChatId),
+    #[error("user {0} deactivated")]
+    UserDeactivated(ChatId),
 
     #[error(transparent)]
     RequestError(#[from] teloxide::RequestError),
@@ -198,16 +209,27 @@ impl<R> MapBotBlockedError for Result<R, teloxide::RequestError> {
                 teloxide::RequestError::Api(teloxide::ApiError::BotBlocked) => {
                     Err(UpdateError::BotBlocked(chat_id))
                 }
+                teloxide::RequestError::Api(teloxide::ApiError::UserDeactivated) => {
+                    Err(UpdateError::UserDeactivated(chat_id))
+                }
                 _ => Err(e.into()),
             },
         }
     }
 }
 
-/// Save that user blocked bot
-async fn handle_bot_blocked(db: &DB, chat_id: ChatId) {
-    log::info!(tg = true; "bot blocked by user {chat_id}");
-    db.save_user_bot_blocked(chat_id, true)
+/// Save that bot can't send message to user
+async fn handle_bot_blocked(db: &DB, chat_id: ChatId, kind: ChatUnavailableError) {
+    log::info!(tg = true; "{kind}, chat_id = {chat_id}");
+    db.save_user_unavailable(chat_id, true)
         .await
-        .log_error_msg("failed to save user bot_blocked");
+        .log_error_msg("failed to save user unavailable");
+}
+
+#[derive(Debug, thiserror::Error)]
+enum ChatUnavailableError {
+    #[error("bot blocked by user")]
+    BotBlocked,
+    #[error("user deactivated")]
+    UserDeactivated,
 }

@@ -1,3 +1,5 @@
+rust-version := "1.95.0"
+
 [private]
 @default:
 	just --list
@@ -35,12 +37,19 @@ shell:
 # Build for prod using cross
 [private]
 build-release:
-	@# disabling sccache and clang linker
-	cross b --release \
-		--features=prod \
-		--target=x86_64-unknown-linux-musl \
-		--config build.rustc-wrapper="''" \
-		--config target.x86_64-unknown-linux-gnu.linker="'gcc'"
+	@# disabling sccache and clang linker with --config
+	@# CARGO_HOME and /tmp/.cargo is used to use local cargo download cache
+	docker run --rm \
+		-v "$(pwd)":/build \
+		-v "$HOME/.cargo":/tmp/.cargo \
+		-w /build \
+		--env=CARGO_HOME=/tmp/.cargo \
+		"clux/muslrust:{{ rust-version }}-stable" \
+		cargo build --release \
+			--features=prod \
+			--target=x86_64-unknown-linux-musl \
+			--config build.rustc-wrapper="''" \
+			--config target.x86_64-unknown-linux-gnu.linker="'gcc'"
 
 [private]
 deploy ssh-path:

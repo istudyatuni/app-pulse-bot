@@ -57,7 +57,7 @@ async fn main() -> Result<()> {
     let args = args::Cli::parse();
     if let Some(cmd) = args.cmd {
         match cmd {
-            args::Command::Install => service::install()?,
+            args::Command::Install { force } => service::install(force)?,
             args::Command::Update => service::update()?,
             args::Command::Restart => service::restart()?,
         }

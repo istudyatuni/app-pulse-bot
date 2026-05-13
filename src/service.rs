@@ -7,10 +7,11 @@ const SYSTEMD_SERVICE_PATH: &str = "/etc/systemd/system/app-pulse-bot.service";
 const SYSTEMD_SERVICE_NAME: &str = "app-pulse-bot.service";
 const BIN_PATH: &str = "/usr/local/bin/app-pulse-bot";
 
-pub fn install() -> Result<()> {
+pub fn install(force: bool) -> Result<()> {
     let service_path = PathBuf::from(SYSTEMD_SERVICE_PATH);
-    if service_path.exists() {
-        bail!("service already installed");
+    let service_path_existed = service_path.exists();
+    if !force && service_path_existed {
+        bail!("service already installed, use --force to overwrite");
     }
 
     ensure_dir(&service_path).context("creating systemd dir")?;
@@ -18,7 +19,11 @@ pub fn install() -> Result<()> {
 
     install_bin()?;
 
-    systemctl(&["enable", "--now"]).context("enabling")?;
+    if service_path_existed {
+        restart()?;
+    } else {
+        systemctl(&["enable", "--now"]).context("enabling")?;
+    }
 
     Ok(())
 }

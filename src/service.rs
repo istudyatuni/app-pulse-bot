@@ -13,25 +13,25 @@ pub fn install() -> Result<()> {
         bail!("service already installed");
     }
 
-    ensure_dir(&service_path).context("failed to create systemd dir")?;
+    ensure_dir(&service_path).context("creating systemd dir")?;
     std::fs::write(service_path, SYSTEMD_SERVICE).context("failed to write systemd unit")?;
 
     install_bin()?;
 
-    systemctl(&["enable", "--now"])?;
+    systemctl(&["enable", "--now"]).context("enabling")?;
 
     Ok(())
 }
 
 pub fn update() -> Result<()> {
     install_bin()?;
-    systemctl(&["restart"])?;
+    systemctl(&["restart"]).context("restarting")?;
     Ok(())
 }
 
 fn install_bin() -> Result<()> {
     let bin_path = PathBuf::from(BIN_PATH);
-    ensure_dir(&bin_path).context("failed to create bin dir")?;
+    ensure_dir(&bin_path).context("creating bin dir")?;
 
     let current_exe = std::env::current_exe().context("failed to get current exe")?;
     std::fs::rename(current_exe, bin_path).context("failed to move current exe to target dir")?;
@@ -42,7 +42,7 @@ fn ensure_dir(file_path: &Path) -> Result<()> {
     if let Some(dir) = file_path.parent()
         && !dir.exists()
     {
-        std::fs::create_dir_all(dir)?;
+        std::fs::create_dir_all(dir).context("failed to create bin dir")?;
     }
     Ok(())
 }

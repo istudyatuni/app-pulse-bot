@@ -115,10 +115,9 @@ fn has_apk_attachment(msg: &Message) -> bool {
     if let Some(Media::messageMediaDocument {
         document: Document::document { ref mime_type },
     }) = msg.media
+        && mime_type == "application/vnd.android.package-archive"
     {
-        if mime_type == "application/vnd.android.package-archive" {
-            return true;
-        }
+        return true;
     }
     false
 }
@@ -131,10 +130,10 @@ fn has_button(msg: &Message, text: &str) -> bool {
         for row in rows {
             if let ReplyInlineMarkupRow::keyboardButtonRow { buttons } = row {
                 for button in buttons {
-                    if let KeyboardButton::keyboardButtonUrl { text: t, .. } = button {
-                        if t == text {
-                            return true;
-                        }
+                    if let KeyboardButton::keyboardButtonUrl { text: t, .. } = button
+                        && t == text
+                    {
+                        return true;
                     }
                 }
             }

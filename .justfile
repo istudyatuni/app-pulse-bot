@@ -10,6 +10,9 @@ check:
 	cargo clippy -- -D warnings
 	@just test
 
+run-test-prod:
+	cargo r --release --features=test-prod
+
 # Run tests
 test what='--workspace':
 	cargo nextest run {{what}}

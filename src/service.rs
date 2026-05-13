@@ -17,6 +17,10 @@ pub fn install(force: bool) -> Result<()> {
     if force || !service_path_existed {
         ensure_dir(&service_path).context("creating systemd dir")?;
         std::fs::write(service_path, SYSTEMD_SERVICE).context("failed to write systemd unit")?;
+
+        if service_path_existed {
+            systemctl(&["daemon-reload"]).context("reloading systemd daemon")?;
+        }
     }
 
     install_bin()?;
@@ -24,14 +28,14 @@ pub fn install(force: bool) -> Result<()> {
     if service_path_existed {
         restart()?;
     } else {
-        systemctl(&["enable", "--now"]).context("enabling")?;
+        systemctl_service(&["enable", "--now"]).context("enabling")?;
     }
 
     Ok(())
 }
 
 pub fn restart() -> Result<()> {
-    systemctl(&["restart"]).context("restarting")
+    systemctl_service(&["restart"]).context("restarting")
 }
 
 fn install_bin() -> Result<()> {
@@ -58,11 +62,19 @@ fn ensure_dir(file_path: &Path) -> Result<()> {
 fn systemctl(cmd: &[&str]) -> Result<()> {
     let ok = std::process::Command::new("systemctl")
         .args(cmd)
-        .arg(SYSTEMD_SERVICE_NAME)
         .status()
         .context("failed to execute systemctl")?
         .success();
     ensure!(ok, "systemctl command {cmd:?} failed");
 
     Ok(())
+}
+
+fn systemctl_service(cmd: &[&str]) -> Result<()> {
+    let cmd: Vec<_> = cmd
+        .iter()
+        .chain([SYSTEMD_SERVICE_NAME].iter())
+        .copied()
+        .collect();
+    systemctl(&cmd)
 }

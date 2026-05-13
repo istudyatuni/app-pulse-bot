@@ -31,6 +31,8 @@ pub fn install(force: bool) -> Result<()> {
         systemctl_service(&["enable", "--now"]).context("enabling")?;
     }
 
+    eprintln!("done");
+
     Ok(())
 }
 

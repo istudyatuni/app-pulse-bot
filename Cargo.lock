@@ -1233,7 +1233,9 @@ dependencies = [
 
 [[package]]
 name = "interly"
-version = "0.3.0"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4b80439a54a50ee1ef2a54a6a76efb0e3338e4a92807c8bfe33a6b8b478ca08"
 dependencies = [
  "fluent",
  "interly-macros",
@@ -1244,7 +1246,9 @@ dependencies = [
 
 [[package]]
 name = "interly-macros"
-version = "0.3.0"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fce3c06eeeaf77468acfe934143024871fe023208dc51e672458097196ec871"
 dependencies = [
  "camino",
  "fluent",
@@ -1498,9 +1502,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.21.3"
+version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
+checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
 name = "once_cell_polyfill"

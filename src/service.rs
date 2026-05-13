@@ -34,6 +34,9 @@ fn install_bin() -> Result<()> {
     ensure_dir(&bin_path).context("creating bin dir")?;
 
     let current_exe = std::env::current_exe().context("failed to get current exe")?;
+    if current_exe == bin_path {
+        bail!("you're running binary which is already installed");
+    }
     std::fs::rename(current_exe, bin_path).context("failed to move current exe to target dir")?;
     Ok(())
 }

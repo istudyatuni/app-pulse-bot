@@ -58,7 +58,6 @@ async fn main() -> Result<()> {
     if let Some(cmd) = args.cmd {
         match cmd {
             args::Command::Install { force } => service::install(force)?,
-            args::Command::Update => service::update()?,
             args::Command::Restart => service::restart()?,
         }
         return Ok(());

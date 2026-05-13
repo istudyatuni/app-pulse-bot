@@ -8,13 +8,12 @@ pub struct Cli {
 
 #[derive(Debug, Clone, Copy, Parser)]
 pub enum Command {
-    /// Install and enable systemd service, install current_exe
+    /// Install and enable systemd service, install current_exe. If systemd
+    /// service already installed, restart it
     Install {
         /// Overwrite service file
         force: bool,
     },
-    /// Install current_exe and restart systemd service
-    Update,
     /// Restart systemd service
     Restart,
 }

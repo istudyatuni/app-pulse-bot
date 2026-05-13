@@ -11,11 +11,13 @@ pub fn install(force: bool) -> Result<()> {
     let service_path = PathBuf::from(SYSTEMD_SERVICE_PATH);
     let service_path_existed = service_path.exists();
     if !force && service_path_existed {
-        bail!("service already installed, use --force to overwrite");
+        eprintln!("service already installed, use --force to overwrite");
     }
 
-    ensure_dir(&service_path).context("creating systemd dir")?;
-    std::fs::write(service_path, SYSTEMD_SERVICE).context("failed to write systemd unit")?;
+    if force || !service_path_existed {
+        ensure_dir(&service_path).context("creating systemd dir")?;
+        std::fs::write(service_path, SYSTEMD_SERVICE).context("failed to write systemd unit")?;
+    }
 
     install_bin()?;
 
@@ -25,12 +27,6 @@ pub fn install(force: bool) -> Result<()> {
         systemctl(&["enable", "--now"]).context("enabling")?;
     }
 
-    Ok(())
-}
-
-pub fn update() -> Result<()> {
-    install_bin()?;
-    restart()?;
     Ok(())
 }
 

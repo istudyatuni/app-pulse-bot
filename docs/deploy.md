@@ -1,28 +1,13 @@
-Service unit, copy to `/etc/systemd/system/app-pulse-bot.service`
-
-```
-[Unit]
-Description=Apps pulse, telegram bot
-
-[Service]
-ExecStart=/usr/local/bin/app-pulse-bot
-Restart=on-failure
-RestartSec=1
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Run
+To build and deploy, run:
 
 ```sh
-systemctl enable app-pulse-bot
+# assuming you're logging in as root user
+# build-deploy args: [host] [dir to place binary] [command to run after copying binary]
+just build-deploy root@[host] /root '/root/app-pulse-bot install'
 ```
 
-Helper to update app
+this will:
 
-```sh
-#!/bin/bash
-mv app-pulse-bot /usr/local/bin
-systemctl restart app-pulse-bot.service
-```
+- build bot as static binary
+- move binary to an appropriate location
+- run bot as a systemd service

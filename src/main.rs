@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use anyhow::Result;
+use clap::Parser;
 use dotenvy_macro::dotenv;
 use reqwest::Client;
 use simplelog::LevelFilter;
@@ -26,8 +27,10 @@ use crate::{
     logger::TgLogger,
 };
 
+mod args;
 mod handlers;
 mod logger;
+mod service;
 
 const DB_FILE: &str = dotenv!("DB_URL");
 const LOG_CHAT_ID: &str = dotenv!("LOG_CHAT_ID");
@@ -51,6 +54,15 @@ const TG_LOG_ENABLED: bool = IS_PROD;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args = args::Cli::parse();
+    if let Some(cmd) = args.cmd {
+        match cmd {
+            args::Command::Install => service::install()?,
+            args::Command::Update => service::update()?,
+        }
+        return Ok(());
+    }
+
     let tg_logs_chan = mpsc::channel(100);
     let log_chat_id = LOG_CHAT_ID.parse().ok().map(ChatId);
 

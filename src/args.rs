@@ -12,4 +12,6 @@ pub enum Command {
     Install,
     /// Install current_exe and restart systemd service
     Update,
+    /// Restart systemd service
+    Restart,
 }

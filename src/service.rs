@@ -25,8 +25,12 @@ pub fn install() -> Result<()> {
 
 pub fn update() -> Result<()> {
     install_bin()?;
-    systemctl(&["restart"]).context("restarting")?;
+    restart()?;
     Ok(())
+}
+
+pub fn restart() -> Result<()> {
+    systemctl(&["restart"]).context("restarting")
 }
 
 fn install_bin() -> Result<()> {

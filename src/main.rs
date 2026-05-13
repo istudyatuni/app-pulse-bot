@@ -59,6 +59,7 @@ async fn main() -> Result<()> {
         match cmd {
             args::Command::Install => service::install()?,
             args::Command::Update => service::update()?,
+            args::Command::Restart => service::restart()?,
         }
         return Ok(());
     }

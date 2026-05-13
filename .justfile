@@ -6,6 +6,7 @@ rust-version := "1.95.0"
 
 # Run checks
 check:
+	which cargo-nextest
 	cargo fmt --check
 	cargo clippy -- -D warnings
 	@just test

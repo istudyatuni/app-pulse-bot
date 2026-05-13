@@ -3,7 +3,7 @@ use teloxide::prelude::*;
 use tokio::sync::mpsc::Receiver;
 
 use common::{DateTime, LogError};
-use db::{models::ShouldNotify, DB};
+use db::{DB, models::ShouldNotify};
 use sources::{Update, UpdatesList};
 
 use crate::keyboards::{Keyboards, NewAppKeyboardKind};

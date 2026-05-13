@@ -1,10 +1,10 @@
 use std::{convert::identity, thread};
 
-use log::{kv::Key, Level, Metadata, Record};
+use log::{Level, Metadata, Record, kv::Key};
 use simplelog::SharedLogger;
 use tokio::sync::mpsc::Sender;
 
-use crate::{handlers::tg_logs::LogMessage, TG_LOG_ENABLED};
+use crate::{TG_LOG_ENABLED, handlers::tg_logs::LogMessage};
 
 /// By default only error logs are sent. If [`crate::TG_LOG_ENABLED`] is
 /// false, do not send anything

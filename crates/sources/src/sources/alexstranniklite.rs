@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use timer::Timer;
 
 use crate::extractor::tg::{
-    fetch_public_channel, Document, KeyboardButton, Media, Message, ReplyInlineMarkupRow,
-    ReplyMarkup,
+    Document, KeyboardButton, Media, Message, ReplyInlineMarkupRow, ReplyMarkup,
+    fetch_public_channel,
 };
 use crate::*;
 
@@ -127,7 +127,7 @@ fn has_button(msg: &Message, text: &str) -> bool {
     let Some(ref r) = msg.reply_markup else {
         return false;
     };
-    if let ReplyMarkup::replyInlineMarkup { ref rows } = r {
+    if let ReplyMarkup::replyInlineMarkup { rows } = r {
         for row in rows {
             if let ReplyInlineMarkupRow::keyboardButtonRow { buttons } = row {
                 for button in buttons {
@@ -175,7 +175,10 @@ mod tests {
     fn test_get_app_id() {
         let table = &[
             ("<b>app</b> 1.2.3 <b>arm7</b>", "app"),
-            ("<a href=\"mts.music\" target=\"_blank\" rel=\"nofollow\"><b>app.text</b></a> 9.19.0", "app.text"),
+            (
+                "<a href=\"mts.music\" target=\"_blank\" rel=\"nofollow\"><b>app.text</b></a> 9.19.0",
+                "app.text",
+            ),
         ];
         for (msg, expected) in table {
             assert_eq!(

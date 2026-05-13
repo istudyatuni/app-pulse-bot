@@ -7,12 +7,13 @@ use teloxide::{
     },
 };
 
-use db::{models::ShouldNotify, DB};
+use db::{DB, models::ShouldNotify};
 
 use crate::{
+    DEFAULT_USER_LANG,
     callback::{Callback, CallbackParseError},
     keyboards::{Keyboards, LanguagesKeyboardToken, NewAppKeyboardKind},
-    tr, DEFAULT_USER_LANG,
+    tr,
 };
 
 pub async fn callback_handler(bot: Bot, q: CallbackQuery, db: DB) -> ResponseResult<()> {

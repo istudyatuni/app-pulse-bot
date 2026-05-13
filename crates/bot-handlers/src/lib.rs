@@ -23,4 +23,4 @@ pub use commands::{AdminCommand, Command};
 pub use updates_notify::start_updates_notify_job;
 pub use user::run_collect_user_names_job;
 
-pub(crate) use i18n::{tr, DEFAULT_USER_LANG};
+pub(crate) use i18n::{DEFAULT_USER_LANG, tr};

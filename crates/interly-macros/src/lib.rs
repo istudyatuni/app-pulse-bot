@@ -2,8 +2,8 @@ use heck::{ToShoutySnakeCase, ToSnakeCase};
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{quote, quote_spanned};
-use syn::{parse_macro_input, Data, DeriveInput, Ident, Visibility};
-use unic_langid::{langid, LanguageIdentifier};
+use syn::{Data, DeriveInput, Ident, Visibility, parse_macro_input};
+use unic_langid::{LanguageIdentifier, langid};
 
 use prepare::make_init;
 
@@ -11,7 +11,7 @@ mod locales;
 mod prepare;
 mod read;
 
-use locales::{extract_messages, LangInfo};
+use locales::{LangInfo, extract_messages};
 
 use crate::prepare::make_messages_methods;
 
@@ -39,10 +39,10 @@ pub fn localize(_args: TokenStream, input: TokenStream) -> TokenStream {
     match input.data {
         Data::Struct(_) => (),
         Data::Enum(d) => {
-            return quote_spanned! { d.enum_token.span => compile_error!("use struct"); }.into()
+            return quote_spanned! { d.enum_token.span => compile_error!("use struct"); }.into();
         }
         Data::Union(d) => {
-            return quote_spanned! { d.union_token.span => compile_error!("use struct"); }.into()
+            return quote_spanned! { d.union_token.span => compile_error!("use struct"); }.into();
         }
     }
 

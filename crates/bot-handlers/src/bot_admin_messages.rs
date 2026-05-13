@@ -1,11 +1,11 @@
 use teloxide::{
+    Bot,
     payloads::SendMessageSetters,
     prelude::{Requester, ResponseResult},
     types::Message,
-    Bot,
 };
 
-use db::{models::Stats, DB};
+use db::{DB, models::Stats};
 use i18n::{tr, tr_literal};
 
 use crate::{

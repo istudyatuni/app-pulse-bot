@@ -1,11 +1,11 @@
-use sqlx::{sqlite::SqliteRow, Row};
+use sqlx::{Row, sqlite::SqliteRow};
 use teloxide::utils::markdown::user_mention;
 
 use common::{DateTime, UnixDateTime};
 
 use crate::{
-    types::{Id, UserId},
     SOURCE_ID,
+    types::{Id, UserId},
 };
 
 #[derive(Debug, Default, sqlx::FromRow, bon::Builder)]

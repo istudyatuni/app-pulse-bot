@@ -3,7 +3,7 @@ use std::fmt::Display;
 use reqwest::Url;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyMarkup};
 
-use crate::{tr, IGNORE_TOKEN, NOTIFY_FLAG, NOTIFY_TOKEN, SET_LANG_FLAG};
+use crate::{IGNORE_TOKEN, NOTIFY_FLAG, NOTIFY_TOKEN, SET_LANG_FLAG, tr};
 
 const BELL_MSG: &str = "🔔";
 const NO_BELL_MSG: &str = "🔕";

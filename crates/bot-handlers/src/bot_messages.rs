@@ -8,15 +8,15 @@ use teloxide::{
     types::{BotCommand, ChatKind, MessageKind},
 };
 
-use db::{models::User, types, DB};
+use db::{DB, models::User, types};
 
 use crate::{
+    Command, DEFAULT_USER_LANG,
     commands::AdminCommand,
     keyboards::{Keyboards, LanguagesKeyboardToken},
     tr,
     user::get_chat_name,
     utils::escape,
-    Command, DEFAULT_USER_LANG,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -229,9 +229,11 @@ mod tests {
 
     #[test]
     fn test_get_user_lang() {
-        assert!(["en", "ru"]
-            .iter()
-            .all(|lang| i18n::Localize::languages().iter().any(|l| lang == l)));
+        assert!(
+            ["en", "ru"]
+                .iter()
+                .all(|lang| i18n::Localize::languages().iter().any(|l| lang == l))
+        );
 
         let table = [
             (Some("en"), None, "en"),

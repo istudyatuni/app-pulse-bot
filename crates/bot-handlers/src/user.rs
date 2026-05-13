@@ -1,4 +1,4 @@
-use teloxide::{prelude::Requester, types::ChatFullInfoKind, Bot};
+use teloxide::{Bot, prelude::Requester, types::ChatFullInfoKind};
 
 use common::LogError;
 use db::DB;

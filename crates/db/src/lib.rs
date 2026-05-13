@@ -1,4 +1,4 @@
-use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
+use sqlx::{SqlitePool, sqlite::SqliteConnectOptions};
 
 pub mod models;
 pub mod types;

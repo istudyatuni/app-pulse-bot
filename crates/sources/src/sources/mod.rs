@@ -3,7 +3,7 @@ use tokio_util::sync::CancellationToken;
 
 use common::spawn_with_token;
 
-use crate::{start_list_update_loop, UpdateSource, UpdatesList};
+use crate::{UpdateSource, UpdatesList, start_list_update_loop};
 
 mod alexstranniklite;
 

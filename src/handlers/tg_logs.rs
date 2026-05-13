@@ -4,11 +4,11 @@ use anyhow::Result;
 use common::LogError;
 use log::Level;
 use teloxide::{
+    Bot,
     payloads::SendMessageSetters,
     requests::Requester,
     types::{ChatId, ParseMode},
     utils::markdown::code_block_with_lang,
-    Bot,
 };
 use time::format_description::well_known::Rfc3339;
 use tokio::sync::mpsc::Receiver;

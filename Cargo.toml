@@ -22,10 +22,10 @@ prod = []
 test-prod = []
 
 [workspace.dependencies]
-anyhow = "1.0.100"
+anyhow = "1"
 async-trait = "0.1.89"
-bon = "3.8.2"
-chrono = "0.4.42"
+bon = "3.9.1"
+chrono = "0.4.44"
 clap = { version = "4.6.1", features = ["derive"] }
 dotenvy_macro = "0.15.7"
 interly = "0.1.0"
@@ -37,11 +37,11 @@ serde_json = "1.0.149"
 simplelog = "0.12.2"
 sqlx = { version = "0.8.6", features = [ "macros", "migrate", "runtime-tokio", "sqlite", "tls-rustls" ] }
 teloxide = { version = "0.17.0", default-features = false, features = ["macros", "ctrlc_handler", "rustls"] }
-thiserror = "2.0.17"
-time = { version = "0.3.44", features = ["formatting"] }
-tokio = { version = "1.49.0", features = [ "full" ] }
+thiserror = "2.0.18"
+time = { version = "0.3.47", features = [ "formatting" ] }
+tokio = { version = "1.52.3", features = [ "full" ] }
 tokio-util = "0.7.18"
-toml = "0.9.11"
+toml = "1.1.2"
 
 bot-handlers = { path = "crates/bot-handlers" }
 common = { path = "crates/common" }

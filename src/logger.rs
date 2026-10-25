@@ -1,4 +1,4 @@
-use std::{convert::identity, thread};
+use std::thread;
 
 use log::{Level, Metadata, Record, kv::Key};
 use simplelog::SharedLogger;
@@ -62,7 +62,7 @@ impl log::Log for TgLogger {
             .key_values()
             .get(Key::from_str("code"))
             .and_then(|v| v.to_bool())
-            .map_or_else(|| level <= Level::Error, identity);
+            .unwrap_or(level <= Level::Error);
 
         if self.enabled(record.metadata()) || should_always_send {
             let text = record.args().to_string();

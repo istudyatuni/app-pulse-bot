@@ -8,6 +8,7 @@ use syn::{
 };
 
 #[derive(Debug)]
+#[expect(clippy::large_enum_variant)]
 pub enum Migration {
     /// Name of migration from folder with SQL migrations
     Raw(String),

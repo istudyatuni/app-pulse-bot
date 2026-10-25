@@ -23,11 +23,12 @@ impl DB {
         match res {
             Ok(_) => Ok(()),
             Err(e) => {
-                if let Some(e) = e.as_database_error() {
-                    if e.is_unique_violation() && e.message() == SOURCE_NAME_UNIQ_ERR {
-                        log::debug!("source {name} exists, ignoring");
-                        return self.save_source_description(name, description).await;
-                    }
+                if let Some(e) = e.as_database_error()
+                    && e.is_unique_violation()
+                    && e.message() == SOURCE_NAME_UNIQ_ERR
+                {
+                    log::debug!("source {name} exists, ignoring");
+                    return self.save_source_description(name, description).await;
                 }
                 Err(e.into())
             },

@@ -75,17 +75,17 @@ pub async fn start_updates_notify_job(bot: Bot, db: DB, mut rx: Receiver<Updates
                 }
             }
 
-            if let Some(time) = update_time {
-                if let Err(e) = db.save_app_last_updated_at(app_id, time).await {
-                    log::error!("failed to update app last_updated_at: {e}");
-                    continue;
-                }
+            if let Some(time) = update_time
+                && let Err(e) = db.save_app_last_updated_at(app_id, time).await
+            {
+                log::error!("failed to update app last_updated_at: {e}");
+                continue;
             }
-            if let Some(version) = update_version {
-                if let Err(e) = db.save_app_last_updated_version(app_id, version).await {
-                    log::error!("failed to update app last_updated_version: {e}");
-                    continue;
-                }
+            if let Some(version) = update_version
+                && let Err(e) = db.save_app_last_updated_version(app_id, version).await
+            {
+                log::error!("failed to update app last_updated_version: {e}");
+                continue;
             }
 
             let users = match db.select_users_to_notify(source_id, app_id).await {

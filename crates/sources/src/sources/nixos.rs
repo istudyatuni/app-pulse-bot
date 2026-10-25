@@ -59,7 +59,7 @@ impl Source {
             updates.push(
                 Update::builder()
                     .name(app_name)
-                    .maybe_app_id(app_id.map(Into::into))
+                    .maybe_app_id(app_id)
                     .update_version(data.version.clone())
                     .build(),
             );

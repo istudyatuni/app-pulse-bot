@@ -61,7 +61,7 @@ impl Source {
 
                     updates.push(
                         Update::builder()
-                            .maybe_app_id(app_id.map(Into::into))
+                            .maybe_app_id(app_id)
                             .name(app_name)
                             .description_link(
                                 format!("{channel_link}{}", msg.id)

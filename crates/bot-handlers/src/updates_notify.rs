@@ -215,6 +215,9 @@ async fn send_update(
 
 async fn notify_bot_update(bot: Bot, db: DB) -> Result<()> {
     let users = db.select_users_to_notify_about_bot_update().await?;
+    if users.is_empty() {
+        return Ok(());
+    }
     log::debug!("sending bot update notification to {} users", users.len());
 
     let mut failed = (0, users.len());
